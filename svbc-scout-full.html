@@ -706,7 +706,7 @@ const clamp=(v,a,b)=>Math.min(b,Math.max(a,v));
 function ligaBase(l){return (l==='D1'||l==='D2')?'D':l;}
 function wOf(p){return p.isJugend ? p.jw : LIGA_W[p.liga];}
 function scores(p){
-  const sp=p.einsaetze||((p.kaderDoc&&p.kaderStarts)?Math.max(6,p.kaderStarts):p.teamSp);
+  const sp=p.einsaetze||((p.toreBelegt&&p.kaderDoc&&p.kaderStarts)?Math.max(6,p.kaderStarts):p.teamSp); /* dok.-Spiele-Basis NUR bei Untergrenzen-Toren aus den Heften — offizielle Saisontore rechnen über Team-Spiele */
   const gpg=(p.min&&p.min>=90)?p.tore/(p.min/90):p.tore/Math.max(1,sp);
   const wnow=gpg*wOf(p);
   let prod=clamp(wnow/1.0*100,0,100);
