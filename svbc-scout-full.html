@@ -340,6 +340,49 @@
   .avaCam{position:relative;cursor:pointer;}
   .avaCam:after{content:'📷';position:absolute;right:-5px;bottom:-5px;font-size:14px;background:var(--card2);border:1px solid var(--line);border-radius:50%;padding:2px 3px;}
   .installcard{background:linear-gradient(160deg,rgba(37,99,235,.16),var(--card));border:1px solid rgba(77,163,255,.3);}
+  .rankrow{display:grid;grid-template-columns:26px 30px 1fr auto;gap:10px;align-items:center;padding:9px 6px;border-bottom:1px solid var(--line2);cursor:pointer;border-radius:9px;}
+  .rankrow:hover{background:rgba(255,255,255,.05);}
+  .rankrow .rk{text-align:center;font-weight:900;color:var(--ink3);font-variant-numeric:tabular-nums;}
+  .rankrow.me{background:rgba(77,163,255,.14);outline:1px solid rgba(77,163,255,.4);}
+  .rankrow .rn{font-weight:700;font-size:13.5px;line-height:1.25;min-width:0;}
+  .rankrow .rn i{color:var(--ink2);font-weight:600;font-size:11.5px;}
+  .rankrow .rv{font-weight:800;font-variant-numeric:tabular-nums;white-space:nowrap;}
+  .rtab{border:1px solid var(--line);background:var(--card2);color:var(--ink2);border-radius:99px;padding:6px 13px;font-size:12.5px;font-weight:700;cursor:pointer;font-family:inherit;}
+  .rtab.on{background:var(--accent);color:#fff;border-color:transparent;}
+  .pitch{position:relative;width:100%;max-width:540px;margin:0 auto;aspect-ratio:3/4;
+    background:linear-gradient(180deg,#1f7a43,#166436);border:2px solid rgba(255,255,255,.22);border-radius:18px;overflow:hidden;touch-action:none;}
+  .pitch .pl{position:absolute;border:2px solid rgba(255,255,255,.18);}
+  .pl.mid{left:0;right:0;top:50%;border-width:1px 0 0 0;}
+  .pl.circ{width:34%;aspect-ratio:1;border-radius:50%;left:33%;top:calc(50% - 17vw);max-width:170px;max-height:170px;top:38%;}
+  .pl.boxT{left:22%;right:22%;top:0;height:14%;border-top:0;}
+  .pl.boxB{left:22%;right:22%;bottom:0;height:14%;border-bottom:0;}
+  .slot{position:absolute;transform:translate(-50%,-50%);width:80px;text-align:center;cursor:pointer;touch-action:none;user-select:none;}
+  .fcardm{background:linear-gradient(160deg,color-mix(in srgb,var(--tc) 55%,#12203a),#0e1626);
+    border:1.5px solid var(--tc);border-radius:12px;padding:5px 4px 6px;position:relative;box-shadow:0 4px 12px rgba(0,0,0,.4);}
+  .fcardm .ov{position:absolute;top:3px;left:5px;font-size:15px;font-weight:900;color:#fff;line-height:1;text-shadow:0 1px 2px rgba(0,0,0,.5);}
+  .fcardm .ps{position:absolute;top:4px;right:5px;font-size:9px;font-weight:800;color:rgba(255,255,255,.85);}
+  .fcardm .pic{width:34px;height:34px;margin:14px auto 2px;border-radius:9px;overflow:hidden;background:rgba(255,255,255,.15);display:grid;place-items:center;font-weight:900;font-size:13px;color:#fff;}
+  .fcardm .pic img{width:100%;height:100%;object-fit:cover;}
+  .fcardm .nm{font-size:11px;font-weight:800;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .slot.vac .vcard{border:2px dashed rgba(255,214,10,.7);border-radius:12px;padding:12px 4px;color:#ffe064;font-weight:800;font-size:18px;line-height:1;
+    background:rgba(255,214,10,.08);box-shadow:0 0 14px rgba(255,214,10,.25);}
+  .slot.vac .vcard span{display:block;font-size:10px;margin-top:3px;color:#ffd60a;}
+  .slot.drag{opacity:.4;}
+  .ghost{position:fixed;z-index:80;pointer-events:none;width:80px;transform:translate(-50%,-50%);}
+  .fpick{border:1px solid var(--line);background:var(--card2);color:var(--ink2);border-radius:99px;padding:7px 13px;font-size:13px;font-weight:800;cursor:pointer;font-family:inherit;}
+  .fpick.on{background:var(--accent);color:#fff;border-color:transparent;}
+  .gapchip{border:1px solid rgba(255,214,10,.4);background:rgba(255,214,10,.1);color:#ffe064;border-radius:99px;padding:5px 11px;font-size:12px;font-weight:800;}
+  .needcard{margin-top:14px;}
+  .needcard h3 i{color:var(--ink2);font-weight:600;font-size:12px;}
+  .needcard .rankrow{grid-template-columns:34px 30px 1fr auto;}
+  .fillbtn{border:1px solid rgba(77,163,255,.5);background:rgba(77,163,255,.12);color:var(--accent);border-radius:9px;min-width:34px;height:30px;font-size:15px;font-weight:900;cursor:pointer;font-family:inherit;}
+  .fillbtn:hover{background:var(--accent);color:#fff;}
+  .needchip{border:1px solid var(--line);background:var(--card2);color:var(--ink2);border-radius:99px;padding:5px 11px;font-size:12px;font-weight:700;display:inline-block;margin:3px 4px 0 0;}
+  .attrbar{display:flex;gap:5px;justify-content:center;flex-wrap:wrap;margin-top:10px;}
+  .attrbar .ab{background:var(--card2);border:1px solid var(--line);border-radius:8px;padding:4px 8px;font-size:11px;font-weight:800;font-variant-numeric:tabular-nums;}
+  .srow.clk{cursor:pointer;border-radius:9px;}
+  .srow.clk:hover{background:rgba(255,255,255,.05);}
+  .srow.clk .sm:after{content:' ›';color:var(--accent);font-weight:900;}
 </style>
 </head>
 <body>
@@ -356,6 +399,7 @@
   <button class="active" data-tab="home">Home</button>
   <button data-tab="scout">Scouting</button>
   <button data-tab="db">Datenbank</button>
+  <button data-tab="elf">⚽ Aufstellung</button>
   <button data-tab="gems">💎 Rohdiamanten</button>
   <button data-tab="jugend">Jugend</button>
   <button data-tab="cmp">Vergleich</button>
@@ -443,6 +487,18 @@
       <p style="margin:0;font-size:13px">🗄️ <b>Alle 261 Spieler als sortierbare Tabelle.</b> Spaltenkopf antippen zum Sortieren, Zeile antippen für den Steckbrief. Fehlende Angaben = „–". <a href="#" data-legend="1" style="font-weight:700">ⓘ Legende</a></p>
     </div>
     <div class="dbwrap"><table class="db"><thead id="dbhead"></thead><tbody id="dbbody"></tbody></table></div>
+  </section>
+
+  <!-- AUFSTELLUNG -->
+  <section class="panel" id="panel-elf">
+    <div class="card" style="padding:14px 18px">
+      <p style="margin:0 0 8px;font-size:13px">⚽ <b>Deine Wunsch-Elf im FIFA-Style.</b> Position antippen → Spieler wählen. Besetzte Karte gedrückt halten und auf eine andere Position ziehen zum Tauschen. Karte antippen öffnet das Profil (Attribute unter „Eye-Test" einstellen).</p>
+      <p style="margin:0;font-size:12px;color:var(--ink3)">Hinweis: Die echte Start-XI ist öffentlich nicht namentlich abrufbar (fussball.de verschleiert Spielernamen). Eigene SV/BSC-Spieler sind vorbesetzt – den Rest füllst du selbst.</p>
+    </div>
+    <div class="fbar"><div class="frow" id="formRow"></div><div class="frow" id="gapRow"></div></div>
+    <div class="pitch" id="pitch"></div>
+    <div id="lineupStats"></div>
+    <div id="needs"></div>
   </section>
 
   <!-- GEMS -->
@@ -588,6 +644,7 @@
   <button class="ti active" data-tab="home"><span class="ic">🏠</span>Home</button>
   <button class="ti" data-tab="scout"><span class="ic">🔍</span>Scout</button>
   <button class="ti" data-tab="db"><span class="ic">🗄️</span>Daten</button>
+  <button class="ti" data-tab="elf"><span class="ic">⚽</span>Elf</button>
   <button class="ti" data-tab="gems"><span class="ic">💎</span>Talente</button>
   <button class="ti" data-tab="jugend"><span class="ic">🌱</span>Jugend</button>
   <button class="ti" data-tab="model"><span class="ic">⚙️</span>Modell</button>
@@ -904,7 +961,7 @@ function renderDB(){
       <td class="num"><b>${fmt(s.total,1)}</b></td>
     </tr>`;
   }).join('');
-  document.getElementById('dbbody').querySelectorAll('tr').forEach(tr=>{tr.onclick=()=>openModal(tr.dataset.id);});
+  document.getElementById('dbbody').querySelectorAll('tr').forEach(tr=>{tr.onclick=()=>startPlayer(tr.dataset.id);});
 }
 let deferredPrompt=null;
 window.addEventListener('beforeinstallprompt',e=>{
@@ -912,10 +969,64 @@ window.addEventListener('beforeinstallprompt',e=>{
   const b=document.getElementById('installBtn');
   if(b){b.style.display='inline-block';b.onclick=()=>{deferredPrompt.prompt();};}
 });
-function renderAll(){renderHome();renderList();renderGems();renderJugend();renderShortlist();renderDB();fillCompareSelects();updateCompare();}
+function renderAll(){renderHome();renderList();renderGems();renderJugend();renderShortlist();renderDB();fillCompareSelects();updateCompare();try{renderLineup();}catch(e){}}
 
 /* ================= MODAL ================= */
 let radarChart=null;
+let NAV=[], CURVIEW=null;
+function closeOverlay(){document.getElementById('overlay').classList.remove('open');NAV=[];CURVIEW=null;}
+function renderView(d){ if(d.t==='player'){CURVIEW=d;openModal(d.id);} else if(d.t==='rank'){openRanking(d.cfg);} }
+function nav(d){ if(CURVIEW)NAV.push(CURVIEW); renderView(d); }
+function navBack(){ const d=NAV.pop(); if(!d)return closeOverlay(); renderView(d); }
+function startPlayer(id){ NAV=[]; CURVIEW=null; renderView({t:'player',id}); }
+function avaMini(r){ const p=players.find(x=>x.id===r.id); const src=p&&(p.photo||p.photoUrl); return `<div class="ava l-${p?p.liga:'A'}" style="width:30px;height:30px;font-size:11px;border-radius:9px">${src?`<img src="${src}" alt="" onerror="this.remove()">`:(p?initials(p.name):'?')}</div>`; }
+function buildRanking(liga,isJugend,metric,hid){
+  const pool=players.filter(x=>x.liga===liga && x.isJugend===isJugend);
+  const gv=(x)=> metric==='score'?scores(x).total : metric==='gpg'?scores(x).gpg : x.tore;
+  const arr=[...pool].sort((a,b)=>gv(b)-gv(a));
+  const fv=(x)=> metric==='score'?fmt(scores(x).total,1) : metric==='gpg'?fmt(scores(x).gpg)+'/Sp.' : x.tore+' Tore';
+  const ligaName=isJugend?'Jugend':LIGA_NAME[liga];
+  const tmap={tore:'⚽ Torjäger',score:'⭐ MScore-Rangliste',gpg:'📊 Tore pro Spiel'};
+  return {liga, isJugend, metric, hid,
+    title:`${tmap[metric]} · ${ligaName}`,
+    subtitle:`${arr.length} erfasste Spieler`,
+    tabs:[['tore','Tore'],['score','MScore'],['gpg','Tore/Sp.']],
+    rows:arr.map(x=>({id:x.id,name:x.name,club:x.club,val:fv(x),me:x.id===hid})),
+    note:'Zeile antippen → Profil. Oben umschalten: Tore · MScore · Quote.'};
+}
+function buildClubView(clubName,hid){
+  const c=(typeof clubFor==='function')?clubFor(clubName):null;
+  const pool=players.filter(x=>x.club===clubName).sort((a,b)=>scores(b).total-scores(a).total);
+  let hist='';
+  if(c){ hist=[['s2526','25/26'],['s2425','24/25'],['s2324','23/24'],['s2223','22/23']].filter(k=>c[k[0]]).map(k=>`${k[1]}: ${(LIGA_LONG[c[k[0]].liga]||c[k[0]].liga)} Platz ${c[k[0]].platz}`).join(' · '); }
+  return {liga:null,isJugend:false,metric:'score',hid,
+    title:`🏟 ${clubName}`,
+    subtitle: hist||'Vereins-Historie nicht öffentlich verfügbar',
+    tabs:null,
+    rows:pool.map(x=>({id:x.id,name:x.name,club:LIGA_NAME[x.liga]||'',val:fmt(scores(x).total,1),me:x.id===hid})),
+    note:'Erfasste Spieler dieses Vereins nach MScore. Zeile antippen → Profil.'};
+}
+function openRanking(cfg){
+  CURVIEW={t:'rank',cfg};
+  const back = NAV.length?`<button class="close" id="mback" style="right:56px" title="Zurück">‹</button>`:'';
+  const tabs = cfg.tabs?`<div style="display:flex;gap:6px;flex-wrap:wrap;margin:10px 0 2px">${cfg.tabs.map(t=>`<button class="rtab ${t[0]===cfg.metric?'on':''}" data-m="${t[0]}">${t[1]}</button>`).join('')}</div>`:'';
+  document.getElementById('modal').innerHTML=`${back}<button class="close" id="mclose">✕</button>
+    <h2 style="font-size:19px">${cfg.title}</h2>
+    <div class="msub">${cfg.subtitle||''}</div>
+    ${tabs}
+    <div style="margin-top:10px;max-height:62vh;overflow:auto">
+      ${cfg.rows.map((r,i)=>`<div class="rankrow ${r.me?'me':''}" ${r.id?`data-goid="${r.id}"`:''}>
+        <span class="rk">${i+1}</span>${r.id?avaMini(r):'<span></span>'}
+        <span class="rn">${r.name}${r.me?' <b style="color:var(--accent)">· hier</b>':''}<br><i>${r.club||''}</i></span>
+        <span class="rv">${r.val}</span></div>`).join('')}
+    </div>
+    ${cfg.note?`<p class="note">${cfg.note}</p>`:''}`;
+  document.getElementById('overlay').classList.add('open');
+  document.getElementById('mclose').onclick=closeOverlay;
+  {const b=document.getElementById('mback'); if(b)b.onclick=navBack;}
+  document.querySelectorAll('#modal .rtab').forEach(bt=>bt.onclick=()=>openRanking(buildRanking(cfg.liga,cfg.isJugend,bt.dataset.m,cfg.hid)));
+  document.querySelectorAll('#modal [data-goid]').forEach(el=>el.onclick=()=>nav({t:'player',id:el.dataset.goid}));
+}
 function openLegend(){
   const ring=(v)=>`<span style="display:inline-grid;place-items:center;width:40px;height:40px;border-radius:50%;background:conic-gradient(${tierColor(v)} ${v}%, rgba(255,255,255,.09) 0);vertical-align:middle;margin-right:8px"><span style="width:32px;height:32px;border-radius:50%;background:var(--card);display:grid;place-items:center;font-size:11px;font-weight:900">${v}</span></span>`;
   document.getElementById('modal').innerHTML=`
@@ -957,6 +1068,7 @@ function openModal(id){
   const g=gemsOf(p);
   const prevLine=p.prev?`<div><span>Vorsaison 24/25</span><b>${p.prev.tore} T · ${LIGA_NAME[ligaBase(p.prev.liga)]||p.prev.liga} · ${p.prev.verein}</b></div>`:'';
   $('#modal').innerHTML=`
+    ${NAV.length?`<button class="close" id="mback" style="right:56px" title="Zurück">‹</button>`:''}
     <button class="close" id="mclose">✕</button>
     <div class="mhead">
       <div class="ava l-${p.liga} ${p.photo?'':'avaCam'}" id="mAva" title="Foto hinzufügen" style="width:56px;height:56px;font-size:19px;border-radius:16px">${(p.photo||p.photoUrl)?`<img src="${p.photo||p.photoUrl}" alt="" onerror="this.remove()">`:initials(p.name)}</div>
@@ -1005,9 +1117,11 @@ function openModal(id){
       ${[['Produktion',s.prod,W.prod],['Dominanz',s.share,W.share],['Kontext',s.ctx,W.ctx],['Potenzial',s.pot,W.pot],['Formtrend',s.trend,W.trend],['Presse',s.presse,W.presse],['Scout-Note',s.scout,W.scout]].map(([l,v,w])=>`
         <div class="srow"><span class="sy" style="font-size:11px">${l}</span><span class="sbar" style="width:100%;max-width:none"><i style="width:${v}%;background:${tierColor(v)}"></i></span><b style="font-variant-numeric:tabular-nums">${v} <i style="color:var(--ink3);font-style:normal;font-weight:600">· ${w}%</i></b></div>`).join('')}
     </div>
-    <div class="seas"><h4>Einordnung in seiner Liga</h4>
-      <div class="srow"><span class="sy">🏅</span><span class="sm">Torjäger-Rang: <b>#${(()=>{const pool=players.filter(x=>x.liga===p.liga&&x.isJugend===p.isJugend).sort((a,b)=>b.tore-a.tore);return pool.findIndex(x=>x.id===p.id)+1;})()}</b> von ${players.filter(x=>x.liga===p.liga&&x.isJugend===p.isJugend).length} erfassten Spielern (${p.isJugend?'Jugend':LIGA_NAME[p.liga]})</span><span></span></div>
-      <div class="srow"><span class="sy">📊</span><span class="sm">Tore/Spiel: besser als <b>${(()=>{const pool=players.filter(x=>x.liga===p.liga&&x.isJugend===p.isJugend);const me=s.gpg;return Math.round(pool.filter(x=>scores(x).gpg<me).length/Math.max(1,pool.length)*100);})()} %</b> der erfassten Liga-Konkurrenz</span><span></span></div>
+    <div class="seas"><h4>Einordnung — antippen ›</h4>
+      <div class="srow clk" data-rank="tore"><span class="sy">🏅</span><span class="sm">Torjäger-Rang: <b>#${(()=>{const pool=players.filter(x=>x.liga===p.liga&&x.isJugend===p.isJugend).sort((a,b)=>b.tore-a.tore);return pool.findIndex(x=>x.id===p.id)+1;})()}</b> von ${players.filter(x=>x.liga===p.liga&&x.isJugend===p.isJugend).length} erfassten Spielern (${p.isJugend?'Jugend':LIGA_NAME[p.liga]})</span><span></span></div>
+      <div class="srow clk" data-rank="gpg"><span class="sy">📊</span><span class="sm">Tore/Spiel: besser als <b>${(()=>{const pool=players.filter(x=>x.liga===p.liga&&x.isJugend===p.isJugend);const me=s.gpg;return Math.round(pool.filter(x=>scores(x).gpg<me).length/Math.max(1,pool.length)*100);})()} %</b> der Liga-Konkurrenz</span></div>
+      <div class="srow clk" data-rank="score"><span class="sy">⭐</span><span class="sm">MScore-Rang: <b>#${(()=>{const pool=players.filter(x=>x.liga===p.liga&&x.isJugend===p.isJugend).sort((a,b)=>scores(b).total-scores(a).total);return pool.findIndex(x=>x.id===p.id)+1;})()}</b> von ${players.filter(x=>x.liga===p.liga&&x.isJugend===p.isJugend).length}</span></div>
+      <div class="srow clk" data-clubview="1"><span class="sy">🏟</span><span class="sm">Kader &amp; Vereins-Historie: <b>${p.club}</b></span></div>
     </div>
     ${p.pressNews&&p.pressNews.length?`<div class="pressbox"><h4>📰 Presse-Engine · Index ${p.pressIdx} · ${p.pressNews.length} Nennungen</h4>
       <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:9px">${Object.entries(p.pressStats||{}).map(([t,n])=>`<span class="badge b-zweit" style="text-transform:none">${({tor:'⚽',vorlage:'🅰️',parade:'🧤',lob:'👍',kritik:'⚠️',verletzung:'🚑',wechsel:'🔁',neutral:'📄'})[t]||'📄'} ${t}: ${n}</span>`).join('')}</div>
@@ -1044,7 +1158,10 @@ function openModal(id){
       </div>
     </div>`;
   $('#overlay').classList.add('open');
-  $('#mclose').onclick=()=>$('#overlay').classList.remove('open');
+  $('#mclose').onclick=closeOverlay;
+  {const _b=document.getElementById('mback'); if(_b)_b.onclick=navBack;}
+  $('#modal').querySelectorAll('[data-rank]').forEach(el=>el.onclick=()=>nav({t:'rank',cfg:buildRanking(p.liga,p.isJugend,el.dataset.rank,p.id)}));
+  {const _cv=$('#modal').querySelector('[data-clubview]'); if(_cv)_cv.onclick=()=>nav({t:'rank',cfg:buildClubView(p.club,p.id)});}
   document.querySelectorAll('[data-sc]').forEach(inp=>{inp.oninput=e=>{e.target.nextElementSibling.value=e.target.value;};});
   const photoInp=document.getElementById('e_photo');
   if(photoInp)photoInp.onchange=e=>{
@@ -1091,7 +1208,7 @@ function openModal(id){
         scales:{r:{min:0,max:100,ticks:{display:false,stepSize:25},grid:{color:'#262d3d'},angleLines:{color:'#262d3d'},pointLabels:{color:'#9aa3b5',font:{size:11}}}}}});
   }catch(err){console.warn('Radar:',err);}
 }
-$('#overlay').addEventListener('click',e=>{if(e.target.id==='overlay')$('#overlay').classList.remove('open');});
+$('#overlay').addEventListener('click',e=>{if(e.target.id==='overlay')closeOverlay();});
 
 /* ================= VERGLEICH ================= */
 let cmpRadar=null,cmpBar=null;
@@ -1148,7 +1265,7 @@ function download(name,text,type){
   const b=new Blob([text],{type});const a=document.createElement('a');
   a.href=URL.createObjectURL(b);a.download=name;a.click();URL.revokeObjectURL(a.href);
 }
-$('#exportBtn').onclick=()=>download('svbc-scout-daten.json',JSON.stringify({weights:W,players},null,2),'application/json');
+$('#exportBtn').onclick=()=>download('svbc-scout-daten.json',JSON.stringify({weights:W,players,lineup:LINEUP},null,2),'application/json');
 $('#exportCsv').onclick=()=>{
   const arr=sorted(players.filter(p=>p.star));
   const rows=[['Name','Verein','Liga','Tore','MScore','PrognoseKLA','Alter','km','Notiz']]
@@ -1163,6 +1280,7 @@ $('#importFile').onchange=e=>{
     const d=JSON.parse(rd.result);
     if(d.weights)W=d.weights;
     if(Array.isArray(d.players))players=d.players;
+    if(d.lineup)LINEUP=d.lineup;
     renderWeights();renderAll();
   }catch(err){alert('Import fehlgeschlagen: '+err.message);}};
   rd.readAsText(f);
@@ -1244,11 +1362,219 @@ document.addEventListener('click',e=>{
     if(p){p.star=!p.star;renderAll();}
     return;}
   const row=e.target.closest('.row[data-id],.fcard[data-id]');
-  if(row)openModal(row.dataset.id);
+  if(row)startPlayer(row.dataset.id);
 });
+
+/* ================= AUFSTELLUNG (FIFA-Style) ================= */
+const FORMATIONS={
+ '4-4-2':[['TW',50,90],['LV',17,72],['IV',39,75],['IV',61,75],['RV',83,72],['LM',17,48],['ZM',39,51],['ZM',61,51],['RM',83,48],['ST',38,25],['ST',62,25]],
+ '4-3-3':[['TW',50,90],['LV',17,72],['IV',39,75],['IV',61,75],['RV',83,72],['ZM',30,53],['ZM',50,56],['ZM',70,53],['LA',18,28],['ST',50,22],['RA',82,28]],
+ '3-5-2':[['TW',50,90],['IV',30,75],['IV',50,77],['IV',70,75],['LM',12,53],['ZM',35,55],['ZM',50,50],['ZM',65,55],['RM',88,53],['ST',38,25],['ST',62,25]],
+ '4-2-3-1':[['TW',50,90],['LV',17,74],['IV',39,77],['IV',61,77],['RV',83,74],['ZM',38,58],['ZM',62,58],['LM',20,38],['OM',50,35],['RM',80,38],['ST',50,20]],
+};
+const ROLE2POS={TW:'TW',IV:'IV',LV:'AV',RV:'AV',ZM:'ZM',LM:'Flügel',RM:'Flügel',LA:'Flügel',RA:'Flügel',OM:'OM',ST:'ST'};
+let LINEUP={formation:'4-4-2',slots:{}};
+function initLineupSeed(){
+  const form=FORMATIONS[LINEUP.formation];
+  const own=players.filter(p=>p.own&&!p.isJugend);
+  own.forEach(p=>{
+    let bi=-1;
+    for(let i=0;i<form.length;i++){ if(!LINEUP.slots[i]&&ROLE2POS[form[i][0]]===p.pos){bi=i;break;} }
+    if(bi<0)for(let i=0;i<form.length;i++){ if(!LINEUP.slots[i]&&form[i][0]!=='TW'){bi=i;break;} }
+    if(bi>=0)LINEUP.slots[bi]=p.id;
+  });
+}
+function lineupCardHtml(p,role){
+  const s=scores(p);const ov=Math.round(s.total);const c=tierColor(s.total);const src=p.photo||p.photoUrl;
+  return `<div class="fcardm" style="--tc:${c}"><div class="ov">${ov}</div><div class="ps">${role}</div>`+
+    `<div class="pic">${src?`<img src="${src}" alt="" onerror="this.remove()">`:initials(p.name)}</div>`+
+    `<div class="nm">${p.name.split(' ').slice(-1)[0]}</div></div>`;
+}
+function renderLineup(){
+  const pitch=document.getElementById('pitch');if(!pitch)return;
+  const form=FORMATIONS[LINEUP.formation];
+  // Formationswahl
+  document.getElementById('formRow').innerHTML='<span class="lbl">Formation</span>'+
+    Object.keys(FORMATIONS).map(f=>`<button class="fpick ${f===LINEUP.formation?'on':''}" data-f="${f}">${f}</button>`).join('');
+  document.querySelectorAll('#formRow .fpick').forEach(b=>b.onclick=()=>{
+    const nf=b.dataset.f, old=FORMATIONS[LINEUP.formation], nw=FORMATIONS[nf];
+    const ns={}; // Spieler nach Rolle möglichst mitnehmen
+    const taken=new Set();
+    nw.forEach((slot,i)=>{
+      for(const oi in LINEUP.slots){ if(taken.has(oi))continue; if(old[oi]&&old[oi][0]===slot[0]){ns[i]=LINEUP.slots[oi];taken.add(oi);break;} }
+    });
+    let pool=Object.keys(LINEUP.slots).filter(oi=>!taken.has(oi)).map(oi=>LINEUP.slots[oi]);
+    nw.forEach((slot,i)=>{ if(ns[i]===undefined&&pool.length){ns[i]=pool.shift();} });
+    LINEUP={formation:nf,slots:ns};renderLineup();
+  });
+  // Pitch
+  let html='<div class="pl mid"></div><div class="pl circ"></div><div class="pl boxT"></div><div class="pl boxB"></div>';
+  form.forEach((slot,i)=>{
+    const [role,x,y]=slot;const pid=LINEUP.slots[i];const p=pid&&players.find(z=>z.id===pid);
+    html+=`<div class="slot ${p?'':'vac'}" data-slot="${i}" style="left:${x}%;top:${y}%">`+
+      (p?lineupCardHtml(p,role):`<div class="vcard">＋<span>${role}</span></div>`)+`</div>`;
+  });
+  pitch.innerHTML=html;
+  // Statistik / Lücken
+  const filled=form.filter((_,i)=>LINEUP.slots[i]).length;
+  const gaps=form.filter((_,i)=>!LINEUP.slots[i]).map(s=>s[0]);
+  const gapCount={};gaps.forEach(g=>gapCount[ROLE2POS[g]]=(gapCount[ROLE2POS[g]]||0)+1);
+  document.getElementById('gapRow').innerHTML=`<span class="lbl">${filled}/11 besetzt</span>`+
+    (gaps.length?Object.entries(gapCount).map(([p,n])=>`<span class="gapchip" style="cursor:pointer" onclick="document.getElementById('needs').scrollIntoView({behavior:'smooth'})">Lücke: ${n}× ${p} ›</span>`).join(''):'<span class="gapchip" style="border-color:rgba(47,210,122,.4);background:rgba(47,210,122,.1);color:#5fe09b">Elf komplett ✓</span>');
+  // Team-OVR
+  const ids=form.map((_,i)=>LINEUP.slots[i]).filter(Boolean);
+  const ovrs=ids.map(id=>scores(players.find(z=>z.id===id)).total);
+  const teamOvr=ovrs.length?Math.round(ovrs.reduce((a,b)=>a+b,0)/ovrs.length):0;
+  const lines=(function(){
+    const zone=(y)=>y>=66?'def':y>=40?'mid':'att';
+    const acc={def:[],mid:[],att:[]};
+    form.forEach((s,i)=>{if(s[0]==='TW')return;const id=LINEUP.slots[i];if(id)acc[zone(s[2])].push(scores(players.find(z=>z.id===id)).total);});
+    const avg=a=>a.length?Math.round(a.reduce((x,y)=>x+y,0)/a.length):'–';
+    return `Abwehr ${avg(acc.def)} · Mittelfeld ${avg(acc.mid)} · Angriff ${avg(acc.att)}`;
+  })();
+  document.getElementById('lineupStats').innerHTML=`
+    <div class="tiles" style="margin-top:14px">
+      <div class="tile"><div class="v">${teamOvr}</div><div class="l">Team-OVR (Ø MScore)</div></div>
+      <div class="tile"><div class="v">${filled}/11</div><div class="l">Positionen besetzt</div></div>
+      <div class="tile" style="flex:2 1 260px"><div class="v" style="font-size:16px">${lines}</div><div class="l">Mannschaftsteile (Ø MScore)</div></div>
+    </div>`;
+  wireSlots();
+  renderNeeds();
+}
+function renderNeeds(){
+  const el=document.getElementById('needs'); if(!el)return;
+  const form=FORMATIONS[LINEUP.formation];
+  const inXI=new Set(Object.values(LINEUP.slots));
+  const byScore=(a,b)=>scores(b).total-scores(a).total;
+  const ext=players.filter(p=>!p.own&&!inXI.has(p.id));
+  const OFF=new Set(['ST','OM','Flügel']);
+  // vakante Rollen gruppieren
+  const vac={};
+  form.forEach((s,i)=>{ if(LINEUP.slots[i]===undefined){const w=ROLE2POS[s[0]];
+    if(!vac[w])vac[w]={n:0,slot:i,roles:new Set()};
+    vac[w].n++; vac[w].roles.add(s[0]); }});
+  const row=(p,slot,tag,tagCol)=>{const s=scores(p);const c=tierColor(s.total);const src=p.photo||p.photoUrl;
+    return `<div class="rankrow" data-goid="${p.id}">
+      <span class="rk" style="color:${c}">${Math.round(s.total)}</span>
+      <div class="ava l-${p.liga}" style="width:30px;height:30px;font-size:11px;border-radius:9px">${src?`<img src="${src}" onerror="this.remove()">`:initials(p.name)}</div>
+      <span class="rn">${p.name}${p.risiko?` <span title="${p.risiko}">⚠</span>`:''} <b style="color:${tagCol||'#5fe09b'};font-size:10.5px">${tag}</b><br><i>${p.club} · ${p.km!=null?p.km+' km':'km –'} · ${p.alter?(p.alterCa?'ca. ':'')+p.alter+' J.':'Alter –'} · ${p.tore} Tore</i></span>
+      ${slot!=null?`<button class="fillbtn" data-fill="${slot}:${p.id}" title="Direkt aufstellen">＋</button>`:'<span></span>'}</div>`;};
+  let html='';
+  // Kader-Bedarfsanalyse-Überblick
+  const xiP=form.map((_,i)=>LINEUP.slots[i]).filter(Boolean).map(id=>players.find(z=>z.id===id)).filter(Boolean);
+  const ages=xiP.filter(p=>p.alter).map(p=>p.alter);
+  const oldies=xiP.filter(p=>p.alter&&p.alter>=32);
+  const vacChips=Object.entries(vac).map(([w,v])=>`<span class="needchip" style="border-color:rgba(255,214,10,.4);color:#ffe064">${v.n}× ${w} offen</span>`).join('');
+  html+=`<div class="card needcard"><h3>📋 Kader-Bedarfsanalyse</h3>
+    <div style="margin-top:6px">${vacChips||'<span class="needchip" style="border-color:rgba(47,210,122,.4);color:#5fe09b">Alle 11 Positionen besetzt ✓</span>'}
+    ${ages.length?`<span class="needchip">Ø Alter der Elf: ${(ages.reduce((a,b)=>a+b,0)/ages.length).toFixed(1)} J. (${ages.length}/${xiP.length} bekannt)</span>`:''}
+    ${oldies.length?`<span class="needchip" style="border-color:rgba(255,107,107,.4);color:#ff8a8a">Nachfolge planen: ${oldies.map(p=>p.name.split(' ').slice(-1)[0]+' ('+(p.alterCa?'ca. ':'')+p.alter+')').join(', ')}</span>`:''}</div>
+    <p class="note">Basis: öffentliche Torjägerlisten &amp; fussball.de-Profile. Torhüter/Verteidiger tauchen dort kaum auf – für Defensiv-Positionen ersetzt kein Datensatz die Sichtung vor Ort.</p></div>`;
+  const entries=Object.entries(vac);
+  if(entries.length){
+    html+=entries.map(([want,v])=>{
+      const match=ext.filter(p=>p.pos===want).sort(byScore).slice(0,4);
+      let extra=[];
+      if(OFF.has(want)&&match.length<4){
+        extra=ext.filter(p=>p.pos!==want&&(p.pos==='ST'||!p.pos)).sort(byScore).slice(0,4-match.length);
+      }
+      const rows=match.map(p=>row(p,v.slot,'✓ '+want)).concat(
+        extra.map(p=>row(p,v.slot,p.isJugend?'Jugend-Torjäger':(p.pos?'geführt als '+p.pos:'Pos. nicht erfasst'),'#ffd60a')));
+      const empty=!rows.length?`<p class="note">Für <b>${want}</b> ist in den öffentlichen Torjägerlisten kein Spieler mit Positionsangabe erfasst – hier hilft nur klassische Sichtung. Über die Position auf dem Feld (＋) kannst du trotzdem jeden Spieler manuell einplanen.</p>`:'';
+      return `<div class="card needcard"><h3>🎯 Transfer-Vorschläge: ${v.n}× ${[...v.roles].join(' / ')} <i>(${want})</i></h3>
+        <div style="margin-top:6px">${rows.join('')}</div>${empty}
+        ${rows.length?'<p class="note">Beste verfügbare Spieler nach MScore (ohne eigene &amp; bereits aufgestellte). Zeile → Profil · ＋ → direkt aufstellen.</p>':''}</div>`;
+    }).join('');
+  } else {
+    const ups=[];
+    form.forEach((s,i)=>{const pid=LINEUP.slots[i];if(!pid)return;const cur=players.find(z=>z.id===pid);if(!cur)return;
+      const want=ROLE2POS[s[0]];
+      const best=ext.filter(p=>p.pos===want).sort(byScore)[0];
+      if(best&&scores(best).total-scores(cur).total>=8)ups.push({i,role:s[0],cur,best,diff:scores(best).total-scores(cur).total});});
+    ups.sort((a,b)=>b.diff-a.diff);
+    html+= ups.length?`<div class="card needcard"><h3>📈 Upgrade-Potenzial <i>(Elf ist komplett)</i></h3>
+        <div style="margin-top:6px">${ups.slice(0,5).map(u=>row(u.best,u.i,`＋${u.diff.toFixed(0)} MScore vs. ${u.cur.name.split(' ').slice(-1)[0]} (${u.role})`,'#b39df7')).join('')}</div>
+        <p class="note">Erfasste externe Spieler, die auf ihrer Position deutlich stärker bewertet sind als der aktuelle Elf-Spieler. ＋ ersetzt ihn in der Aufstellung.</p></div>`
+      :`<div class="card needcard"><h3>✓ Kader-Check</h3><p class="note">Elf komplett – aktuell ist kein erfasster externer Spieler auf seiner Position deutlich stärker bewertet als deine Aufstellung.</p></div>`;
+  }
+  el.innerHTML=html;
+  el.querySelectorAll('[data-goid]').forEach(r=>r.onclick=()=>startPlayer(r.dataset.goid));
+  el.querySelectorAll('[data-fill]').forEach(b=>b.onclick=(e)=>{e.stopPropagation();
+    const [si,pid]=b.dataset.fill.split(':');LINEUP.slots[+si]=pid;renderLineup();
+    const n=document.getElementById('pitch');if(n)n.scrollIntoView({behavior:'smooth',block:'center'});});
+}
+let dragState=null;
+function wireSlots(){
+  document.querySelectorAll('#pitch .slot').forEach(sl=>{
+    sl.onpointerdown=(e)=>{
+      const i=+sl.dataset.slot;const pid=LINEUP.slots[i];
+      dragState={i,pid,x0:e.clientX,y0:e.clientY,moved:false,ghost:null,el:sl};
+      sl.setPointerCapture&&sl.setPointerCapture(e.pointerId);
+    };
+    sl.onpointermove=(e)=>{
+      if(!dragState||dragState.el!==sl)return;
+      const dx=e.clientX-dragState.x0,dy=e.clientY-dragState.y0;
+      if(!dragState.moved&&Math.hypot(dx,dy)>8&&dragState.pid){
+        dragState.moved=true;sl.classList.add('drag');
+        const g=document.createElement('div');g.className='ghost';
+        g.innerHTML=sl.innerHTML;document.body.appendChild(g);dragState.ghost=g;
+      }
+      if(dragState.moved&&dragState.ghost){dragState.ghost.style.left=e.clientX+'px';dragState.ghost.style.top=e.clientY+'px';}
+    };
+    sl.onpointerup=(e)=>{
+      if(!dragState||dragState.el!==sl)return;
+      const i=dragState.i;
+      if(dragState.moved){
+        sl.classList.remove('drag');
+        if(dragState.ghost)dragState.ghost.remove();
+        const tgt=document.elementFromPoint(e.clientX,e.clientY);
+        const tslot=tgt&&tgt.closest('.slot');
+        if(tslot){const j=+tslot.dataset.slot;const a=LINEUP.slots[i],b=LINEUP.slots[j];
+          if(b)LINEUP.slots[i]=b;else delete LINEUP.slots[i];
+          if(a)LINEUP.slots[j]=a;else delete LINEUP.slots[j];}
+        renderLineup();
+      } else {
+        openSlotPicker(i);
+      }
+      dragState=null;
+    };
+  });
+}
+function openSlotPicker(i){
+  const role=FORMATIONS[LINEUP.formation][i][0];const want=ROLE2POS[role];
+  const pid=LINEUP.slots[i];
+  const rank=(p)=>{const s=scores(p).total;const m=(p.pos===want)?1000:(!p.isJugend?0:-200);return s+m;};
+  let q='';
+  const draw=()=>{
+    let arr=players.filter(p=>!(q&&!(p.name+' '+p.club).toLowerCase().includes(q)));
+    arr=arr.filter(p=>!Object.values(LINEUP.slots).includes(p.id)||p.id===pid);
+    arr.sort((a,b)=>rank(b)-rank(a));
+    document.getElementById('modal').innerHTML=`<button class="close" id="mclose">✕</button>
+      <h2 style="font-size:19px">Position ${role} besetzen</h2>
+      <div class="msub">Passende Spieler oben (${want}). Antippen zum Aufstellen.</div>
+      <input type="search" class="search" id="pkq" placeholder="Spieler oder Verein suchen …" style="margin:12px 0" value="${q}">
+      ${pid?`<button class="fpick" id="clr" style="margin-bottom:8px">✕ Position frei machen</button>`:''}
+      <div style="max-height:52vh;overflow:auto">
+        ${arr.slice(0,80).map(p=>{const s=scores(p);const src=p.photo||p.photoUrl;const fit=p.pos===want;
+          return `<div class="rankrow" data-pk="${p.id}">
+            <span class="rk" style="color:${tierColor(s.total)}">${Math.round(s.total)}</span>
+            <div class="ava l-${p.liga}" style="width:30px;height:30px;font-size:11px;border-radius:9px">${src?`<img src="${src}" onerror="this.remove()">`:initials(p.name)}</div>
+            <span class="rn">${p.name} ${fit?'<b style="color:#5fe09b">✓ '+want+'</b>':'<i style="color:var(--ink3)">'+(p.pos||'–')+'</i>'}<br><i>${p.club}</i></span>
+            <span class="rv">${p.tore} T</span></div>`;}).join('')}
+      </div>
+      <p class="note">Zeigt alle 221 Spieler – auch fremde, um Transferziele auf freie Positionen zu planen.</p>`;
+    document.getElementById('overlay').classList.add('open');
+    document.getElementById('mclose').onclick=closeOverlay;
+    const inp=document.getElementById('pkq');inp.oninput=e=>{q=e.target.value.toLowerCase();const c=inp.selectionStart;draw();const n=document.getElementById('pkq');n.focus();n.setSelectionRange(c,c);};
+    const clr=document.getElementById('clr');if(clr)clr.onclick=()=>{delete LINEUP.slots[i];closeOverlay();renderLineup();};
+    document.querySelectorAll('#modal [data-pk]').forEach(el=>el.onclick=()=>{LINEUP.slots[i]=el.dataset.pk;closeOverlay();renderLineup();});
+  };
+  draw();
+}
 
 /* ================= INIT ================= */
 renderWeights();
+initLineupSeed();
 renderAll();
 </script>
 </body>
