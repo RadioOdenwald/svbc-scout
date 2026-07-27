@@ -371,7 +371,7 @@
   .benchrow{display:flex;gap:14px;overflow-x:auto;padding:10px 4px 16px;}
   .bcard{flex:0 0 auto;position:relative;cursor:grab;touch-action:none;user-select:none;-webkit-user-select:none;}
   .bcard.drag{opacity:.4;}
-  .btag{position:absolute;top:-6px;left:-6px;z-index:3;background:#12203a;border:1px solid var(--line);color:var(--ink2);font-size:9px;font-weight:900;border-radius:7px;padding:2px 5px;}
+  .btag{position:absolute;top:-7px;right:-7px;z-index:3;background:#12203a;border:1px solid rgba(77,163,255,.5);color:#8fc2ff;font-size:10px;font-weight:900;border-radius:9px;padding:2px 6px;pointer-events:none;}
   .attrbar{display:flex;gap:5px;justify-content:center;flex-wrap:wrap;margin-top:10px;}
   .attrbar .ab{background:var(--card2);border:1px solid var(--line);border-radius:8px;padding:4px 8px;font-size:11px;font-weight:800;font-variant-numeric:tabular-nums;}
   .srow.clk{cursor:pointer;border-radius:9px;}
@@ -1547,7 +1547,7 @@ function renderLineup(){
      const inXI=new Set(Object.values(LINEUP.slots));
      const bench=players.filter(p=>p.own&&p.kader===1&&!p.verzicht&&!(p.status&&/erletzt/.test(p.status))&&((p.kaderStarts||0)>0||p.bankOk)&&!inXI.has(p.id)).sort((a,b)=>(b.kaderStarts||0)-(a.kaderStarts||0)||scores(b).total-scores(a).total);
      benchEl.innerHTML=`<div class="lbl" style="display:block;margin:12px 2px 2px">🪑 Ersatzbank 25/26 (${bench.length}) — nur Spieler mit dokumentiertem Einsatz in der Ersten, sortiert nach Startelf-Häufigkeit. Aufs Feld ziehen = einwechseln · Feldspieler hierher ziehen = auswechseln · antippen = Profil.</div>
-       <div class="benchrow">${bench.map(p=>`<div class="bcard" data-bpid="${p.id}">${lineupCardHtml(p,p.pos||'–')}<div class="btag">${p.kaderStarts||0}× Startelf</div></div>`).join('')}</div>`;
+       <div class="benchrow">${bench.map(p=>`<div class="bcard" data-bpid="${p.id}">${lineupCardHtml(p,p.pos||'–')}<div class="btag" title="${p.kaderStarts||0}× Startelf 25/26 (dokumentiert)">${p.kaderStarts||0}×</div></div>`).join('')}</div>`;
    }}
   // Statistik / Lücken
   const filled=form.filter((_,i)=>LINEUP.slots[i]).length;
