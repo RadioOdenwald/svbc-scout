@@ -361,7 +361,7 @@
     border:1.5px solid var(--tc);border-radius:12px;padding:5px 4px 6px;position:relative;box-shadow:0 4px 12px rgba(0,0,0,.4);}
   .fcardm .ov{position:absolute;top:3px;left:5px;font-size:15px;font-weight:900;color:#fff;line-height:1;text-shadow:0 1px 2px rgba(0,0,0,.5);}
   .fcardm .ps{position:absolute;top:4px;right:5px;font-size:9px;font-weight:800;color:rgba(255,255,255,.85);}
-  .fcardm .pic{width:34px;height:34px;margin:14px auto 2px;border-radius:9px;overflow:hidden;background:rgba(255,255,255,.15);display:grid;place-items:center;font-weight:900;font-size:13px;color:#fff;}
+  .fcardm .pic{width:36px;height:36px;margin:16px auto 3px;border-radius:9px;overflow:hidden;background:rgba(255,255,255,.15);display:grid;place-items:center;font-weight:900;font-size:13px;color:#fff;}
   .fcardm .pic img{width:100%;height:100%;object-fit:cover;}
   .fcardm .nm{font-size:11px;font-weight:800;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
   .slot.vac .vcard{border:2px dashed rgba(255,214,10,.7);border-radius:12px;padding:12px 4px;color:#ffe064;font-weight:800;font-size:18px;line-height:1;
@@ -381,7 +381,7 @@
   .fcardm{position:relative;}
   .swapbtn{position:absolute;top:-7px;right:-7px;z-index:3;width:24px;height:24px;border-radius:50%;border:1px solid rgba(77,163,255,.6);background:#12203a;color:#4da3ff;font-size:12px;font-weight:900;cursor:pointer;line-height:1;padding:0;font-family:inherit;box-shadow:0 2px 6px rgba(0,0,0,.4);}
   .swapbtn:hover{background:var(--accent);color:#fff;}
-  .fcardm .xg{font-size:9.5px;font-weight:800;color:#0a1428;background:rgba(255,255,255,.85);border-radius:6px;padding:1px 5px;margin-top:2px;display:inline-block;line-height:1.3;}
+  .fcardm .xg{font-size:9px;font-weight:800;color:#0a1428;background:rgba(255,255,255,.85);border-radius:6px;padding:1px 5px;margin-top:2px;display:inline-block;line-height:1.3;white-space:nowrap;max-width:100%;}
   .benchrow{display:flex;gap:14px;overflow-x:auto;padding:10px 4px 16px;}
   .bcard{flex:0 0 auto;position:relative;cursor:grab;touch-action:none;user-select:none;-webkit-user-select:none;}
   .bcard.drag{opacity:.4;}
@@ -1525,10 +1525,10 @@ function initLineupSeed(){
 }
 function lineupCardHtml(p,role,i){
   const s=scores(p);const ov=Math.round(s.total);const c=tierColor(s.total);const src=p.photo||p.photoUrl;
-  return `<div class="fcardm" style="--tc:${c}">${i!=null?`<button class="swapbtn" data-swap="${i}" title="Ersatzspieler anzeigen">⇄</button>`:``}<div class="ov">${ov}</div><div class="ps">${role}</div>`+
+  return `<div class="fcardm" style="--tc:${c}">${i!=null?`<button class="swapbtn" data-swap="${i}" title="Ersatzspieler anzeigen">⇄</button>`:``}<div class="ov">${ov}</div>`+
     `<div class="pic">${src?`<img src="${src}" alt="" onerror="this.remove()">`:initials(p.name)}</div>`+
     `<div class="nm">${p.name.split(' ').slice(-1)[0]}</div>`+
-    (p.pos!=='TW'?`<div class="xg" title="Erwartete Tore über 30 Spiele Kreisliga A (Tore/Spiel × Liga-Gewicht × 30)">≈${s.proj} xT</div>`:`<div class="xg">🧤 TW</div>`)+`</div>`;
+    (p.pos!=='TW'?`<div class="xg" title="Erwartete Tore über 30 Spiele Kreisliga A (Tore/Spiel × Liga-Gewicht × 30)">${role} · ≈${s.proj} xT</div>`:`<div class="xg">🧤 ${role}</div>`)+`</div>`;
 }
 function renderLineup(){
   const pitch=document.getElementById('pitch');if(!pitch)return;
