@@ -501,7 +501,7 @@
   <section class="panel" id="panel-elf">
     <div class="card" style="padding:14px 18px">
       <p style="margin:0 0 8px;font-size:13px">⚽ <b>Deine Wunsch-Elf im FIFA-Style.</b> Position antippen → Spieler wählen. Besetzte Karte gedrückt halten und auf eine andere Position ziehen zum Tauschen. Karte antippen öffnet das Profil (Attribute unter „Eye-Test" einstellen).</p>
-      <p style="margin:0;font-size:12px;color:var(--ink3)">Vorbesetzt ist die dokumentierte <b>Stammelf 25/26</b> aus den Vereinsheften (11 Spiele mit Aufstellung). Karte antippen → Profil · ⇄ → Ersatzspieler · gedrückt halten &amp; ziehen → tauschen. <b>≈xT</b> = erwartete Tore über 30 Spiele Kreisliga A (Tore/Spiel × Liga-Gewicht). Unter dem Feld: 🪑 Ersatzbank (Drag &amp; Drop) und der 🕵️ <b>Digital-Scout</b>, der Stärke × Wechselbereitschaft kombiniert.</p>
+      <p style="margin:0;font-size:12px;color:var(--ink3)">Vorbesetzt ist die dokumentierte <b>Stammelf 25/26</b> aus den Vereinsheften (11 Spiele mit Aufstellung). Karte antippen → Profil · ⇄ → Ersatzspieler · gedrückt halten &amp; ziehen → tauschen. <b>≈xT</b> = erwartete Tore über 30 Spiele Kreisliga A (Tore pro Team-Spiel × Liga-Gewicht — reale Einsatzquote eingerechnet, keine Vollzeit-Hochrechnung). Unter dem Feld: 🪑 Ersatzbank (Drag &amp; Drop) und der 🕵️ <b>Digital-Scout</b>, der Stärke × Wechselbereitschaft kombiniert.</p>
     </div>
     <div class="fbar"><div class="frow" id="formRow"></div><div class="frow" id="gapRow"></div></div>
     <div class="pitch" id="pitch"></div>
@@ -762,7 +762,8 @@ function scores(p){
   if(p.sds>0){sdsB=Math.min(6,p.sds*2);total=Math.min(100,total+sdsB);} /* FuPa Elf der Woche/Spieler des Spieltags: +2 je Nominierung, max +6 */
   let adjD=0, adjBase=null;
   if(p.adjTo!=null){adjBase=Math.round(total*10)/10;adjD=Math.round((p.adjTo-total)*10)/10;total=p.adjTo;} /* Insider-Rating: Modellwert wird transparent überschrieben */
-  const proj=Math.round(gpg*wOf(p)*30);
+  const spTeam=(p.toreBelegt&&p.kaderDoc&&p.kaderStarts)?Math.max(6,p.kaderStarts):(p.teamSp||sp);
+  const proj=Math.round((p.tore/Math.max(1,spTeam))*wOf(p)*30); /* xT über Team-Spiele: reale Einsatzquote eingerechnet, keine Vollzeit-Hochrechnung */
   return {prod:Math.round(prod),share:Math.round(share),ctx:Math.round(ctx),pot:Math.round(pot),
     trend:Math.round(trend),presse:Math.round(presse),scout:Math.round(scout),total:Math.round(total*10)/10,
     gpg,proj,tratio,defMode,gaTxt,sdsB,adjD,adjBase,shareRaw:(p.tT&&p.tT>0)?p.tore/p.tT:null};
@@ -1528,7 +1529,7 @@ function lineupCardHtml(p,role,i){
   return `<div class="fcardm" style="--tc:${c}">${i!=null?`<button class="swapbtn" data-swap="${i}" title="Ersatzspieler anzeigen">⇄</button>`:``}<div class="ov">${ov}</div>`+
     `<div class="pic">${src?`<img src="${src}" alt="" onerror="this.remove()">`:initials(p.name)}</div>`+
     `<div class="nm">${p.name.split(' ').slice(-1)[0]}</div>`+
-    (p.pos!=='TW'?`<div class="xg" title="Erwartete Tore über 30 Spiele Kreisliga A (Tore/Spiel × Liga-Gewicht × 30)">${role} · ≈${s.proj} xT</div>`:`<div class="xg">🧤 ${role}</div>`)+`</div>`;
+    (p.pos!=='TW'?`<div class="xg" title="Erwartete Tore über 30 Spiele Kreisliga A: Tore pro Team-Spiel × Liga-Gewicht × 30 — reale Einsatzquote eingerechnet">${role} · ≈${s.proj} xT</div>`:`<div class="xg">🧤 ${role}</div>`)+`</div>`;
 }
 function renderLineup(){
   const pitch=document.getElementById('pitch');if(!pitch)return;
