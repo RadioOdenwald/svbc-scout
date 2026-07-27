@@ -381,6 +381,7 @@
   .fcardm{position:relative;}
   .swapbtn{position:absolute;top:-7px;right:-7px;z-index:3;width:24px;height:24px;border-radius:50%;border:1px solid rgba(77,163,255,.6);background:#12203a;color:#4da3ff;font-size:12px;font-weight:900;cursor:pointer;line-height:1;padding:0;font-family:inherit;box-shadow:0 2px 6px rgba(0,0,0,.4);}
   .swapbtn:hover{background:var(--accent);color:#fff;}
+  .fcardm .xg{font-size:9.5px;font-weight:800;color:#0a1428;background:rgba(255,255,255,.85);border-radius:6px;padding:1px 5px;margin-top:2px;display:inline-block;line-height:1.3;}
   .attrbar{display:flex;gap:5px;justify-content:center;flex-wrap:wrap;margin-top:10px;}
   .attrbar .ab{background:var(--card2);border:1px solid var(--line);border-radius:8px;padding:4px 8px;font-size:11px;font-weight:800;font-variant-numeric:tabular-nums;}
   .srow.clk{cursor:pointer;border-radius:9px;}
@@ -496,7 +497,7 @@
   <section class="panel" id="panel-elf">
     <div class="card" style="padding:14px 18px">
       <p style="margin:0 0 8px;font-size:13px">⚽ <b>Deine Wunsch-Elf im FIFA-Style.</b> Position antippen → Spieler wählen. Besetzte Karte gedrückt halten und auf eine andere Position ziehen zum Tauschen. Karte antippen öffnet das Profil (Attribute unter „Eye-Test" einstellen).</p>
-      <p style="margin:0;font-size:12px;color:var(--ink3)">Vorbesetzt ist die dokumentierte <b>Stammelf 25/26</b> aus den Vereinsheften (11 Spiele mit Aufstellung). Karte antippen → Profil · ⇄ → Ersatzspieler · gedrückt halten &amp; ziehen → tauschen.</p>
+      <p style="margin:0;font-size:12px;color:var(--ink3)">Vorbesetzt ist die dokumentierte <b>Stammelf 25/26</b> aus den Vereinsheften (11 Spiele mit Aufstellung). Karte antippen → Profil · ⇄ → Ersatzspieler · gedrückt halten &amp; ziehen → tauschen. <b>≈xT</b> = erwartete Tore über 30 Spiele Kreisliga A (Tore/Spiel × Liga-Gewicht) — vergleichbarer als nackte Vorsaison-Tore.</p>
     </div>
     <div class="fbar"><div class="frow" id="formRow"></div><div class="frow" id="gapRow"></div></div>
     <div class="pitch" id="pitch"></div>
@@ -1424,7 +1425,8 @@ function lineupCardHtml(p,role,i){
   const s=scores(p);const ov=Math.round(s.total);const c=tierColor(s.total);const src=p.photo||p.photoUrl;
   return `<div class="fcardm" style="--tc:${c}">${i!=null?`<button class="swapbtn" data-swap="${i}" title="Ersatzspieler anzeigen">⇄</button>`:``}<div class="ov">${ov}</div><div class="ps">${role}</div>`+
     `<div class="pic">${src?`<img src="${src}" alt="" onerror="this.remove()">`:initials(p.name)}</div>`+
-    `<div class="nm">${p.name.split(' ').slice(-1)[0]}</div></div>`;
+    `<div class="nm">${p.name.split(' ').slice(-1)[0]}</div>`+
+    (p.pos!=='TW'?`<div class="xg" title="Erwartete Tore über 30 Spiele Kreisliga A (Tore/Spiel × Liga-Gewicht × 30)">≈${s.proj} xT</div>`:`<div class="xg">🧤 TW</div>`)+`</div>`;
 }
 function renderLineup(){
   const pitch=document.getElementById('pitch');if(!pitch)return;
@@ -1493,7 +1495,7 @@ function renderNeeds(){
     return `<div class="rankrow" data-goid="${p.id}">
       <span class="rk" style="color:${c}">${Math.round(s.total)}</span>
       <div class="ava l-${p.liga}" style="width:30px;height:30px;font-size:11px;border-radius:9px">${src?`<img src="${src}" onerror="this.remove()">`:initials(p.name)}</div>
-      <span class="rn">${p.name}${p.risiko?` <span title="${p.risiko}">⚠</span>`:''} <b style="color:${tagCol||'#5fe09b'};font-size:10.5px">${tag}</b><br><i>${p.club} · ${p.km!=null?p.km+' km':'km –'} · ${p.alter?(p.alterCa?'ca. ':'')+p.alter+' J.':'Alter –'} · ${p.tore} Tore</i></span>
+      <span class="rn">${p.name}${p.risiko?` <span title="${p.risiko}">⚠</span>`:''} <b style="color:${tagCol||'#5fe09b'};font-size:10.5px">${tag}</b><br><i>${p.club} · ${p.km!=null?p.km+' km':'km –'} · ${p.alter?(p.alterCa?'ca. ':'')+p.alter+' J.':'Alter –'} · <b style="color:var(--ink)">≈${s.proj} xT</b> · ${p.tore} Tore 25/26</i></span>
       ${slot!=null?`<button class="fillbtn" data-fill="${slot}:${p.id}" title="Direkt aufstellen">＋</button>`:'<span></span>'}</div>`;};
   let html='';
   // Kader-Bedarfsanalyse-Überblick
@@ -1612,7 +1614,7 @@ function openSlotPicker(i){
             <span class="rk" style="color:${tierColor(s.total)}">${Math.round(s.total)}</span>
             <div class="ava l-${p.liga}" style="width:30px;height:30px;font-size:11px;border-radius:9px">${src?`<img src="${src}" onerror="this.remove()">`:initials(p.name)}</div>
             <span class="rn">${p.own?'<b style="color:#4da3ff">●</b> ':''}${p.name} ${fit?'<b style="color:#5fe09b">✓ '+want+'</b>':'<i style="color:var(--ink3)">'+(p.pos||'–')+'</i>'}<br><i>${p.club}</i></span>
-            <span class="rv">${p.tore} T</span></div>`;}).join('')}
+            <span class="rv">≈${s.proj} <i style="font-style:normal;font-size:10px">xT</i><br><i style="font-size:10px;color:var(--ink3);font-style:normal">${p.tore} Tore 25/26</i></span></div>`;}).join('')}
       </div>
       <p class="note">● = eigener Spieler. Danach fremde Spieler – so lassen sich Transferziele direkt einplanen.</p>`;
     document.getElementById('overlay').classList.add('open');
