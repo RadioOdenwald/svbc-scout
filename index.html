@@ -1498,7 +1498,7 @@ function renderLineup(){
    if(benchEl){
      const inXI=new Set(Object.values(LINEUP.slots));
      const bench=players.filter(p=>p.own&&!inXI.has(p.id)).sort((a,b)=>scores(b).total-scores(a).total);
-     benchEl.innerHTML=`<div class="lbl" style="display:block;margin:12px 2px 2px">🪑 Ersatzbank (${bench.length}) — Karte aufs Feld ziehen = einwechseln · Feldspieler hierher ziehen = auswechseln · antippen = Profil</div>
+     benchEl.innerHTML=`<div class="lbl" style="display:block;margin:12px 2px 2px">🪑 Ersatzbank (${bench.length}) — Karte aufs Feld ziehen = einwechseln · Feldspieler hierher ziehen = auswechseln · antippen = Profil. Ohne Ziehen: ⇄ auf der Feld-Karte nutzen (eigene Bank steht dort ganz oben).</div>
        <div class="benchrow">${bench.map(p=>`<div class="bcard" data-bpid="${p.id}">${lineupCardHtml(p,p.pos||'–')}${p.kader===2?'<div class="btag">II</div>':(p.isJugend?'<div class="btag">U19</div>':'')}</div>`).join('')}</div>`;
    }}
   // Statistik / Lücken
@@ -1617,6 +1617,38 @@ function renderNeeds(){
     const n=document.getElementById('pitch');if(n)n.scrollIntoView({behavior:'smooth',block:'center'});});
 }
 let dragState=null;
+let autoScrollDir=0, autoScrollRAF=null;
+function dragAutoScroll(e){
+  const m=90;
+  autoScrollDir = e.clientY<m ? -1 : (e.clientY>window.innerHeight-m ? 1 : 0);
+  if(autoScrollDir&&!autoScrollRAF){
+    const step=()=>{
+      if(!autoScrollDir||!dragState){autoScrollRAF=null;return;}
+      /* App scrollt im <body> (overflow:auto), nicht im window */
+      document.body.scrollTop+=autoScrollDir*16;
+      window.scrollBy(0,autoScrollDir*16);
+      autoScrollRAF=requestAnimationFrame(step);
+    };
+    autoScrollRAF=requestAnimationFrame(step);
+  }
+}
+function slotAtPoint(x,y){
+  const el=document.elementFromPoint(x,y);
+  const direct=el&&el.closest('.slot'); if(direct)return direct;
+  let best=null,bd=70*70;
+  document.querySelectorAll('#pitch .slot').forEach(sl=>{
+    const r=sl.getBoundingClientRect();
+    const dx=r.x+r.width/2-x, dy=r.y+r.height/2-y, d=dx*dx+dy*dy;
+    if(d<bd){bd=d;best=sl;}
+  });
+  return best;
+}
+function dragCleanup(){
+  autoScrollDir=0;
+  if(dragState&&dragState.ghost)dragState.ghost.remove();
+  if(dragState&&dragState.el)dragState.el.classList.remove('drag');
+  dragState=null;
+}
 function wireSlots(){
   document.querySelectorAll('#pitch .slot').forEach(sl=>{
     sl.onpointerdown=(e)=>{
@@ -1633,8 +1665,9 @@ function wireSlots(){
         const g=document.createElement('div');g.className='ghost';
         g.innerHTML=sl.innerHTML;document.body.appendChild(g);dragState.ghost=g;
       }
-      if(dragState.moved&&dragState.ghost){dragState.ghost.style.left=e.clientX+'px';dragState.ghost.style.top=e.clientY+'px';}
+      if(dragState.moved&&dragState.ghost){dragState.ghost.style.left=e.clientX+'px';dragState.ghost.style.top=e.clientY+'px';dragAutoScroll(e);}
     };
+    sl.onpointercancel=()=>{if(dragState&&dragState.el===sl)dragCleanup();};
     sl.onpointerup=(e)=>{
       if(!dragState||dragState.el!==sl)return;
       const i=dragState.i;
@@ -1642,11 +1675,13 @@ function wireSlots(){
         sl.classList.remove('drag');
         if(dragState.ghost)dragState.ghost.remove();
         const tgt=document.elementFromPoint(e.clientX,e.clientY);
-        const tslot=tgt&&tgt.closest('.slot');
-        if(tslot){const j=+tslot.dataset.slot;const a=LINEUP.slots[i],b=LINEUP.slots[j];
+        const overBench=tgt&&tgt.closest('#bench');
+        const tslot=overBench?null:slotAtPoint(e.clientX,e.clientY);
+        if(tslot&&+tslot.dataset.slot!==i){const j=+tslot.dataset.slot;const a=LINEUP.slots[i],b=LINEUP.slots[j];
           if(b)LINEUP.slots[i]=b;else delete LINEUP.slots[i];
           if(a)LINEUP.slots[j]=a;else delete LINEUP.slots[j];}
-        else if(tgt&&tgt.closest('#bench')){delete LINEUP.slots[i];}
+        else if(overBench){delete LINEUP.slots[i];}
+        autoScrollDir=0;
         renderLineup();
       } else if(!e.target.closest('.swapbtn')) {
         const pid2=LINEUP.slots[i];
@@ -1672,15 +1707,16 @@ function wireSlots(){
         const g=document.createElement('div');g.className='ghost';
         g.innerHTML=bc.innerHTML;document.body.appendChild(g);dragState.ghost=g;
       }
-      if(dragState.moved&&dragState.ghost){dragState.ghost.style.left=e.clientX+'px';dragState.ghost.style.top=e.clientY+'px';}
+      if(dragState.moved&&dragState.ghost){dragState.ghost.style.left=e.clientX+'px';dragState.ghost.style.top=e.clientY+'px';dragAutoScroll(e);}
     };
+    bc.onpointercancel=()=>{if(dragState&&dragState.el===bc)dragCleanup();};
     bc.onpointerup=(e)=>{
       if(!dragState||dragState.el!==bc)return;
       if(dragState.moved){
         bc.classList.remove('drag');
         if(dragState.ghost)dragState.ghost.remove();
-        const tgt=document.elementFromPoint(e.clientX,e.clientY);
-        const tslot=tgt&&tgt.closest('.slot');
+        const tslot=slotAtPoint(e.clientX,e.clientY);
+        autoScrollDir=0;
         if(tslot){LINEUP.slots[+tslot.dataset.slot]=dragState.pid;renderLineup();}
       } else { startPlayer(dragState.pid); }
       dragState=null;
