@@ -368,6 +368,10 @@
   .swapbtn{position:absolute;top:-7px;right:-7px;z-index:3;width:24px;height:24px;border-radius:50%;border:1px solid rgba(77,163,255,.6);background:#12203a;color:#4da3ff;font-size:12px;font-weight:900;cursor:pointer;line-height:1;padding:0;font-family:inherit;box-shadow:0 2px 6px rgba(0,0,0,.4);}
   .swapbtn:hover{background:var(--accent);color:#fff;}
   .fcardm .xg{font-size:9.5px;font-weight:800;color:#0a1428;background:rgba(255,255,255,.85);border-radius:6px;padding:1px 5px;margin-top:2px;display:inline-block;line-height:1.3;}
+  .benchrow{display:flex;gap:14px;overflow-x:auto;padding:10px 4px 16px;}
+  .bcard{flex:0 0 auto;position:relative;cursor:grab;touch-action:none;user-select:none;-webkit-user-select:none;}
+  .bcard.drag{opacity:.4;}
+  .btag{position:absolute;top:-6px;left:-6px;z-index:3;background:#12203a;border:1px solid var(--line);color:var(--ink2);font-size:9px;font-weight:900;border-radius:7px;padding:2px 5px;}
   .attrbar{display:flex;gap:5px;justify-content:center;flex-wrap:wrap;margin-top:10px;}
   .attrbar .ab{background:var(--card2);border:1px solid var(--line);border-radius:8px;padding:4px 8px;font-size:11px;font-weight:800;font-variant-numeric:tabular-nums;}
   .srow.clk{cursor:pointer;border-radius:9px;}
@@ -483,10 +487,11 @@
   <section class="panel" id="panel-elf">
     <div class="card" style="padding:14px 18px">
       <p style="margin:0 0 8px;font-size:13px">⚽ <b>Deine Wunsch-Elf im FIFA-Style.</b> Position antippen → Spieler wählen. Besetzte Karte gedrückt halten und auf eine andere Position ziehen zum Tauschen. Karte antippen öffnet das Profil (Attribute unter „Eye-Test" einstellen).</p>
-      <p style="margin:0;font-size:12px;color:var(--ink3)">Vorbesetzt ist die dokumentierte <b>Stammelf 25/26</b> aus den Vereinsheften (11 Spiele mit Aufstellung). Karte antippen → Profil · ⇄ → Ersatzspieler · gedrückt halten &amp; ziehen → tauschen. <b>≈xT</b> = erwartete Tore über 30 Spiele Kreisliga A (Tore/Spiel × Liga-Gewicht) — vergleichbarer als nackte Vorsaison-Tore.</p>
+      <p style="margin:0;font-size:12px;color:var(--ink3)">Vorbesetzt ist die dokumentierte <b>Stammelf 25/26</b> aus den Vereinsheften (11 Spiele mit Aufstellung). Karte antippen → Profil · ⇄ → Ersatzspieler · gedrückt halten &amp; ziehen → tauschen. <b>≈xT</b> = erwartete Tore über 30 Spiele Kreisliga A (Tore/Spiel × Liga-Gewicht). Unter dem Feld: 🪑 Ersatzbank (Drag &amp; Drop) und der 🕵️ <b>Digital-Scout</b>, der Stärke × Wechselbereitschaft kombiniert.</p>
     </div>
     <div class="fbar"><div class="frow" id="formRow"></div><div class="frow" id="gapRow"></div></div>
     <div class="pitch" id="pitch"></div>
+    <div id="bench"></div>
     <div id="lineupStats"></div>
     <div id="needs"></div>
   </section>
@@ -579,6 +584,7 @@
     <div class="card">
       <h3>So rechnet das Modell</h3>
       <ul>
+        <li><b>🕵️ Digital-Scout / Wechsel-Index (NEU):</b> Eigenes Rating 0–100 für die <b>Wechselbereitschaft</b> jedes externen Spielers — aus öffentlichen Signalen: Zweitvertretung (+14), wenig Spielzeit (+12), tiefere Liga (+8 bis +13), Nähe (bis +10), Tabellenkeller (+8), Ex-SV/BSC (+15), Jugend-Übergang (+15); dagegen: höhere Liga (−18), Verein spielt oben (−10), Torschützenkönig (−12), Distanz (bis −14), unverzichtbar im Team (−7), verletzt (−8). Die <b>Transfer-Chance</b> (55 % MScore + 45 % Wechsel-Index) sortiert alle Ersatz- und Transferlisten: stark UND realistisch schlägt stark-aber-unerreichbar.</li>
         <li><b>Elf der Woche / Spieler des Spieltags (FuPa):</b> Nominierungen geben +2 MScore-Punkte je Nennung (max. +6) und erscheinen im Profil. Die zugehörige „Elf der Saison“ wird als Vergleichskarte in der Aufstellung gezeigt. <i>FuPa blockiert automatisierte Abrufe — diese Daten werden manuell eingepflegt und mit Quelle verlinkt; solange keine vorliegen, ist der Bonus für alle 0.</i></li>
         <li><b>Eigener Kader (NEU):</b> Komplett aus den Vereinsheften „Doppelpass“ 08/2025–05/2026 (sv-moerlenbach.de) übernommen — inkl. 11 dokumentierter Aufstellungen (Sep./Okt. 2025 + März/April 2026). Belegte Tore/Einsätze aus diesen Heften sind <b>Untergrenzen</b>, keine Saisonsummen. <b>TW/AV/IV</b> werden über Team-Gegentore vs. Liga-Schnitt + Presse bewertet (AV zusätzlich Vorlagen, wo belegt) — individuelle Defensivdaten sind öffentlich nicht verfügbar.</li>
         <li><b>Datenquelle Profile:</b> 180 öffentliche fussball.de-Spielerprofile gezogen – 123 Fotos, 53 exakte Geburtsdaten, 88× echte Einsätze/Minuten. Wo Minuten bekannt sind, rechnet „Produktion" mit echten <b>Toren pro 90 Minuten</b> statt Team-Spielen. Unplausible Werte (z.B. 252 cm Größe) wurden verworfen.</li>
@@ -991,6 +997,43 @@ function renderAll(){renderHome();renderList();renderGems();renderJugend();rende
 
 /* ================= MODAL ================= */
 function nrm(s){return (s||'').toLowerCase().replace(/ä/g,'ae').replace(/ö/g,'oe').replace(/ü/g,'ue').replace(/ß/g,'ss').replace(/\s+/g,' ').trim();}
+function wscore(p){
+  if(p.own)return null;
+  const f=[]; let w=50;
+  const add=(v,t)=>{w+=v;f.push([v,t]);};
+  if(p.exSvbc)add(15,'Ex-SV/BSC — Rückkehr hat Anknüpfungspunkte');
+  if(p.isJugend)add(15,'Jugendspieler: Sprung in den Seniorenbereich steht ohnehin an');
+  if(p.zweit)add(14,'Spielt in einer Zweitvertretung — bei uns winkt 1.-Mannschafts-Fußball');
+  if(p.min&&p.teamSp&&p.min/(p.teamSp*90)<0.45)add(12,'Wenig Spielzeit ('+p.min.toLocaleString('de-DE')+' Min.) — sitzt offenbar oft draußen');
+  else if(p.einsaetze&&p.teamSp&&p.einsaetze/p.teamSp<0.6)add(7,'Nur '+p.einsaetze+' von '+p.teamSp+' Teamspielen absolviert');
+  if(p.liga==='KOL')add(-18,'Kickt eine Liga über uns (KOL) — müsste sportlich absteigen');
+  if(p.liga==='B')add(8,'Kreisliga B: Schritt in die A-Klasse wäre attraktiv');
+  if(p.liga==='C')add(11,'Kreisliga C: deutlicher sportlicher Aufstieg möglich');
+  if(p.liga==='D'&&!p.isJugend)add(13,'Kreisliga D: A-Klasse wäre ein großer Schritt nach oben');
+  if(p.km!=null){
+    if(p.km<=5)add(10,'Nur '+p.km+' km entfernt — quasi Nachbarschaft');
+    else if(p.km<=10)add(6,p.km+' km — gut erreichbar');
+    else if(p.km<=15)add(2,p.km+' km — machbar');
+    else if(p.km<=25)add(-6,p.km+' km — schon ein Stück Fahrt');
+    else add(-14,p.km+' km — unrealistische Distanz für die A-Klasse');
+  }
+  if(p.rank!=null&&p.teamCount>1){
+    const q=(p.rank-1)/(p.teamCount-1);
+    if(q>=0.7)add(8,'Sein Team steckt im Tabellenkeller (Platz '+p.rank+') — Frust möglich');
+    else if(q<=0.2)add(-10,'Sein Team spielt oben mit (Platz '+p.rank+') — wenig Wechselgrund');
+  }
+  if(p.kanone)add(-12,'Torschützenkönig — steht auf jeder Wunschliste, schwer zu bekommen');
+  const sh=(p.tT&&p.tT>0)?p.tore/p.tT:0;
+  if(sh>=0.35&&!p.zweit)add(-7,'Trägt '+Math.round(sh*100)+' % der Teamtore — sein Verein wird um ihn kämpfen');
+  if(p.alter!=null&&p.alter<=19&&!p.isJugend)add(5,'U20 — sucht den nächsten Entwicklungsschritt');
+  if(p.pressStats&&p.pressStats.wechsel)add(7,'Wechsel-Historie in der Presse — grundsätzlich mobil');
+  if(p.status&&/verletzt/i.test(p.status))add(-8,'Aktuell verletzt gemeldet');
+  w=clamp(Math.round(w),3,97);
+  const k=Math.round((scores(p).total*0.55+w*0.45)*10)/10;
+  f.sort((a,b)=>Math.abs(b[0])-Math.abs(a[0]));
+  return {w,k,f};
+}
+function wreason(W,n){return W.f.slice(0,n||2).map(x=>x[1]).join(' · ');}
 let radarChart=null;
 let NAV=[], CURVIEW=null;
 function closeOverlay(){document.getElementById('overlay').classList.remove('open');NAV=[];CURVIEW=null;}
@@ -1084,6 +1127,7 @@ function openLegend(){
 function openModal(id){
   const p=players.find(x=>x.id===id);if(!p)return;
   const s=scores(p);
+  const WV=p.own?null:wscore(p);
   const g=gemsOf(p);
   const prevLine=p.prev?`<div><span>Vorsaison 24/25</span><b>${p.prev.tore} T · ${LIGA_NAME[ligaBase(p.prev.liga)]||p.prev.liga} · ${p.prev.verein}</b></div>`:'';
   $('#modal').innerHTML=`
@@ -1145,6 +1189,10 @@ function openModal(id){
       <div class="srow clk" data-rank="score"><span class="sy">⭐</span><span class="sm">MScore-Rang: <b>#${(()=>{const pool=players.filter(x=>x.liga===p.liga&&x.isJugend===p.isJugend).sort((a,b)=>scores(b).total-scores(a).total);return pool.findIndex(x=>x.id===p.id)+1;})()}</b> von ${players.filter(x=>x.liga===p.liga&&x.isJugend===p.isJugend).length}</span></div>
       <div class="srow clk" data-clubview="1"><span class="sy">🏟</span><span class="sm">Kader &amp; Vereins-Historie: <b>${p.club}</b></span></div>
     </div>
+    ${WV?`<div class="seas"><h4>🕵️ Digital-Scout — Wechsel-Index <b style="color:${tierColor(WV.w)}">${WV.w}</b> · Transfer-Chance <b style="color:${tierColor(WV.k)}">${WV.k}</b></h4>
+      ${WV.f.map(x=>`<div class="srow"><span class="sy">${x[0]>0?'🟢':'🔴'}</span><span class="sm">${x[1]}</span><b style="color:${x[0]>0?'#5fe09b':'#ff8a8a'};font-variant-numeric:tabular-nums">${x[0]>0?'+':''}${x[0]}</b></div>`).join('')}
+      ${WV.f.length?'':'<div class="srow"><span class="sy">·</span><span class="sm">Keine besonderen Signale — neutraler Basiswert 50</span><span></span></div>'}
+      <p class="note">Start bei 50, öffentliche Signale werden addiert/abgezogen. <b>Transfer-Chance</b> = 55 % MScore + 45 % Wechsel-Index — die Kennzahl für „stark UND realistisch holbar“.</p></div>`:''}
     ${p.pressNews&&p.pressNews.length?`<div class="pressbox"><h4>📰 Presse-Engine · Index ${p.pressIdx} · ${p.pressNews.length} Nennungen</h4>
       <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:9px">${Object.entries(p.pressStats||{}).map(([t,n])=>`<span class="badge b-zweit" style="text-transform:none">${({tor:'⚽',vorlage:'🅰️',parade:'🧤',lob:'👍',kritik:'⚠️',verletzung:'🚑',wechsel:'🔁',neutral:'📄'})[t]||'📄'} ${t}: ${n}</span>`).join('')}</div>
       ${p.pressNews.map(m=>`<div class="pressitem" style="padding-left:20px"><b>${({tor:'⚽',vorlage:'🅰️',parade:'🧤',lob:'👍',kritik:'⚠️',verletzung:'🚑',wechsel:'🔁',neutral:'📄'})[m.typ]||'📄'} ${m.h||'(ohne Überschrift)'}</b>${m.d?` <i style="color:var(--ink3);font-style:normal">· ${m.d}</i>`:''}<br>${m.x||''} <a href="${m.u}" target="_blank" rel="noopener">Artikel ↗</a></div>`).join('')}
@@ -1445,6 +1493,14 @@ function renderLineup(){
       (p?lineupCardHtml(p,role,i):`<div class="vcard">＋<span>${role}</span></div>`)+`</div>`;
   });
   pitch.innerHTML=html;
+  // Ersatzbank: alle eigenen Spieler, die nicht aufgestellt sind
+  {const benchEl=document.getElementById('bench');
+   if(benchEl){
+     const inXI=new Set(Object.values(LINEUP.slots));
+     const bench=players.filter(p=>p.own&&!inXI.has(p.id)).sort((a,b)=>scores(b).total-scores(a).total);
+     benchEl.innerHTML=`<div class="lbl" style="display:block;margin:12px 2px 2px">🪑 Ersatzbank (${bench.length}) — Karte aufs Feld ziehen = einwechseln · Feldspieler hierher ziehen = auswechseln · antippen = Profil</div>
+       <div class="benchrow">${bench.map(p=>`<div class="bcard" data-bpid="${p.id}">${lineupCardHtml(p,p.pos||'–')}${p.kader===2?'<div class="btag">II</div>':(p.isJugend?'<div class="btag">U19</div>':'')}</div>`).join('')}</div>`;
+   }}
   // Statistik / Lücken
   const filled=form.filter((_,i)=>LINEUP.slots[i]).length;
   const gaps=form.filter((_,i)=>!LINEUP.slots[i]).map(s=>s[0]);
@@ -1483,11 +1539,12 @@ function renderNeeds(){
   form.forEach((s,i)=>{ if(LINEUP.slots[i]===undefined){const w=ROLE2POS[s[0]];
     if(!vac[w])vac[w]={n:0,slot:i,roles:new Set()};
     vac[w].n++; vac[w].roles.add(s[0]); }});
-  const row=(p,slot,tag,tagCol)=>{const s=scores(p);const c=tierColor(s.total);const src=p.photo||p.photoUrl;
+  const byK=(a,b)=>{const x=wscore(a),y=wscore(b);return (y?y.k:scores(b).total)-(x?x.k:scores(a).total);};
+  const row=(p,slot,tag,tagCol)=>{const s=scores(p);const W=wscore(p);const c=tierColor(W?W.k:s.total);const src=p.photo||p.photoUrl;
     return `<div class="rankrow" data-goid="${p.id}">
-      <span class="rk" style="color:${c}">${Math.round(s.total)}</span>
+      <span class="rk" style="color:${c}" title="${W?`Transfer-Chance`:`MScore`}">${Math.round(W?W.k:s.total)}</span>
       <div class="ava l-${p.liga}" style="width:30px;height:30px;font-size:11px;border-radius:9px">${src?`<img src="${src}" onerror="this.remove()">`:initials(p.name)}</div>
-      <span class="rn">${p.name}${p.risiko?` <span title="${p.risiko}">⚠</span>`:''} <b style="color:${tagCol||'#5fe09b'};font-size:10.5px">${tag}</b><br><i>${p.club} · ${p.km!=null?p.km+' km':'km –'} · ${p.alter?(p.alterCa?'ca. ':'')+p.alter+' J.':'Alter –'} · <b style="color:var(--ink)">≈${s.proj} xT</b> · ${p.tore} Tore 25/26</i></span>
+      <span class="rn">${p.name}${p.risiko?` <span title="${p.risiko}">⚠</span>`:''} <b style="color:${tagCol||'#5fe09b'};font-size:10.5px">${tag}</b><br><i>${p.club} · ${p.km!=null?p.km+' km':'km –'} · ${p.alter?(p.alterCa?'ca. ':'')+p.alter+' J.':'Alter –'} · <b style="color:var(--ink)">≈${s.proj} xT</b> · ${p.tore} Tore 25/26</i>${W?`<br><i style="color:#8fa3c7;font-size:11px">🕵️ Stärke ${Math.round(s.total)} · Wechsel ${W.w} — ${wreason(W,2)}</i>`:``}</span>
       ${slot!=null?`<button class="fillbtn" data-fill="${slot}:${p.id}" title="Direkt aufstellen">＋</button>`:'<span></span>'}</div>`;};
   let html='';
   // Kader-Bedarfsanalyse-Überblick
@@ -1504,13 +1561,19 @@ function renderNeeds(){
       ${DATA.startelfLast?`<button class="rtab" data-seed="last">📅 Letzte Startelf (26.04.) laden</button>`:``}
     </div>
     ${DATA.startelf?`<p class="note">Vorbelegt: <b>${DATA.startelf.label}</b> — <a href="${DATA.startelf.quelle}" target="_blank" rel="noopener" style="color:var(--accent)">Quelle: Vereinsheft ↗</a>. Per Antippen/Ziehen frei änderbar.</p>`:``}<p class="note">Basis: öffentliche Torjägerlisten &amp; fussball.de-Profile. Torhüter/Verteidiger tauchen dort kaum auf – für Defensiv-Positionen ersetzt kein Datensatz die Sichtung vor Ort.</p></div>`;
+  {const pool=ext.filter(p=>{const W=wscore(p);return W&&W.w>=55;}).sort(byK).slice(0,6);
+   if(pool.length){
+     html+=`<div class="card needcard"><h3>🕵️ Digital-Scout — die realistischsten Verstärkungen</h3>
+       <div style="margin-top:6px">${pool.map(p=>row(p,null,p.pos||'Pos. –','#8fd0ff')).join('')}</div>
+       <p class="note"><b>Transfer-Chance</b> = 55 % Stärke (MScore) + 45 % <b>Wechsel-Index</b>. Der Wechsel-Index schätzt aus öffentlichen Signalen (Zweitvertretung, Spielzeit, Liga-Differenz, Entfernung, Tabellenlage, Torjäger-Status, Verletzung), wie realistisch ein Wechsel zum SV/BSC ist — ein Superstürmer, der höherklassig oben mitspielt, landet bewusst weit unten. Komplette Begründung im Spielerprofil.</p></div>`;
+   }}
   const entries=Object.entries(vac);
   if(entries.length){
     html+=entries.map(([want,v])=>{
-      const match=ext.filter(p=>p.pos===want).sort(byScore).slice(0,4);
+      const match=ext.filter(p=>p.pos===want).sort(byK).slice(0,4);
       let extra=[];
       if(OFF.has(want)&&match.length<4){
-        extra=ext.filter(p=>p.pos!==want&&(p.pos==='ST'||!p.pos)).sort(byScore).slice(0,4-match.length);
+        extra=ext.filter(p=>p.pos!==want&&(p.pos==='ST'||!p.pos)).sort(byK).slice(0,4-match.length);
       }
       const rows=match.map(p=>row(p,v.slot,'✓ '+want)).concat(
         extra.map(p=>row(p,v.slot,p.isJugend?'Jugend-Torjäger':(p.pos?'geführt als '+p.pos:'Pos. nicht erfasst'),'#ffd60a')));
@@ -1583,6 +1646,7 @@ function wireSlots(){
         if(tslot){const j=+tslot.dataset.slot;const a=LINEUP.slots[i],b=LINEUP.slots[j];
           if(b)LINEUP.slots[i]=b;else delete LINEUP.slots[i];
           if(a)LINEUP.slots[j]=a;else delete LINEUP.slots[j];}
+        else if(tgt&&tgt.closest('#bench')){delete LINEUP.slots[i];}
         renderLineup();
       } else if(!e.target.closest('.swapbtn')) {
         const pid2=LINEUP.slots[i];
@@ -1595,11 +1659,38 @@ function wireSlots(){
     b.onpointerdown=e=>{e.stopPropagation();};
     b.onclick=e=>{e.stopPropagation();openSlotPicker(+b.dataset.swap);};
   });
+  document.querySelectorAll('#bench [data-bpid]').forEach(bc=>{
+    bc.onpointerdown=(e)=>{
+      dragState={bench:true,pid:bc.dataset.bpid,x0:e.clientX,y0:e.clientY,moved:false,ghost:null,el:bc};
+      try{bc.setPointerCapture&&bc.setPointerCapture(e.pointerId);}catch(_e){}
+    };
+    bc.onpointermove=(e)=>{
+      if(!dragState||dragState.el!==bc)return;
+      const dx=e.clientX-dragState.x0,dy=e.clientY-dragState.y0;
+      if(!dragState.moved&&Math.hypot(dx,dy)>8){
+        dragState.moved=true;bc.classList.add('drag');
+        const g=document.createElement('div');g.className='ghost';
+        g.innerHTML=bc.innerHTML;document.body.appendChild(g);dragState.ghost=g;
+      }
+      if(dragState.moved&&dragState.ghost){dragState.ghost.style.left=e.clientX+'px';dragState.ghost.style.top=e.clientY+'px';}
+    };
+    bc.onpointerup=(e)=>{
+      if(!dragState||dragState.el!==bc)return;
+      if(dragState.moved){
+        bc.classList.remove('drag');
+        if(dragState.ghost)dragState.ghost.remove();
+        const tgt=document.elementFromPoint(e.clientX,e.clientY);
+        const tslot=tgt&&tgt.closest('.slot');
+        if(tslot){LINEUP.slots[+tslot.dataset.slot]=dragState.pid;renderLineup();}
+      } else { startPlayer(dragState.pid); }
+      dragState=null;
+    };
+  });
 }
 function openSlotPicker(i){
   const role=FORMATIONS[LINEUP.formation][i][0];const want=ROLE2POS[role];
   const pid=LINEUP.slots[i];
-  const rank=(p)=>{const s=scores(p).total;let m=(p.pos===want)?1000:(!p.isJugend?0:-200);if(p.own)m+=3000;return s+m;};
+  const rank=(p)=>{const W=wscore(p);const base=W?W.k:scores(p).total;let m=(p.pos===want)?1000:(!p.isJugend?0:-200);if(p.own)m+=3000;return base+m;};
   let q='';
   const draw=()=>{
     let arr=players.filter(p=>!(q&&!(p.name+' '+p.club).toLowerCase().includes(q)));
@@ -1607,15 +1698,15 @@ function openSlotPicker(i){
     arr.sort((a,b)=>rank(b)-rank(a));
     document.getElementById('modal').innerHTML=`<button class="close" id="mclose">✕</button>
       <h2 style="font-size:19px">${pid?`Ersatz für ${(players.find(z=>z.id===pid)||{name:role}).name}`:`Position ${role} besetzen`}</h2>
-      <div class="msub">Eigene Spieler zuerst, passende Position (${want}) oben. Antippen zum Aufstellen/Einwechseln.</div>
+      <div class="msub">Eigene Spieler zuerst (Zahl = MScore). Externe danach — Zahl = 🕵️ <b>Transfer-Chance</b> (55 % Stärke + 45 % Wechsel-Index), passende Position oben.</div>
       <input type="search" class="search" id="pkq" placeholder="Spieler oder Verein suchen …" style="margin:12px 0" value="${q}">
       ${pid?`<button class="fpick" id="clr" style="margin-bottom:8px">✕ Position frei machen</button>`:''}
       <div style="max-height:52vh;overflow:auto">
-        ${arr.slice(0,80).map(p=>{const s=scores(p);const src=p.photo||p.photoUrl;const fit=p.pos===want;
+        ${arr.slice(0,80).map(p=>{const s=scores(p);const W=wscore(p);const src=p.photo||p.photoUrl;const fit=p.pos===want;
           return `<div class="rankrow" data-pk="${p.id}">
-            <span class="rk" style="color:${tierColor(s.total)}">${Math.round(s.total)}</span>
+            <span class="rk" style="color:${tierColor(W?W.k:s.total)}" title="${W?`Transfer-Chance (55% Stärke + 45% Wechsel-Index)`:`MScore`}">${Math.round(W?W.k:s.total)}</span>
             <div class="ava l-${p.liga}" style="width:30px;height:30px;font-size:11px;border-radius:9px">${src?`<img src="${src}" onerror="this.remove()">`:initials(p.name)}</div>
-            <span class="rn">${p.own?'<b style="color:#4da3ff">●</b> ':''}${p.name} ${fit?'<b style="color:#5fe09b">✓ '+want+'</b>':'<i style="color:var(--ink3)">'+(p.pos||'–')+'</i>'}<br><i>${p.club}</i></span>
+            <span class="rn">${p.own?'<b style="color:#4da3ff">●</b> ':''}${p.name} ${fit?'<b style="color:#5fe09b">✓ '+want+'</b>':'<i style="color:var(--ink3)">'+(p.pos||'–')+'</i>'}<br><i>${p.club}${W?` · Stärke ${Math.round(s.total)} · Wechsel ${W.w}`:``}</i></span>
             <span class="rv">≈${s.proj} <i style="font-style:normal;font-size:10px">xT</i><br><i style="font-size:10px;color:var(--ink3);font-style:normal">${p.tore} Tore 25/26</i></span></div>`;}).join('')}
       </div>
       <p class="note">● = eigener Spieler. Danach fremde Spieler – so lassen sich Transferziele direkt einplanen.</p>`;
