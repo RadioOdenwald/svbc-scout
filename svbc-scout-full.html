@@ -735,6 +735,7 @@ function scores(p){
   let defMode=false, gaTxt=null;
   if(p.pos==='TW'||p.pos==='IV'||p.pos==='AV'){
     defMode=true;
+    ctx=50; /* Team-Kontext neutral: der Teamstärke-Effekt steckt bereits im Gegentore-Vergleich */
     const c=(typeof clubFor==='function')?clubFor(p.club):null;
     const s26=c&&c.s2526;
     const lg=(DATA.ligaGA&&DATA.ligaGA['2526']&&s26)?DATA.ligaGA['2526'][s26.liga]:null;
@@ -1205,8 +1206,8 @@ function openModal(id){
       ${s.sdsB?`<div class="srow"><span class="sy" style="font-size:11px">🏅 Elf d. Woche</span><span class="sbar" style="width:100%;max-width:none"><i style="width:${s.sdsB*10}%;background:#b39df7"></i></span><b>+${s.sdsB}</b></div>`:''}
     </div>
     <div class="seas"><h4>Einordnung — antippen ›</h4>
-      <div class="srow clk" data-rank="tore"><span class="sy">🏅</span><span class="sm">Torjäger-Rang: <b>#${(()=>{const pool=players.filter(x=>x.liga===p.liga&&x.isJugend===p.isJugend).sort((a,b)=>b.tore-a.tore);return pool.findIndex(x=>x.id===p.id)+1;})()}</b> von ${players.filter(x=>x.liga===p.liga&&x.isJugend===p.isJugend).length} erfassten Spielern (${p.isJugend?'Jugend':LIGA_NAME[p.liga]})</span><span></span></div>
-      <div class="srow clk" data-rank="gpg"><span class="sy">📊</span><span class="sm">Tore/Spiel: besser als <b>${(()=>{const pool=players.filter(x=>x.liga===p.liga&&x.isJugend===p.isJugend);const me=s.gpg;return Math.round(pool.filter(x=>scores(x).gpg<me).length/Math.max(1,pool.length)*100);})()} %</b> der Liga-Konkurrenz</span></div>
+      ${(!s.defMode||p.tore>0)?`<div class="srow clk" data-rank="tore"><span class="sy">🏅</span><span class="sm">Torjäger-Rang: <b>#${(()=>{const pool=players.filter(x=>x.liga===p.liga&&x.isJugend===p.isJugend).sort((a,b)=>b.tore-a.tore);return pool.findIndex(x=>x.id===p.id)+1;})()}</b> von ${players.filter(x=>x.liga===p.liga&&x.isJugend===p.isJugend).length} erfassten Spielern (${p.isJugend?'Jugend':LIGA_NAME[p.liga]})</span><span></span></div>`:``}
+      ${(!s.defMode||p.tore>0)?`<div class="srow clk" data-rank="gpg"><span class="sy">📊</span><span class="sm">Tore/Spiel: besser als <b>${(()=>{const pool=players.filter(x=>x.liga===p.liga&&x.isJugend===p.isJugend);const me=s.gpg;return Math.round(pool.filter(x=>scores(x).gpg<me).length/Math.max(1,pool.length)*100);})()} %</b> der Liga-Konkurrenz</span></div>`:``}
       <div class="srow clk" data-rank="score"><span class="sy">⭐</span><span class="sm">MScore-Rang: <b>#${(()=>{const pool=players.filter(x=>x.liga===p.liga&&x.isJugend===p.isJugend).sort((a,b)=>scores(b).total-scores(a).total);return pool.findIndex(x=>x.id===p.id)+1;})()}</b> von ${players.filter(x=>x.liga===p.liga&&x.isJugend===p.isJugend).length}</span></div>
       <div class="srow clk" data-clubview="1"><span class="sy">🏟</span><span class="sm">Kader &amp; Vereins-Historie: <b>${p.club}</b></span></div>
     </div>
@@ -1465,7 +1466,7 @@ const FORMATIONS={
  '4-2-3-1':[['TW',50,90],['LV',17,74],['IV',39,77],['IV',61,77],['RV',83,74],['ZM',38,58],['ZM',62,58],['LM',20,38],['OM',50,35],['RM',80,38],['ST',50,20]],
  '4-5-1':[['TW',50,90],['LV',17,72],['IV',39,75],['IV',61,75],['RV',83,72],['LM',13,48],['ZM',33,53],['ZM',50,57],['ZM',67,53],['RM',87,48],['ST',50,22]],
  '4-1-4-1':[['TW',50,90],['LV',17,72],['IV',39,75],['IV',61,75],['RV',83,72],['ZM',50,63],['LM',15,44],['ZM',37,45],['ZM',63,45],['RM',85,44],['ST',50,20]],
- '5-4-1':[['TW',50,90],['LV',11,66],['IV',31,76],['IV',50,79],['IV',69,76],['RV',89,66],['LM',17,45],['ZM',39,49],['ZM',61,49],['RM',83,45],['ST',50,21]],
+ '5-4-1':[['TW',50,91],['LV',11,64],['IV',31,74],['IV',50,76],['IV',69,74],['RV',89,64],['LM',17,44],['ZM',39,48],['ZM',61,48],['RM',83,44],['ST',50,21]],
 };
 const ROLE2POS={TW:'TW',IV:'IV',LV:'AV',RV:'AV',ZM:'ZM',LM:'Flügel',RM:'Flügel',LA:'Flügel',RA:'Flügel',OM:'OM',ST:'ST'};
 let LINEUP={formation:'4-4-2',slots:{}};
@@ -1550,7 +1551,7 @@ function renderLineup(){
   let html='<div class="pl mid"></div><div class="pl circ"></div><div class="pl boxT"></div><div class="pl boxB"></div>';
   form.forEach((slot,i)=>{
     const [role,x,y]=slot;const pid=LINEUP.slots[i];const p=pid&&players.find(z=>z.id===pid);
-    html+=`<div class="slot ${p?'':'vac'}" data-slot="${i}" style="left:${x}%;top:${y}%">`+
+    html+=`<div class="slot ${p?'':'vac'}" data-slot="${i}" style="left:${x}%;top:${y}%;z-index:${Math.round(y)}">`+
       (p?lineupCardHtml(p,role,i):`<div class="vcard">＋<span>${role}</span></div>`)+`</div>`;
   });
   pitch.innerHTML=html;
