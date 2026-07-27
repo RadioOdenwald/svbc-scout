@@ -1470,6 +1470,25 @@ const FORMATIONS={
  '5-4-1':[['TW',50,91],['LV',11,64],['IV',31,74],['IV',50,76],['IV',69,74],['RV',89,64],['LM',17,44],['ZM',39,48],['ZM',61,48],['RM',83,44],['ST',50,21]],
 };
 const ROLE2POS={TW:'TW',IV:'IV',LV:'AV',RV:'AV',ZM:'ZM',LM:'Flügel',RM:'Flügel',LA:'Flügel',RA:'Flügel',OM:'OM',ST:'ST'};
+const POSSIM={ /* welche Positionen eine Rolle realistisch vertreten können (Kreisliga-Polyvalenz) */
+ 'TW':{},
+ 'IV':{'AV':1,'ZM':0.5},
+ 'AV':{'IV':1,'Flügel':1,'ZM':0.5},
+ 'ZM':{'OM':1,'AV':0.5,'IV':0.5},
+ 'OM':{'ZM':1,'Flügel':1,'ST':0.5},
+ 'Flügel':{'OM':1,'ST':1,'AV':1,'ZM':0.5},
+ 'ST':{'OM':1,'Flügel':1},
+};
+function posFit(p,want){
+  if(!want)return null;
+  if(p.pos===want)return {lvl:2,tag:'✓ '+want,col:'#5fe09b'};
+  if(p.pos2&&p.pos2.includes(want))return {lvl:1.5,tag:'◐ '+want+' (Neben)',col:'#ffd60a'};
+  const s=(POSSIM[want]||{})[p.pos];
+  if(s===1)return {lvl:1,tag:'~ '+want+' möglich (spielt '+p.pos+')',col:'#ffb347'};
+  if(s===0.5)return {lvl:0.5,tag:'~ zur Not (spielt '+p.pos+')',col:'#8fa3c7'};
+  if(!p.pos)return {lvl:0.2,tag:'Position unbekannt',col:'#8fa3c7'};
+  return null;
+}
 let LINEUP={formation:'4-4-2',slots:{}};
 function xiVal(p){ /* Engine-Wert: Stärke + Trainer-Vertrauen − Disziplin-Risiko */
   let v=scores(p).total*0.75 + Math.min(12,(p.kaderStarts||0)*1.2);
@@ -1790,27 +1809,31 @@ function wireSlots(){
 function openSlotPicker(i){
   const role=FORMATIONS[LINEUP.formation][i][0];const want=ROLE2POS[role];
   const pid=LINEUP.slots[i];
-  const rank=(p)=>{const W=wscore(p);const base=W?W.k:scores(p).total;let m=(p.pos===want)?1000:((p.pos2&&p.pos2.includes(want))?600:(!p.isJugend?0:-200));if(p.own)m+=3000;return base+m;};
+  const rank=(p)=>{const W=wscore(p);const base=W?W.k:scores(p).total;
+    const F=posFit(p,want);let m=F?F.lvl*400:-500;
+    if(p.own)m+=3000; if(p.isJugend)m-=100;
+    return base+m;};
   let q='';
   const draw=()=>{
     let arr=players.filter(p=>!(q&&!(p.name+' '+p.club).toLowerCase().includes(q)));
     arr=arr.filter(p=>!Object.values(LINEUP.slots).includes(p.id)||p.id===pid);
     arr=arr.filter(p=>!p.verzicht);
+    if(!q)arr=arr.filter(p=>posFit(p,want)); /* ohne Suche: nur realistisch passende Spieler */
     arr.sort((a,b)=>rank(b)-rank(a));
     document.getElementById('modal').innerHTML=`<button class="close" id="mclose">✕</button>
       <h2 style="font-size:19px">${pid?`Ersatz für ${(players.find(z=>z.id===pid)||{name:role}).name}`:`Position ${role} besetzen`}</h2>
-      <div class="msub">Eigene Spieler zuerst (Zahl = MScore). Externe danach — Zahl = 🕵️ <b>Transfer-Chance</b> (55 % Stärke + 45 % Wechsel-Index), passende Position oben.</div>
+      <div class="msub">Nur Spieler, die <b>${want}</b> realistisch spielen können: ✓ Hauptposition · ◐ dokumentierte Nebenposition · ~ ähnliche Position (Kreisliga-Polyvalenz: LV↔LM, ST↔Flügel …). Eigene zuerst (MScore), dann Externe nach 🕵️ Transfer-Chance. Die Suche findet weiterhin jeden Spieler.</div>
       <input type="search" class="search" id="pkq" placeholder="Spieler oder Verein suchen …" style="margin:12px 0" value="${q}">
       ${pid?`<button class="fpick" id="clr" style="margin-bottom:8px">✕ Position frei machen</button>`:''}
       <div style="max-height:52vh;overflow:auto">
-        ${arr.slice(0,80).map(p=>{const s=scores(p);const W=wscore(p);const src=p.photo||p.photoUrl;const fit=p.pos===want;const fit2=!fit&&p.pos2&&p.pos2.includes(want);
+        ${arr.slice(0,80).map(p=>{const s=scores(p);const W=wscore(p);const src=p.photo||p.photoUrl;const F=posFit(p,want);
           return `<div class="rankrow" data-pk="${p.id}">
             <span class="rk" style="color:${tierColor(W?W.k:s.total)}" title="${W?`Transfer-Chance (55% Stärke + 45% Wechsel-Index)`:`MScore`}">${Math.round(W?W.k:s.total)}</span>
             <div class="ava l-${p.liga}" style="width:30px;height:30px;font-size:11px;border-radius:9px">${src?`<img src="${src}" onerror="this.remove()">`:initials(p.name)}</div>
-            <span class="rn">${p.own?'<b style="color:#4da3ff">●</b> ':''}${p.name} ${fit?'<b style="color:#5fe09b">✓ '+want+'</b>':(fit2?'<b style="color:#ffd60a">◐ '+want+' (Neben)</b>':'<i style="color:var(--ink3)">'+(p.pos||'–')+'</i>')}<br><i>${p.club}${W?` · Stärke ${Math.round(s.total)} · Wechsel ${W.w}`:``}</i></span>
+            <span class="rn">${p.own?'<b style="color:#4da3ff">●</b> ':''}${p.name} ${F?`<b style="color:${F.col}">${F.tag}</b>`:'<i style="color:var(--ink3)">'+(p.pos||'–')+'</i>'}<br><i>${p.club}${W?` · Stärke ${Math.round(s.total)} · Wechsel ${W.w}`:``}</i></span>
             <span class="rv">≈${s.proj} <i style="font-style:normal;font-size:10px">xT</i><br><i style="font-size:10px;color:var(--ink3);font-style:normal">${p.tore} Tore 25/26</i></span></div>`;}).join('')}
       </div>
-      <p class="note">● = eigener Spieler. Danach fremde Spieler – so lassen sich Transferziele direkt einplanen.</p>`;
+      <p class="note">● = eigener Spieler. Unpassende Positionen (z.B. IV für einen Sturmplatz) sind bewusst ausgeblendet — über die Suche erreichbar, falls du es doch wissen willst.</p>`;
     document.getElementById('overlay').classList.add('open');
     document.getElementById('mclose').onclick=closeOverlay;
     const inp=document.getElementById('pkq');inp.oninput=e=>{q=e.target.value.toLowerCase();const c=inp.selectionStart;draw();const n=document.getElementById('pkq');n.focus();n.setSelectionRange(c,c);};
