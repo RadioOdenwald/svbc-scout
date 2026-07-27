@@ -593,6 +593,7 @@
     <div class="card">
       <h3>So rechnet das Modell</h3>
       <ul>
+        <li><b>Elf der Woche / Spieler des Spieltags (FuPa):</b> Nominierungen geben +2 MScore-Punkte je Nennung (max. +6) und erscheinen im Profil. Die zugehörige „Elf der Saison“ wird als Vergleichskarte in der Aufstellung gezeigt. <i>FuPa blockiert automatisierte Abrufe — diese Daten werden manuell eingepflegt und mit Quelle verlinkt; solange keine vorliegen, ist der Bonus für alle 0.</i></li>
         <li><b>Eigener Kader (NEU):</b> Komplett aus den Vereinsheften „Doppelpass“ 08/2025–05/2026 (sv-moerlenbach.de) übernommen — inkl. 11 dokumentierter Aufstellungen (Sep./Okt. 2025 + März/April 2026). Belegte Tore/Einsätze aus diesen Heften sind <b>Untergrenzen</b>, keine Saisonsummen. <b>TW/AV/IV</b> werden über Team-Gegentore vs. Liga-Schnitt + Presse bewertet (AV zusätzlich Vorlagen, wo belegt) — individuelle Defensivdaten sind öffentlich nicht verfügbar.</li>
         <li><b>Datenquelle Profile:</b> 180 öffentliche fussball.de-Spielerprofile gezogen – 123 Fotos, 53 exakte Geburtsdaten, 88× echte Einsätze/Minuten. Wo Minuten bekannt sind, rechnet „Produktion" mit echten <b>Toren pro 90 Minuten</b> statt Team-Spielen. Unplausible Werte (z.B. 252 cm Größe) wurden verworfen.</li>
         <li><b>Produktion:</b> Tore/Spiel × Liga-Gewicht (KOL 1,25 · A 1,00 · B 0,78 · C 0,60 · D 0,42 · U19-GL 0,55 · U19/U17-KK 0,35/0,30).</li>
@@ -747,11 +748,13 @@ function scores(p){
     if(!(p.tore>0))share=defv;
   }
   const sum=W.prod+W.share+W.ctx+W.pot+W.trend+W.presse+W.scout;
-  const total=(prod*W.prod+share*W.share+ctx*W.ctx+pot*W.pot+trend*W.trend+presse*W.presse+scout*W.scout)/sum;
+  let total=(prod*W.prod+share*W.share+ctx*W.ctx+pot*W.pot+trend*W.trend+presse*W.presse+scout*W.scout)/sum;
+  let sdsB=0;
+  if(p.sds>0){sdsB=Math.min(6,p.sds*2);total=Math.min(100,total+sdsB);} /* FuPa Elf der Woche/Spieler des Spieltags: +2 je Nominierung, max +6 */
   const proj=Math.round(gpg*wOf(p)*30);
   return {prod:Math.round(prod),share:Math.round(share),ctx:Math.round(ctx),pot:Math.round(pot),
     trend:Math.round(trend),presse:Math.round(presse),scout:Math.round(scout),total:Math.round(total*10)/10,
-    gpg,proj,tratio,defMode,gaTxt,shareRaw:(p.tT&&p.tT>0)?p.tore/p.tT:null};
+    gpg,proj,tratio,defMode,gaTxt,sdsB,shareRaw:(p.tT&&p.tT>0)?p.tore/p.tT:null};
 }
 
 /* ================= GEMS ================= */
@@ -1001,6 +1004,7 @@ window.addEventListener('beforeinstallprompt',e=>{
 function renderAll(){renderHome();renderList();renderGems();renderJugend();renderShortlist();renderDB();fillCompareSelects();updateCompare();try{renderLineup();}catch(e){}}
 
 /* ================= MODAL ================= */
+function nrm(s){return (s||'').toLowerCase().replace(/ä/g,'ae').replace(/ö/g,'oe').replace(/ü/g,'ue').replace(/ß/g,'ss').replace(/\s+/g,' ').trim();}
 let radarChart=null;
 let NAV=[], CURVIEW=null;
 function closeOverlay(){document.getElementById('overlay').classList.remove('open');NAV=[];CURVIEW=null;}
@@ -1120,6 +1124,7 @@ function openModal(id){
         ${s.shareRaw!=null?`<div><span>Anteil Teamtore</span><b>${Math.round(s.shareRaw*100)} %</b></div>`:''}
         ${p.min?`<div><span>Minuten 25/26</span><b>${p.min.toLocaleString('de-DE')} (${p.einsaetze||'–'} Einsätze)</b></div>`:''}
         ${p.kaderDoc?`<div><span>Startelf (dokumentiert)</span><b>${p.kaderStarts} von ${p.kaderDoc} Spielen</b></div>`:''}
+        ${p.sds?`<div><span>Elf der Woche (FuPa)</span><b>${p.sds}× nominiert</b></div>`:''}
         ${prevLine}
         <div><span>Formtrend</span><b>${s.tratio!=null?(s.tratio>=1.15?'▲ steigend':s.tratio<=0.85?'▼ fallend':'≈ stabil'):'–'}</b></div>
         <div><span>Liga-Gewicht</span><b>× ${wOf(p).toFixed(2)}</b></div>
@@ -1146,6 +1151,7 @@ function openModal(id){
     <div class="seas"><h4>MScore-Zerlegung (${fmt(s.total,1)} gesamt)</h4>
       ${(s.defMode?[['Defensivstärke',s.prod,W.prod],['Dominanz/Def.',s.share,W.share],['Kontext',s.ctx,W.ctx],['Potenzial',s.pot,W.pot],['GT-Trend',s.trend,W.trend],['Presse',s.presse,W.presse],['Scout-Note',s.scout,W.scout]]:[['Produktion',s.prod,W.prod],['Dominanz',s.share,W.share],['Kontext',s.ctx,W.ctx],['Potenzial',s.pot,W.pot],['Formtrend',s.trend,W.trend],['Presse',s.presse,W.presse],['Scout-Note',s.scout,W.scout]]).map(([l,v,w])=>`
         <div class="srow"><span class="sy" style="font-size:11px">${l}</span><span class="sbar" style="width:100%;max-width:none"><i style="width:${v}%;background:${tierColor(v)}"></i></span><b style="font-variant-numeric:tabular-nums">${v} <i style="color:var(--ink3);font-style:normal;font-weight:600">· ${w}%</i></b></div>`).join('')}
+      ${s.sdsB?`<div class="srow"><span class="sy" style="font-size:11px">🏅 Elf d. Woche</span><span class="sbar" style="width:100%;max-width:none"><i style="width:${s.sdsB*10}%;background:#b39df7"></i></span><b>+${s.sdsB}</b></div>`:''}
     </div>
     <div class="seas"><h4>Einordnung — antippen ›</h4>
       <div class="srow clk" data-rank="tore"><span class="sy">🏅</span><span class="sm">Torjäger-Rang: <b>#${(()=>{const pool=players.filter(x=>x.liga===p.liga&&x.isJugend===p.isJugend).sort((a,b)=>b.tore-a.tore);return pool.findIndex(x=>x.id===p.id)+1;})()}</b> von ${players.filter(x=>x.liga===p.liga&&x.isJugend===p.isJugend).length} erfassten Spielern (${p.isJugend?'Jugend':LIGA_NAME[p.liga]})</span><span></span></div>
@@ -1539,8 +1545,18 @@ function renderNeeds(){
         <p class="note">Erfasste externe Spieler, die auf ihrer Position deutlich stärker bewertet sind als der aktuelle Elf-Spieler. ＋ ersetzt ihn in der Aufstellung.</p></div>`
       :`<div class="card needcard"><h3>✓ Kader-Check</h3><p class="note">Elf komplett – aktuell ist kein erfasster externer Spieler auf seiner Position deutlich stärker bewertet als deine Aufstellung.</p></div>`;
   }
+  if(DATA.elfSaison&&DATA.elfSaison.names&&DATA.elfSaison.names.length){
+    html+=`<div class="card needcard"><h3>🏆 ${DATA.elfSaison.label||'Elf der Saison'}</h3>
+      <div style="margin-top:6px">${DATA.elfSaison.names.map(n=>{
+        const p=players.find(x=>nrm(x.name)===nrm(n));
+        if(!p)return `<span class="needchip">${n}</span>`;
+        const mine=p.own?` style="border-color:rgba(77,163,255,.55);color:#4da3ff"`:``;
+        return `<span class="needchip" data-goid="${p.id}"${mine} title="Profil öffnen">${n} · ${Math.round(scores(p).total)}</span>`;
+      }).join('')}</div>
+      <p class="note">Blau = eigener Spieler. Chip antippen → Profil (falls im Datenpool). ${DATA.elfSaison.quelle?`Quelle: <a href="${DATA.elfSaison.quelle}" target="_blank" rel="noopener">${DATA.elfSaison.quelleName||'FuPa'} ↗</a>`:''}</p></div>`;
+  }
   el.innerHTML=html;
-  el.querySelectorAll('[data-goid]').forEach(r=>r.onclick=()=>startPlayer(r.dataset.goid));
+  el.querySelectorAll('[data-goid]').forEach(r=>{r.style.cursor='pointer';r.onclick=()=>startPlayer(r.dataset.goid);});
   el.querySelectorAll('[data-fill]').forEach(b=>b.onclick=(e)=>{e.stopPropagation();
     const [si,pid]=b.dataset.fill.split(':');LINEUP.slots[+si]=pid;renderLineup();
     const n=document.getElementById('pitch');if(n)n.scrollIntoView({behavior:'smooth',block:'center'});});
