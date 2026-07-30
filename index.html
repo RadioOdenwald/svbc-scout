@@ -373,6 +373,7 @@
   .benchrow{display:flex;gap:14px;overflow-x:auto;padding:10px 4px 16px;}
   .bcard{flex:0 0 auto;position:relative;cursor:grab;touch-action:pan-x;user-select:none;-webkit-user-select:none;}
   .bcard.drag{opacity:.4;}
+  .sxinext{margin-top:3px;font-size:8.5px;font-weight:700;color:#dbe7ff;background:rgba(10,20,40,.72);border-radius:7px;padding:2px 5px;line-height:1.35;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:96px;margin-left:auto;margin-right:auto;}
   .shrow{display:grid;grid-template-columns:44px 1fr 1fr 1fr;gap:8px;align-items:center;padding:7px 4px;border-bottom:1px solid var(--line2);}
   .shrole{font-weight:900;font-size:12px;color:var(--ink2);text-align:center;}
   .shcell{border:1px solid var(--line);background:var(--card2);border-radius:10px;padding:5px 8px;font-size:12px;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:6px;min-height:34px;}
@@ -404,6 +405,7 @@
   <button data-tab="scout">Scouting</button>
   <button data-tab="db">Datenbank</button>
   <button data-tab="elf">⚽ Aufstellung</button>
+  <button data-tab="sxi">👥 Schattenelf</button>
   <button data-tab="gems">💎 Rohdiamanten</button>
   <button data-tab="jugend">Jugend</button>
   <button data-tab="cmp">Vergleich</button>
@@ -504,9 +506,20 @@
     <div class="fbar"><div class="frow" id="seedRow"></div><div class="frow" id="formRow"></div><div class="frow" id="gapRow"></div></div>
     <div class="pitch" id="pitch"></div>
     <div id="bench"></div>
-    <div id="shadow"></div>
     <div id="lineupStats"></div>
     <div id="needs"></div>
+  </section>
+
+  <!-- SCHATTENELF -->
+  <section class="panel" id="panel-sxi">
+    <div class="card" style="margin-bottom:12px">
+      <h3>👥 Schattenelf — Kaderplanung in drei Ebenen</h3>
+      <p style="margin:6px 0 0;font-size:13px;color:var(--ink2)">Jede Position hat drei Ebenen: <b style="color:#4da3ff">S</b> Startelf · <b style="color:#5fe09b">B</b> Backup (eigener Kader) · <b style="color:#ffb347">Z</b> Transferziel. Mit <b>↻</b> auf der Karte rotierst du die Ebenen durch — der Spieler darunter rutscht nach oben. Karte antippen → Profil, leere Karte antippen → Ebene besetzen. Alles wird geräteübergreifend gespeichert.</p>
+    </div>
+    <div class="fbar"><div class="frow" id="sxiSeed"></div></div>
+    <div class="pitch" id="spitch"></div>
+    <div id="sxiStats"></div>
+    <div id="shadow"></div>
   </section>
 
   <!-- GEMS -->
@@ -660,6 +673,7 @@
   <button class="ti" data-tab="scout"><span class="ic">🔍</span>Scout</button>
   <button class="ti" data-tab="db"><span class="ic">🗄️</span>Daten</button>
   <button class="ti" data-tab="elf"><span class="ic">⚽</span>Elf</button>
+  <button class="ti" data-tab="sxi"><span class="ic">👥</span>Schatten</button>
   <button class="ti" data-tab="gems"><span class="ic">💎</span>Talente</button>
   <button class="ti" data-tab="jugend"><span class="ic">🌱</span>Jugend</button>
   <button class="ti" data-tab="model"><span class="ic">⚙️</span>Modell</button>
@@ -1422,6 +1436,7 @@ function goTab(tab){
   const el=document.getElementById('panel-'+tab);
   if(el)el.classList.add('active');
   if(tab==='cmp')updateCompare();
+  if(tab==='sxi'){try{renderLineup();}catch(e){}}
   try{window.scrollTo({top:0});}catch(e){}
 }
 document.querySelectorAll('nav button,.tabbar .ti').forEach(b=>{b.addEventListener('click',()=>goTab(b.dataset.tab));});
@@ -1708,6 +1723,67 @@ function shadowAutoFill(){
   });
   renderLineup();
 }
+const SXI_L=['S','B','Z'];
+const SXI_COL={S:'#4da3ff',B:'#5fe09b',Z:'#ffb347'};
+function sxiStack(i){return [LINEUP.slots[i]||null,(SHADOW[i]||{}).b||null,(SHADOW[i]||{}).z||null];}
+function renderShadowXI(){
+  const pitch=document.getElementById('spitch'); if(!pitch)return;
+  const form=FORMATIONS[LINEUP.formation];
+  let html='<div class="pl mid"></div><div class="pl circ"></div><div class="pl boxT"></div><div class="pl boxB"></div>';
+  form.forEach((sl,i)=>{
+    const [role,x,y]=sl;
+    const st=sxiStack(i);
+    const li=(((SHADOW[i]||{}).r)||0)%3;
+    const pid=st[li];
+    const p=pid&&players.find(z2=>z2.id===pid);
+    const nexts=[1,2].map(k=>{const idx=(li+k)%3;const pp=st[idx]&&players.find(z2=>z2.id===st[idx]);
+      return `<b style="color:${SXI_COL[SXI_L[idx]]}">${SXI_L[idx]}</b> ${pp?pp.name.split(' ').slice(-1)[0]:'–'}`;}).join(' · ');
+    let card;
+    if(p){
+      const s=scores(p);const W=p.own?null:wscore(p);const v=W?W.k:s.total;const c=tierColor(v);const src=p.photo||p.photoUrl;
+      card=`<div class="fcardm" style="--tc:${c}" data-sxigo="${p.id}">
+        <button class="swapbtn" data-sxirot="${i}" title="Ebene durchrotieren">↻</button>
+        <div class="ov">${Math.round(v)}</div>
+        <div class="pic">${src?`<img src="${src}" alt="" onerror="this.remove()">`:initials(p.name)}</div>
+        <div class="nm">${p.name.split(' ').slice(-1)[0]}</div>
+        <div class="xg"><b style="color:${SXI_COL[SXI_L[li]]}">${SXI_L[li]}</b> · ${role}${p.own?'':' · extern'}</div></div>`;
+    } else {
+      card=`<div class="vcard" data-sxiedit="${i}:${li}" style="position:relative">＋<span>${SXI_L[li]} · ${role}</span><button class="swapbtn" data-sxirot="${i}" title="Ebene durchrotieren">↻</button></div>`;
+    }
+    html+=`<div class="slot ${p?'':'vac'}" style="left:${x}%;top:${y}%;z-index:${Math.round(y)}">${card}<div class="sxinext">${nexts}</div></div>`;
+  });
+  pitch.innerHTML=html;
+  // Ebenen-Schnellwahl + Statistik
+  const seed=document.getElementById('sxiSeed');
+  if(seed){
+    seed.innerHTML=`<span class="lbl">Ebene</span>
+      <button class="rtab" data-sxiall="0" style="border-color:rgba(77,163,255,.5);color:#4da3ff">S · Startelf</button>
+      <button class="rtab" data-sxiall="1" style="border-color:rgba(47,210,122,.4);color:#5fe09b">B · Backup-Elf</button>
+      <button class="rtab" data-sxiall="2" style="border-color:rgba(255,179,71,.5);color:#ffb347">Z · Ziel-Elf</button>
+      <button class="rtab" data-sxifill="1">⚡ Auto-Vervollständigen</button>`;
+    seed.querySelectorAll('[data-sxiall]').forEach(b=>b.onclick=()=>{
+      const r=+b.dataset.sxiall;
+      FORMATIONS[LINEUP.formation].forEach((_,i)=>{SHADOW[i]=SHADOW[i]||{};SHADOW[i].r=r;});
+      renderLineup();});
+    const f=seed.querySelector('[data-sxifill]'); if(f)f.onclick=shadowAutoFill;
+  }
+  const stats=document.getElementById('sxiStats');
+  if(stats){
+    const avg=(li)=>{const vs=form.map((_,i)=>{const pid=sxiStack(i)[li];const p=pid&&players.find(z2=>z2.id===pid);if(!p)return null;const W=p.own?null:wscore(p);return W?W.k:scores(p).total;}).filter(v=>v!=null);
+      return vs.length?Math.round(vs.reduce((a,b)=>a+b,0)/vs.length)+' <i style="font-size:11px;color:var(--ink3)">('+vs.length+'/11)</i>':'–';};
+    stats.innerHTML=`<div class="tiles" style="margin-top:14px">
+      <div class="tile"><div class="v" style="color:#4da3ff">${avg(0)}</div><div class="l">Ø Startelf</div></div>
+      <div class="tile"><div class="v" style="color:#5fe09b">${avg(1)}</div><div class="l">Ø Backup-Elf</div></div>
+      <div class="tile"><div class="v" style="color:#ffb347">${avg(2)}</div><div class="l">Ø Ziel-Elf (Transfer-Chance)</div></div>
+    </div>`;
+  }
+  pitch.querySelectorAll('[data-sxirot]').forEach(b=>b.onclick=(e)=>{e.stopPropagation();
+    const i=+b.dataset.sxirot;SHADOW[i]=SHADOW[i]||{};SHADOW[i].r=(((SHADOW[i].r)||0)+1)%3;renderLineup();});
+  pitch.querySelectorAll('[data-sxigo]').forEach(c=>c.onclick=()=>startPlayer(c.dataset.sxigo));
+  pitch.querySelectorAll('[data-sxiedit]').forEach(c=>c.onclick=(e)=>{if(e.target.closest('.swapbtn'))return;
+    const [i,li]=c.dataset.sxiedit.split(':').map(Number);
+    if(li===0)openSlotPicker(i); else openSlotPicker(i, li===1?'b':'z');});
+}
 function renderShadow(){
   const el=document.getElementById('shadow'); if(!el)return;
   const form=FORMATIONS[LINEUP.formation];
@@ -1735,6 +1811,7 @@ function renderShadow(){
   el.querySelectorAll('[data-goid]').forEach(c=>c.onclick=()=>startPlayer(c.dataset.goid));
   const f=document.getElementById('shFill'); if(f)f.onclick=shadowAutoFill;
   const cl=document.getElementById('shClear'); if(cl)cl.onclick=()=>{SHADOW={};renderLineup();};
+  renderShadowXI();
 }
 function renderNeeds(){
   const el=document.getElementById('needs'); if(!el)return;
