@@ -260,6 +260,24 @@
   .btn.ghost{background:rgba(255,255,255,.07);color:var(--ink);box-shadow:none;border:1px solid var(--line);}
   .btnrow{display:flex;gap:10px;flex-wrap:wrap;margin-top:8px;}
   .note{font-size:12.5px;color:var(--ink3);margin-top:8px;}
+  .crmbar{display:flex;gap:7px;flex-wrap:wrap;margin:12px 0 2px;}
+  .crmb{border:1px solid var(--line);background:rgba(255,255,255,.05);color:var(--ink2);border-radius:11px;padding:8px 11px;font-size:12.5px;font-weight:800;cursor:pointer;font-family:inherit;}
+  .crmb.on-c{border-color:rgba(77,163,255,.65);color:#4da3ff;background:rgba(77,163,255,.12);}
+  .crmb.on-att{border-color:rgba(47,210,122,.65);color:#5fe09b;background:rgba(47,210,122,.12);}
+  .crmb.on-no{border-color:rgba(255,107,107,.6);color:#ff8a8a;background:rgba(255,107,107,.1);}
+  .crmb.on-lat{border-color:rgba(255,179,71,.65);color:#ffb347;background:rgba(255,179,71,.12);}
+  .crmb.on-x{border-color:rgba(179,157,247,.65);color:#b39df7;background:rgba(179,157,247,.12);}
+  .latopts{display:flex;gap:6px;flex-wrap:wrap;margin:8px 0 2px;align-items:center;}
+  .latopts .crmb{padding:6px 9px;font-size:11.5px;}
+  .latopts input[type=date]{background:rgba(255,255,255,.06);border:1px solid var(--line);color:var(--ink);border-radius:9px;padding:6px 8px;font-family:inherit;font-size:12px;}
+  .badge.b-crmc{background:rgba(77,163,255,.16);color:#4da3ff;}
+  .badge.b-crma{background:rgba(47,210,122,.16);color:#5fe09b;}
+  .badge.b-crmn{background:rgba(255,107,107,.14);color:#ff8a8a;}
+  .badge.b-crml{background:rgba(255,179,71,.16);color:#ffb347;}
+  .badge.b-crmx{background:rgba(179,157,247,.16);color:#b39df7;}
+  .duebox{border:1px solid rgba(255,179,71,.5);background:rgba(255,179,71,.08);border-radius:14px;padding:10px 12px;margin-bottom:10px;}
+  .crmnote{font-size:12px;color:#c6d2ea;background:rgba(255,255,255,.04);border-left:2px solid var(--line);padding:4px 8px;border-radius:0 8px 8px 0;margin-top:4px;white-space:pre-wrap;}
+  details.hidbox{margin-top:10px;} details.hidbox summary{cursor:pointer;color:var(--ink3);font-size:12.5px;font-weight:800;padding:6px 0;}
   a{color:var(--accent);}
   /* ---------- Vergleich / Playbook / Jugend ---------- */
   .cmpsel{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px;}
@@ -417,6 +435,7 @@
   <!-- HOME -->
   <section class="panel active" id="panel-home">
     <div class="tiles" id="homeTiles"></div>
+    <div id="homeCrm"></div>
     <div class="sechead">Spieler im Fokus <small data-goto="scout">Alle ›</small></div>
     <div class="hscroll" id="homeFocus"></div>
     <div class="sechead">🔥 Top-Wechselkandidaten <small style="color:var(--ink3)">nach Wechsel-Index</small></div>
@@ -879,6 +898,12 @@ function badges(p){
   if(!p.isJugend&&p.zweit)h+=`<span class="badge b-zweit">II/III</span>`;
   if(p.manual)h+=`<span class="badge b-man">Sichtung</span>`;
   h+=statusBadge(p);
+  {const C=crmOf(p);
+   if(C.c)h+=`<span class="badge b-crmc">📞 kontaktiert</span>`;
+   if(C.s==='att')h+=`<span class="badge b-crma">💚 attraktiv</span>`;
+   if(C.s==='no')h+=`<span class="badge b-crmn">🚫 kein Interesse</span>`;
+   if(C.s==='lat')h+=`<span class="badge b-crml">⏰ ${crmDue(p)?'Wiedervorlage FÄLLIG':'später · '+fmtD(C.u)}</span>`;
+   if(C.x&&!p.exSvbc)h+=`<span class="badge b-crmx">↩️ Ex-SV/BSC</span>`;}
   if(gemsOf(p).length)h+=`<span class="badge b-gem">💎</span>`;
   if(p.press&&p.press.length)h+=`<span title="Presse">📰</span>`;
   return h;
@@ -917,7 +942,7 @@ function renderHome(){
     <div class="tile"><div class="v">${players.filter(p=>p.isJugend).length}</div><div class="l">Jugend-Talente</div></div>
     <div class="tile"><div class="v">${players.filter(p=>gemsOf(p).length).length}</div><div class="l">💎 Rohdiamanten</div></div>
     <div class="tile"><div class="v">${players.filter(p=>p.star).length}</div><div class="l">⭐ Shortlist</div></div>`;
-  $('#homeFocus').innerHTML=sorted(players).slice(0,6).map(p=>{
+  $('#homeFocus').innerHTML=sorted(players.filter(p=>!crmHidden(p))).slice(0,6).map(p=>{
     const s=scores(p);
     return `<div class="fcard" data-id="${p.id}">
       <div class="shine"></div>
@@ -927,8 +952,8 @@ function renderHome(){
       <div class="fmeta">${badges(p)}</div>
       <div class="fmeta"><span><b style="color:var(--ink)">${p.tore}</b>&nbsp;Tore</span><span>KLA-Prognose&nbsp;<b style="color:var(--ink)">${s.proj}</b></span></div>
     </div>`;}).join('');
-  const gems=players.map(p=>({p,g:gemsOf(p),gs:gemScore(p)})).filter(x=>x.gs).sort((a,b)=>b.gs-a.gs).slice(0,6);
-  {const wk=players.filter(p=>!p.own&&!p.isJugend).map(p=>({p,W:wscore(p),s:scores(p)}))
+  const gems=players.filter(p=>!crmHidden(p)).map(p=>({p,g:gemsOf(p),gs:gemScore(p)})).filter(x=>x.gs).sort((a,b)=>b.gs-a.gs).slice(0,6);
+  {const wk=players.filter(p=>!p.own&&!p.isJugend&&!crmHidden(p)).map(p=>({p,W:wscore(p),s:scores(p)}))
     .filter(x=>x.W&&x.s.total>=45).sort((a,b)=>b.W.w-a.W.w||b.W.k-a.W.k).slice(0,10);
   const el=$('#homeWechsel');
   if(el)el.innerHTML=wk.map(x=>{const p=x.p;const src=p.photo||p.photoUrl;
@@ -948,6 +973,34 @@ function renderHome(){
       <div class="gemtag">💎 ${g[0].k}</div>
       <div class="fmeta">${g[0].t}</div>
     </div>`;}).join('');
+  {const el=$('#homeCrm');
+   if(el){
+    const T=todayISO();
+    const due=players.filter(p=>crmDue(p));
+    const att=players.filter(p=>crmOf(p).s==='att').map(p=>({p,W:p.own?null:wscore(p)})).sort((a,b)=>((b.W?b.W.k:0)-(a.W?a.W.k:0)));
+    const exs=players.filter(p=>!p.own&&!p.isJugend&&(p.exSvbc||crmOf(p).x)).map(p=>({p,W:wscore(p)})).filter(x=>x.W).sort((a,b)=>b.W.k-a.W.k);
+    const hidNo=players.filter(p=>crmOf(p).s==='no');
+    const hidLat=players.filter(p=>{const C=crmOf(p);return C.s==='lat'&&C.u&&C.u>T;}).sort((a,b)=>(crmOf(a).u||'').localeCompare(crmOf(b).u||''));
+    const cont=players.filter(p=>crmOf(p).c);
+    const mini=(p,sub)=>{const src=p.photo||p.photoUrl;const C=crmOf(p);
+      return `<div class="rankrow row" data-id="${p.id}">
+        <div class="ava l-${p.liga}" style="width:30px;height:30px;font-size:11px;border-radius:9px">${src?`<img src="${src}" onerror="this.remove()">`:initials(p.name)}</div>
+        <span class="rn">${p.name}${C.c?' <span class="badge b-crmc">📞</span>':''} <i style="color:var(--ink3)">${p.club} · ${LIGA_NAME[p.liga]||p.liga}</i>${sub?`<br><i style="color:#8fa3c7;font-size:11px">${sub}</i>`:''}${C.n?`<div class="crmnote">📝 ${C.n.length>90?C.n.slice(0,90)+'…':C.n}</div>`:''}</span>
+        <span class="rv">${p.km!=null?p.km+' km':''}</span></div>`;};
+    let out='<div class="sechead">🗂 Scouting-Zentrale <small style="color:var(--ink3)">Kontakte · Merkliste · Wiedervorlagen</small></div><div class="card" style="padding:10px 12px">';
+    if(due.length)out+=`<div class="duebox"><b style="color:#ffb347">⏰ Wiedervorlage fällig (${due.length})</b> — die wolltet ihr euch jetzt wieder anschauen:</div>`+
+      due.map(p=>mini(p,'Wiedervorlage seit '+fmtD(crmOf(p).u||T)+(wscoreSafe(p)?' · Transfer-Chance '+wscoreSafe(p).k:''))).join('');
+    if(att.length)out+=`<div class="sechead" style="margin:10px 0 4px">💚 Unsere Kandidaten (${att.length})</div>`+
+      att.map(x=>mini(x.p,x.W?('Transfer-Chance '+x.W.k+' · Wechsel-Index '+x.W.w):'' )).join('');
+    if(exs.length)out+=`<div class="sechead" style="margin:10px 0 4px">↩️ Ehemalige im Blick (${exs.length}) <small style="color:var(--ink3)">Rückkehr gibt +15 im Wechsel-Index</small></div>`+
+      exs.slice(0,8).map(x=>mini(x.p,'Transfer-Chance '+x.W.k+' — '+wreason(x.W,1))).join('');
+    if(!due.length&&!att.length&&!exs.length&&!cont.length)out+=`<p class="note" style="margin:4px 0">So funktioniert's: Im Spielerprofil markierst du <b>📞 kontaktiert</b>, <b>💚 attraktiv</b>, <b>🚫 kein Interesse</b> oder <b>⏰ später</b> (mit Wiedervorlage-Datum). Alles landet hier — geräteübergreifend, auch für Tobi. Kennst du einen, der früher beim SV/BSC gespielt hat? <b>↩️ markieren</b> → er bekommt automatisch den Rückkehr-Bonus im Wechsel-Index.</p>`;
+    if(hidNo.length||hidLat.length)out+=`<details class="hidbox"><summary>🚫 Ausgeblendet: ${hidNo.length} kein Interesse · ⏰ ${hidLat.length} auf Wiedervorlage — anzeigen</summary>`+
+      hidLat.map(p=>mini(p,'wieder ab '+fmtD(crmOf(p).u))).join('')+
+      hidNo.map(p=>mini(p,'kein Interesse — im Profil jederzeit änderbar')).join('')+`</details>`;
+    out+='</div>';
+    el.innerHTML=out;
+   }}
   const pressP=players.filter(p=>p.press&&p.press.length).slice(0,3);
   $('#homePress').innerHTML=pressP.map((p,i)=>`
     <div class="row" data-id="${p.id}">
@@ -963,7 +1016,7 @@ function renderList(){
   $('#list').innerHTML=arr.length?arr.map((p,i)=>rowHtml(p,i)).join(''):'<div class="empty">Keine Treffer – Filter lockern.</div>';
 }
 function renderGems(){
-  const gems=players.map(p=>({p,g:gemsOf(p),gs:gemScore(p)})).filter(x=>x.gs).sort((a,b)=>b.gs-a.gs);
+  const gems=players.filter(p=>!crmHidden(p)).map(p=>({p,g:gemsOf(p),gs:gemScore(p)})).filter(x=>x.gs).sort((a,b)=>b.gs-a.gs);
   $('#gemlist').innerHTML=gems.map(({p,g},i)=>
     rowHtml(p,i,`<div class="gemreason">${g.map(x=>`💎 <b>${x.k}</b>: ${x.t}`).join(' · ')}</div>`)
   ).join('');
@@ -1047,6 +1100,7 @@ function wscore(p){
   const f=[]; let w=50;
   const add=(v,t)=>{w+=v;f.push([v,t]);};
   if(p.exSvbc)add(15,'Ex-SV/BSC — Rückkehr hat Anknüpfungspunkte');
+  else if(crmOf(p).x)add(15,'Ex-SV/BSC (von euch markiert) — Rückkehr hat Anknüpfungspunkte');
   if(p.isJugend)add(15,'Jugendspieler: Sprung in den Seniorenbereich steht ohnehin an');
   if(p.zweit)add(14,'Spielt in einer Zweitvertretung — bei uns winkt 1.-Mannschafts-Fußball');
   const lowPlay=(p.min&&p.teamSp&&p.min/(p.teamSp*90)<0.45)||(!p.min&&p.einsaetze&&p.teamSp&&p.einsaetze/p.teamSp<0.6);
@@ -1086,6 +1140,7 @@ function wscore(p){
   f.sort((a,b)=>Math.abs(b[0])-Math.abs(a[0]));
   return {w,k,f};
 }
+function wscoreSafe(p){try{return p.own?null:wscore(p);}catch(e){return null;}}
 function wreason(W,n){return W.f.slice(0,n||2).map(x=>x[1]).join(' · ');}
 let radarChart=null;
 let NAV=[], CURVIEW=null;
@@ -1168,6 +1223,8 @@ function openLegend(){
       <div class="srow"><span class="sy"><span class="badge b-risk">⚠</span></span><span class="sm">Risiko laut Presse (z. B. Spielertrainer, Karriereende) – im Profil nachlesen</span><span></span></div>
       <div class="srow"><span class="sy"><span class="badge b-zweit">II/III</span></span><span class="sm">Spielt in einer Zweit-/Drittmannschaft (evtl. ans Erstteam gebunden)</span><span></span></div>
       <div class="srow"><span class="sy">📰</span><span class="sm">Presse-Dossier im Profil vorhanden</span><span></span></div>
+      <div class="srow"><span class="sy">📞💚🚫⏰</span><span class="sm"><b>Scouting-Status</b> (im Profil setzen): kontaktiert · attraktiv · kein Interesse (wird nicht mehr vorgeschlagen) · später mit Wiedervorlage-Datum — synchronisiert über alle Geräte</span><span></span></div>
+      <div class="srow"><span class="sy">↩️</span><span class="sm"><b>Ex-SV/BSC-Markierung:</b> „hat früher bei uns gespielt" — gibt +15 auf den Wechsel-Index (Rückkehr-Bonus)</span><span></span></div>
       <div class="srow"><span class="sy">▲ ≈ ▼</span><span class="sm">Formtrend vs. Vorsaison (ligagewichtet, steigend/stabil/fallend)</span><span></span></div>
       <div class="srow"><span class="sy">~</span><span class="sm">ca.-Wert, aus datierter Quelle hochgerechnet (Beleg im Profil)</span><span></span></div>
       <div class="srow"><span class="sy">📰</span><span class="sm"><b>Presse-Index (0–100):</b> aus 194 analysierten Regionalartikeln (WNOZ, fussball.de, Vereinsseiten). Tore/Vorlagen/Paraden/Lob im Artikel = Pluspunkte, Kritik/Verletzung = Minus, neuere Artikel zählen mehr. Fairness-Bremse: Wenige Nennungen bewegen den Wert kaum (kein Spieler wird wegen 1 Artikel hochgejubelt). Ohne Nennungen = neutral 50. Alle Belege im Profil verlinkt.</span><span></span></div>
@@ -1196,6 +1253,22 @@ function openModal(id){
     </div>
     ${p.photoUrl&&!p.photo?`<div class="note" style="margin-top:6px">Foto & Profildaten: öffentliches fussball.de-Spielerprofil</div>`:''}
     ${p.risiko?`<div class="riskbox">⚠ ${p.risiko}</div>`:''}
+    ${p.own?'':(()=>{const C=crmOf(p);return `
+    <div class="crmbar" id="crmbar">
+      <button class="crmb ${C.c?'on-c':''}" data-crm="c">📞 ${C.c?'Kontaktiert ✓':'Kontaktiert?'}</button>
+      <button class="crmb ${C.s==='att'?'on-att':''}" data-crm="att">💚 Attraktiv</button>
+      <button class="crmb ${C.s==='no'?'on-no':''}" data-crm="no">🚫 Kein Interesse</button>
+      <button class="crmb ${C.s==='lat'?'on-lat':''}" data-crm="lat">⏰ Später${C.s==='lat'&&C.u?' · '+fmtD(C.u):''}</button>
+      ${p.exSvbc?'':`<button class="crmb ${C.x?'on-x':''}" data-crm="x">↩️ Hat früher bei uns gespielt</button>`}
+    </div>
+    ${C.s==='lat'?`<div class="latopts" id="latopts"><span style="font-size:12px;color:var(--ink3);font-weight:800">Wiedervorlage:</span>
+      <button class="crmb" data-lat="w">Winterpause (Jan. 27)</button>
+      <button class="crmb" data-lat="s">Sommer 27 (nächste Saison)</button>
+      <button class="crmb" data-lat="2">Sommer 28 (in 2 Jahren)</button>
+      <input type="date" id="latdate" value="${C.u||''}" title="individuelles Datum"></div>
+      <p class="note" style="margin:2px 0 0">Bis dahin taucht er in keinen Vorschlägen auf — am Stichtag ploppt er auf der Startseite als Wiedervorlage wieder hoch.</p>`:''}
+    ${C.s==='no'?`<p class="note" style="margin:2px 0 0">Ausgeblendet: taucht in keinen Vorschlägen mehr auf (Datenbank &amp; Suche zeigen ihn weiter, Startseite listet ihn unter „Ausgeblendet").</p>`:''}
+    ${C.n?`<div class="crmnote">📝 ${C.n}</div>`:''}`;})()}
     ${p.info?`<div class="infobox">💡 ${p.info}</div>`:''}
     ${p.adjWhy?`<div class="infobox" style="border-color:rgba(77,163,255,.4)">🎯 ${p.adjWhy}<br><b>Rating manuell auf ${p.adjTo} gesetzt</b>${s.adjBase!=null?` <i style="color:var(--ink3)">(reines Daten-Modell: ${s.adjBase})</i>`:``}</div>`:''}
     ${g.length?`<div class="gembox">${g.map(x=>`💎 <b>${x.k}</b>: ${x.t}`).join('<br>')}</div>`:''}
@@ -1289,6 +1362,19 @@ function openModal(id){
   {const _b=document.getElementById('mback'); if(_b)_b.onclick=navBack;}
   $('#modal').querySelectorAll('[data-rank]').forEach(el=>el.onclick=()=>nav({t:'rank',cfg:buildRanking(p.liga,p.isJugend,el.dataset.rank,p.id)}));
   {const _cv=$('#modal').querySelector('[data-clubview]'); if(_cv)_cv.onclick=()=>nav({t:'rank',cfg:buildClubView(p.club,p.id)});}
+  $('#modal').querySelectorAll('[data-crm]').forEach(b=>b.onclick=()=>{
+    const C=crmOf(p),k=b.dataset.crm;
+    if(k==='c')crmSet(p.id,{c:C.c?undefined:1});
+    else if(k==='x')crmSet(p.id,{x:C.x?undefined:1});
+    else if(C.s===k)crmSet(p.id,{s:undefined,u:undefined});
+    else if(k==='lat'){const d=new Date();d.setMonth(d.getMonth()+6);crmSet(p.id,{s:'lat',u:d.toISOString().slice(0,10)});}
+    else crmSet(p.id,{s:k,u:undefined});
+    renderAll();openModal(p.id);});
+  $('#modal').querySelectorAll('[data-lat]').forEach(b=>b.onclick=()=>{
+    const m={w:'2027-01-15',s:'2027-06-01','2':'2028-06-01'};
+    crmSet(p.id,{s:'lat',u:m[b.dataset.lat]});renderAll();openModal(p.id);});
+  {const ld=$('#modal').querySelector('#latdate');
+   if(ld)ld.onchange=()=>{if(ld.value){crmSet(p.id,{s:'lat',u:ld.value});renderAll();openModal(p.id);}};}
   document.querySelectorAll('[data-sc]').forEach(inp=>{inp.oninput=e=>{e.target.nextElementSibling.value=e.target.value;};});
   const photoInp=document.getElementById('e_photo');
   if(photoInp)photoInp.onchange=e=>{
@@ -1319,12 +1405,12 @@ function openModal(id){
     p.pos=$('#e_pos').value;
     p.einsaetze=$('#e_eins').value?+$('#e_eins').value:null;
     p.assists=$('#e_ass').value?+$('#e_ass').value:null;
-    p.note=$('#e_note').value.trim();
+    p.note=$('#e_note').value.trim();p._noteLocal=true;crmSet(p.id,{n:p.note||undefined});
     document.querySelectorAll('[data-sc]').forEach(inp=>{p.scout[inp.dataset.sc]=+inp.value;});
     p.scouted=true;
     $('#overlay').classList.remove('open');renderAll();
   };
-  $('#starP').onclick=()=>{p.star=!p.star;$('#overlay').classList.remove('open');renderAll();};
+  $('#starP').onclick=()=>{p.star=!p.star;crmSet(p.id,{f:p.star?1:undefined});$('#overlay').classList.remove('open');renderAll();};
   try{
     if(radarChart)radarChart.destroy();
     radarChart=new Chart($('#pradar'),{type:'radar',
@@ -1487,7 +1573,7 @@ document.addEventListener('click',e=>{
   const star=e.target.closest('[data-star]');
   if(star){e.stopPropagation();
     const p=players.find(x=>x.id===star.dataset.star);
-    if(p){p.star=!p.star;renderAll();}
+    if(p){p.star=!p.star;crmSet(p.id,{f:p.star?1:undefined});renderAll();}
     return;}
   const row=e.target.closest('.row[data-id],.fcard[data-id]');
   if(row)startPlayer(row.dataset.id);
@@ -1528,13 +1614,35 @@ let LINEUP={formation:'4-4-2',slots:{}};
 const SYNCU='https://hook.eu1.make.com/hjm7vhk0hrgcg50f816k74klrpbbiszf';
 let SHADOW={};
 let _lastSync=null,_syncT=null,_remoteLoaded=false;
+/* ===== Scouting-CRM: Status je Spieler, geräteübergreifend im selben Datastore-Record =====
+   CRM[pid] = {c:1 kontaktiert, s:'att'|'no'|'lat', u:'JJJJ-MM-TT' Wiedervorlage, x:1 Ex-SV/BSC (markiert), f:1 Shortlist-Stern, n:'Notiz'} */
+let CRM={}, _remoteDone=false, _crmDirty=false;
+function todayISO(){const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');}
+function crmOf(p){return CRM[p.id]||{};}
+function crmHidden(p){const C=crmOf(p);if(C.s==='no')return true;if(C.s==='lat'&&C.u&&C.u>todayISO())return true;return false;}
+function crmDue(p){const C=crmOf(p);return C.s==='lat'&&(!C.u||C.u<=todayISO());}
+function fmtD(iso){if(!iso)return '';const [y,m,d]=iso.split('-');return d+'.'+m+'.'+y.slice(2);}
+function crmSet(id,upd){
+  const C=CRM[id]||{};
+  for(const k in upd){ if(upd[k]===undefined||upd[k]===null||upd[k]===false||upd[k]==='')delete C[k]; else C[k]=upd[k]; }
+  if(Object.keys(C).length)CRM[id]=C; else delete CRM[id];
+  if(_remoteDone)lineupSync(); else _crmDirty=true;
+}
+function crmApply(){ /* synchronisierte Sterne & Notizen auf die Spieler-Objekte spiegeln */
+  players.forEach(p=>{const C=CRM[p.id];if(!C)return;
+    if(C.f)p.star=true;
+    if(C.n!=null&&!p._noteLocal)p.note=C.n;});
+}
 function lineupSync(){
-  let s; try{s=JSON.stringify({formation:LINEUP.formation,slots:LINEUP.slots,shadow:SHADOW});}catch(e){return;}
+  let s; try{s=JSON.stringify({formation:LINEUP.formation,slots:LINEUP.slots,shadow:SHADOW,crm:CRM});}catch(e){return;}
   if(_lastSync===null){_lastSync=s;return;} /* erster Render: nur Stand merken, nicht speichern */
   if(s===_lastSync)return;
   _lastSync=s;
   clearTimeout(_syncT);
-  _syncT=setTimeout(()=>{try{fetch(SYNCU+'?lk=svbc-elf-4471&lineup='+encodeURIComponent(s),{mode:'no-cors'});}catch(e){}},1500);
+  _syncT=setTimeout(()=>{try{
+    const fd=new FormData();fd.append('lk','svbc-elf-4471');fd.append('lineup',s);
+    fetch(SYNCU,{method:'POST',mode:'no-cors',body:fd}).catch(()=>{});
+  }catch(e){}},1500);
 }
 function lineupRemoteLoad(){
   if(_remoteLoaded)return; _remoteLoaded=true;
@@ -1544,10 +1652,14 @@ function lineupRemoteLoad(){
         LINEUP={formation:d.formation,slots:{}};
         for(const k in d.slots){ if(players.some(p=>p.id===d.slots[k]))LINEUP.slots[+k]=d.slots[k]; }
         if(d.shadow&&typeof d.shadow==='object')SHADOW=d.shadow;
-        _lastSync=JSON.stringify({formation:LINEUP.formation,slots:LINEUP.slots,shadow:SHADOW});
-        renderLineup();
-      }
-    }).catch(()=>{});
+        if(d.crm&&typeof d.crm==='object'){ for(const id in d.crm){ if(!CRM[id])CRM[id]=d.crm[id]; } }
+        crmApply();
+        _lastSync=JSON.stringify({formation:LINEUP.formation,slots:LINEUP.slots,shadow:SHADOW,crm:CRM});
+        _remoteDone=true;
+        if(_crmDirty){_crmDirty=false;_lastSync='';lineupSync();}
+        renderAll();
+      } else { _remoteDone=true; if(_crmDirty){_crmDirty=false;lineupSync();} }
+    }).catch(()=>{_remoteDone=true;if(_crmDirty){_crmDirty=false;lineupSync();}});
   }catch(e){}
 }
 function xiVal(p){ /* Engine-Wert: Stärke + Trainer-Vertrauen − Disziplin-Risiko */
@@ -1713,7 +1825,7 @@ function shadowAutoFill(){
     if(!SHADOW[i].z){
       let bp=null,bv=-1;
       players.forEach(p=>{
-        if(p.own||usedZ.has(p.id))return;
+        if(p.own||usedZ.has(p.id)||crmHidden(p))return;
         const F=posFit(p,want); if(!F||F.lvl<1)return;
         const W=wscore(p); if(!W)return;
         const v=W.k+F.lvl*4; if(v>bv){bv=v;bp=p;}
@@ -2026,7 +2138,7 @@ function openSlotPicker(i,depth){
     let arr=players.filter(p=>!(q&&!(p.name+' '+p.club).toLowerCase().includes(q)));
     arr=arr.filter(p=>!Object.values(LINEUP.slots).includes(p.id)||p.id===pid);
     arr=arr.filter(p=>!p.verzicht);
-    if(!q)arr=arr.filter(p=>posFit(p,want)); /* ohne Suche: nur realistisch passende Spieler */
+    if(!q)arr=arr.filter(p=>posFit(p,want)&&(p.own||!crmHidden(p))); /* ohne Suche: nur realistisch passende, nicht ausgeblendete Spieler */
     arr.sort((a,b)=>rank(b)-rank(a));
     document.getElementById('modal').innerHTML=`<button class="close" id="mclose">✕</button>
       <h2 style="font-size:19px">${depth?`${depth===`b`?`👥 Backup`:`🎯 Transferziel`} für ${role} planen`:(pid?`Ersatz für ${(players.find(z=>z.id===pid)||{name:role}).name}`:`Position ${role} besetzen`)}</h2>
