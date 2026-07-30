@@ -387,6 +387,14 @@
   .benchrow{display:flex;gap:14px;overflow-x:auto;padding:10px 4px 16px;}
   .bcard{flex:0 0 auto;position:relative;cursor:grab;touch-action:pan-x;user-select:none;-webkit-user-select:none;}
   .bcard.drag{opacity:.4;}
+  .shrow{display:grid;grid-template-columns:44px 1fr 1fr 1fr;gap:8px;align-items:center;padding:7px 4px;border-bottom:1px solid var(--line2);}
+  .shrole{font-weight:900;font-size:12px;color:var(--ink2);text-align:center;}
+  .shcell{border:1px solid var(--line);background:var(--card2);border-radius:10px;padding:5px 8px;font-size:12px;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:6px;min-height:34px;}
+  .shcell:hover{border-color:var(--accent);}
+  .shcell.empty{color:var(--ink3);font-weight:600;border-style:dashed;justify-content:center;}
+  .shcell .sc{font-weight:900;font-variant-numeric:tabular-nums;}
+  .shcell i{color:var(--ink3);font-style:normal;font-size:10.5px;}
+  .shhead{font-size:11px;font-weight:800;color:var(--ink3);text-transform:uppercase;letter-spacing:.4px;text-align:center;}
   .btag{position:absolute;top:-7px;right:-7px;z-index:3;background:#12203a;border:1px solid rgba(77,163,255,.5);color:#8fc2ff;font-size:10px;font-weight:900;border-radius:9px;padding:2px 6px;pointer-events:none;}
   .attrbar{display:flex;gap:5px;justify-content:center;flex-wrap:wrap;margin-top:10px;}
   .attrbar .ab{background:var(--card2);border:1px solid var(--line);border-radius:8px;padding:4px 8px;font-size:11px;font-weight:800;font-variant-numeric:tabular-nums;}
@@ -510,6 +518,7 @@
     <div class="fbar"><div class="frow" id="seedRow"></div><div class="frow" id="formRow"></div><div class="frow" id="gapRow"></div></div>
     <div class="pitch" id="pitch"></div>
     <div id="bench"></div>
+    <div id="shadow"></div>
     <div id="lineupStats"></div>
     <div id="needs"></div>
   </section>
@@ -602,6 +611,7 @@
     <div class="card">
       <h3>So rechnet das Modell</h3>
       <ul>
+        <li><b>👥 Schattenmannschaft:</b> Kaderplanungs-Werkzeug wie im Profiscouting — hinter jeder Position der Startelf stehen ein geplanter <b>Backup</b> aus dem eigenen Kader und ein externes <b>Transferziel</b> (sortiert nach Transfer-Chance). Auto-Vervollständigen besetzt offene Planungen positionstreu; alles wird geräteübergreifend mitgespeichert.</li>
         <li><b>Gruppenliga-Radar (NEU):</b> Alle Torschützen (≥2 Tore) der 7 Gruppenliga-Vereine im Umkreis (Wald-Michelbach, FC/SV Fürth, Fehlheim, Auerbach, Bensheim, Riedrode) sind erfasst — Quelle fussball.de (Torschützenliste, Tabelle, 24 Spielerprofile mit Minuten). Der <b>Wechsel-Index</b> unterscheidet: Gruppenliga-<i>Stammspieler</i> sind quasi unerreichbar (−26), wer dort aber <i>meist draußen sitzt</i>, ist für garantierte Spielzeit ansprechbar. Echte Bankspieler ohne Torbeteiligung sind öffentlich nicht auffindbar (nur FuPa hätte komplette Kader — für automatisierte Abrufe gesperrt).</li>
         <li><b>Positionen &amp; Nebenpositionen:</b> Jeder Spieler hat eine feste Hauptposition. Hat er laut Vereinsheft-Aufstellungen nachweislich auch woanders gespielt (z.B. S. Goderbauer im Mittelfeld, Fries vorne), ist das als <b>Nebenposition</b> hinterlegt. Die „Beste Elf“-Automatik bewertet mit <b>75 % Stärke + Trainer-Vertrauen</b> (bis +10 für Startelf-Häufigkeit 25/26) <b>− 8 bei Disziplin-Risiko</b> (Rote Karten) und besetzt Slots nur mit Haupt-/Nebenposition; einzig LM/RM dürfen zur Not von zentralen Spielern (ZM/OM/ST) mit Malus übernommen werden — Kreisliga-Realität. Lieber ein Slot leer als wild verschoben.</li>
         <li><b>🎯 Insider-Ratings:</b> Für einzelne eigene Spieler kann die Sportliche Leitung das Daten-Rating überschreiben (z.B. starke Verteidiger, die in reinen Tordaten unsichtbar sind). Das ist im Profil offen ausgewiesen — inkl. des reinen Modellwerts. Ebenso transparent: intern als „nicht verfügbar“ markierte Spieler (z.B. bewusst nur noch 2. Mannschaft) fliegen aus Bank &amp; Vorschlägen.</li>
@@ -1515,9 +1525,10 @@ function posFit(p,want){
 let LINEUP={formation:'4-4-2',slots:{}};
 /* ===== Aufstellungs-Sync: die zuletzt gesetzte Elf liegt zentral im Make-Datastore ===== */
 const SYNCU='https://hook.eu1.make.com/hjm7vhk0hrgcg50f816k74klrpbbiszf';
+let SHADOW={};
 let _lastSync=null,_syncT=null,_remoteLoaded=false;
 function lineupSync(){
-  let s; try{s=JSON.stringify(LINEUP);}catch(e){return;}
+  let s; try{s=JSON.stringify({formation:LINEUP.formation,slots:LINEUP.slots,shadow:SHADOW});}catch(e){return;}
   if(_lastSync===null){_lastSync=s;return;} /* erster Render: nur Stand merken, nicht speichern */
   if(s===_lastSync)return;
   _lastSync=s;
@@ -1531,7 +1542,8 @@ function lineupRemoteLoad(){
       if(d&&d.formation&&FORMATIONS[d.formation]&&d.slots){
         LINEUP={formation:d.formation,slots:{}};
         for(const k in d.slots){ if(players.some(p=>p.id===d.slots[k]))LINEUP.slots[+k]=d.slots[k]; }
-        _lastSync=JSON.stringify(LINEUP);
+        if(d.shadow&&typeof d.shadow==='object')SHADOW=d.shadow;
+        _lastSync=JSON.stringify({formation:LINEUP.formation,slots:LINEUP.slots,shadow:SHADOW});
         renderLineup();
       }
     }).catch(()=>{});
@@ -1674,9 +1686,69 @@ function renderLineup(){
       <div class="tile" style="flex:2 1 260px"><div class="v" style="font-size:16px">${lines}</div><div class="l">Mannschaftsteile (Ø MScore)</div></div>
     </div>`;
   wireSlots();
+  renderShadow();
   renderNeeds();
   lineupSync();
   lineupRemoteLoad();
+}
+function shadowAutoFill(){
+  const form=FORMATIONS[LINEUP.formation];
+  const inXI=new Set(Object.values(LINEUP.slots));
+  const usedB=new Set(), usedZ=new Set();
+  for(const k in SHADOW){ if(SHADOW[k].b)usedB.add(SHADOW[k].b); if(SHADOW[k].z)usedZ.add(SHADOW[k].z); }
+  form.forEach((sl,i)=>{
+    const want=ROLE2POS[sl[0]];
+    SHADOW[i]=SHADOW[i]||{};
+    if(!SHADOW[i].b){
+      let bp=null,bv=-1;
+      players.forEach(p=>{
+        if(!p.own||p.verzicht||inXI.has(p.id)||usedB.has(p.id))return;
+        if(p.status&&/erletzt/.test(p.status))return;
+        const F=posFit(p,want); if(!F||F.lvl<1)return;
+        const v=scores(p).total+F.lvl*4; if(v>bv){bv=v;bp=p;}
+      });
+      if(bp){SHADOW[i].b=bp.id;usedB.add(bp.id);}
+    }
+    if(!SHADOW[i].z){
+      let bp=null,bv=-1;
+      players.forEach(p=>{
+        if(p.own||usedZ.has(p.id))return;
+        const F=posFit(p,want); if(!F||F.lvl<1)return;
+        const W=wscore(p); if(!W)return;
+        const v=W.k+F.lvl*4; if(v>bv){bv=v;bp=p;}
+      });
+      if(bp){SHADOW[i].z=bp.id;usedZ.add(bp.id);}
+    }
+  });
+  renderLineup();
+}
+function renderShadow(){
+  const el=document.getElementById('shadow'); if(!el)return;
+  const form=FORMATIONS[LINEUP.formation];
+  const cell=(pid,i,depth)=>{
+    if(!pid)return `<div class="shcell empty" data-shadow="${i}:${depth}">＋ planen</div>`;
+    const p=players.find(x=>x.id===pid);
+    if(!p)return `<div class="shcell empty" data-shadow="${i}:${depth}">＋ planen</div>`;
+    const s=scores(p);const W=p.own?null:wscore(p);
+    return `<div class="shcell" data-shadow="${i}:${depth}" title="Antippen: ändern">
+      <span class="sc" style="color:${tierColor(W?W.k:s.total)}">${Math.round(W?W.k:s.total)}</span>
+      <span style="min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${p.name.split(' ').slice(-1)[0]}<br><i>${p.own?'eigen':p.club}</i></span></div>`;
+  };
+  el.innerHTML=`<div class="card needcard"><h3>👥 Schattenmannschaft <i style="color:var(--ink2);font-weight:600;font-size:12px">Kaderplanung — pro Position: Startelf · Backup · Transferziel</i></h3>
+    <div style="display:flex;gap:8px;margin:8px 0 4px"><button class="rtab" id="shFill">⚡ Auto-Vervollständigen</button><button class="rtab" id="shClear">✕ Planung leeren</button></div>
+    <div class="shrow" style="border-bottom:1px solid var(--line)"><span class="shhead">Pos</span><span class="shhead">Startelf</span><span class="shhead">Backup (Kader)</span><span class="shhead">🎯 Ziel (extern)</span></div>
+    ${form.map((sl,i)=>{
+      const st=LINEUP.slots[i];const sh=SHADOW[i]||{};
+      const stp=st?players.find(x=>x.id===st):null;
+      return `<div class="shrow"><span class="shrole">${sl[0]}</span>
+        ${stp?`<div class="shcell" data-goid="${stp.id}"><span class="sc" style="color:${tierColor(scores(stp).total)}">${Math.round(scores(stp).total)}</span><span style="min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${stp.name.split(' ').slice(-1)[0]}</span></div>`:`<div class="shcell empty">— vakant —</div>`}
+        ${cell(sh.b,i,'b')}${cell(sh.z,i,'z')}</div>`;
+    }).join('')}
+    <p class="note">Backup = bester verfügbarer eigener Spieler der Position · Ziel = externes Wunschziel (Zahl = Transfer-Chance). Zellen antippen zum Ändern, Startelf-Zelle → Profil. Wird wie die Aufstellung <b>geräteübergreifend gespeichert</b>.</p></div>`;
+  el.querySelectorAll('[data-shadow]').forEach(c=>c.onclick=()=>{const [i,dep]=c.dataset.shadow.split(':');openSlotPicker(+i,dep);});
+  el.querySelectorAll('[data-goid]').forEach(c=>c.onclick=()=>startPlayer(c.dataset.goid));
+  const f=document.getElementById('shFill'); if(f)f.onclick=shadowAutoFill;
+  const cl=document.getElementById('shClear'); if(cl)cl.onclick=()=>{SHADOW={};renderLineup();};
 }
 function renderNeeds(){
   const el=document.getElementById('needs'); if(!el)return;
@@ -1878,12 +1950,13 @@ function wireSlots(){
     };
   });
 }
-function openSlotPicker(i){
+function openSlotPicker(i,depth){
   const role=FORMATIONS[LINEUP.formation][i][0];const want=ROLE2POS[role];
-  const pid=LINEUP.slots[i];
+  const pid=depth?((SHADOW[i]||{})[depth]):LINEUP.slots[i];
   const rank=(p)=>{const W=wscore(p);const base=W?W.k:scores(p).total;
     const F=posFit(p,want);let m=F?F.lvl*400:-500;
-    if(p.own)m+=3000; if(p.isJugend)m-=100;
+    if(depth==='z'){ if(!p.own)m+=3000; } else { if(p.own)m+=3000; }
+    if(p.isJugend)m-=100;
     return base+m;};
   let q='';
   const draw=()=>{
@@ -1893,10 +1966,10 @@ function openSlotPicker(i){
     if(!q)arr=arr.filter(p=>posFit(p,want)); /* ohne Suche: nur realistisch passende Spieler */
     arr.sort((a,b)=>rank(b)-rank(a));
     document.getElementById('modal').innerHTML=`<button class="close" id="mclose">✕</button>
-      <h2 style="font-size:19px">${pid?`Ersatz für ${(players.find(z=>z.id===pid)||{name:role}).name}`:`Position ${role} besetzen`}</h2>
+      <h2 style="font-size:19px">${depth?`${depth===`b`?`👥 Backup`:`🎯 Transferziel`} für ${role} planen`:(pid?`Ersatz für ${(players.find(z=>z.id===pid)||{name:role}).name}`:`Position ${role} besetzen`)}</h2>
       <div class="msub">Nur Spieler, die <b>${want}</b> realistisch spielen können: ✓ Hauptposition · ◐ dokumentierte Nebenposition · ~ ähnliche Position (Kreisliga-Polyvalenz: LV↔LM, ST↔Flügel …). Eigene zuerst (MScore), dann Externe nach 🕵️ Transfer-Chance. Die Suche findet weiterhin jeden Spieler.</div>
       <input type="search" class="search" id="pkq" placeholder="Spieler oder Verein suchen …" style="margin:12px 0" value="${q}">
-      ${pid?`<button class="fpick" id="clr" style="margin-bottom:8px">✕ Position frei machen</button>`:''}
+      ${pid?`<button class="fpick" id="clr" style="margin-bottom:8px">✕ ${depth?`Planung entfernen`:`Position frei machen`}</button>`:''}
       <div style="max-height:52vh;overflow:auto">
         ${arr.slice(0,80).map(p=>{const s=scores(p);const W=wscore(p);const src=p.photo||p.photoUrl;const F=posFit(p,want);
           return `<div class="rankrow" data-pk="${p.id}">
@@ -1909,8 +1982,8 @@ function openSlotPicker(i){
     document.getElementById('overlay').classList.add('open');
     document.getElementById('mclose').onclick=closeOverlay;
     const inp=document.getElementById('pkq');inp.oninput=e=>{q=e.target.value.toLowerCase();const c=inp.selectionStart;draw();const n=document.getElementById('pkq');n.focus();n.setSelectionRange(c,c);};
-    const clr=document.getElementById('clr');if(clr)clr.onclick=()=>{delete LINEUP.slots[i];closeOverlay();renderLineup();};
-    document.querySelectorAll('#modal [data-pk]').forEach(el=>el.onclick=()=>{LINEUP.slots[i]=el.dataset.pk;closeOverlay();renderLineup();});
+    const clr=document.getElementById('clr');if(clr)clr.onclick=()=>{if(depth){if(SHADOW[i])delete SHADOW[i][depth];}else{delete LINEUP.slots[i];}closeOverlay();renderLineup();};
+    document.querySelectorAll('#modal [data-pk]').forEach(el=>el.onclick=()=>{if(depth){SHADOW[i]=SHADOW[i]||{};SHADOW[i][depth]=el.dataset.pk;}else{LINEUP.slots[i]=el.dataset.pk;}closeOverlay();renderLineup();});
   };
   draw();
 }
