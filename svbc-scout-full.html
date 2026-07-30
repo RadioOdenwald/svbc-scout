@@ -996,8 +996,9 @@ function renderHome(){
     const hidNo=players.filter(p=>crmOf(p).s==='no');
     const hidLat=players.filter(p=>{const C=crmOf(p);return C.s==='lat'&&C.u&&C.u>T;}).sort((a,b)=>(crmOf(a).u||'').localeCompare(crmOf(b).u||''));
     const cont=players.filter(p=>crmOf(p).c);
-    const mini=(p,sub)=>{const src=p.photo||p.photoUrl;const C=crmOf(p);
+    const mini=(p,sub)=>{const src=p.photo||p.photoUrl;const C=crmOf(p);const W=wscoreSafe(p);
       return `<div class="rankrow row" data-id="${p.id}">
+        <span class="rk" style="color:${W?tierColor(W.k):'var(--ink3)'}" title="${W?'Transfer-Chance':''}">${W?Math.round(W.k):'–'}</span>
         <div class="ava l-${p.liga}" style="width:30px;height:30px;font-size:11px;border-radius:9px">${src?`<img src="${src}" onerror="this.remove()">`:initials(p.name)}</div>
         <span class="rn">${p.name}${C.c?' <span class="badge b-crmc">📞</span>':''} <i style="color:var(--ink3)">${p.club} · ${LIGA_NAME[p.liga]||p.liga}</i>${sub?`<br><i style="color:#8fa3c7;font-size:11px">${sub}</i>`:''}${C.n?`<div class="crmnote">📝 ${C.n.length>90?C.n.slice(0,90)+'…':C.n}</div>`:''}</span>
         <span class="rv">${p.km!=null?p.km+' km':''}</span></div>`;};
