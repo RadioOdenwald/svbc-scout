@@ -421,6 +421,7 @@
 <div class="navwrap"><nav>
   <button class="active" data-tab="home">Home</button>
   <button data-tab="scout">Scouting</button>
+  <button data-tab="kandidaten">🗂️ Kandidaten</button>
   <button data-tab="db">Datenbank</button>
   <button data-tab="elf">⚽ Aufstellung</button>
   <button data-tab="sxi">👥 Schattenelf</button>
@@ -462,6 +463,24 @@
     <div id="homePress"></div>
   </section>
 
+<style id="kandCss">
+#panel-kandidaten .kwrap{overflow-x:auto}
+#panel-kandidaten table.kand-table{width:100%;border-collapse:collapse;font-size:12px}
+#panel-kandidaten .kand-table th,#panel-kandidaten .kand-table td{padding:5px 6px;border-bottom:1px solid var(--line,#22304a);text-align:left;vertical-align:top}
+#panel-kandidaten .kand-table th{position:sticky;top:0;background:var(--bg2,#0f1830);color:var(--ink3,#8fa3c7);font-weight:600;white-space:nowrap;z-index:1}
+#panel-kandidaten tr.due{background:rgba(255,70,70,.10)}
+#panel-kandidaten tr.due td:first-child{box-shadow:inset 3px 0 0 #ff5b5b}
+#panel-kandidaten .kand-in{width:100%;box-sizing:border-box;background:var(--bg,#0b1224);color:var(--ink,#e8eefc);border:1px solid var(--line,#22304a);border-radius:6px;padding:3px 5px;font-size:12px}
+#panel-kandidaten .kand-name{font-weight:600;cursor:pointer;color:var(--ink,#e8eefc)}
+#panel-kandidaten .kand-name:hover{text-decoration:underline}
+#panel-kandidaten .kand-sub{color:var(--ink3,#8fa3c7);font-size:11px}
+#panel-kandidaten .kchip{display:inline-block;padding:1px 7px;border-radius:999px;font-size:11px;font-weight:600;white-space:nowrap}
+#panel-kandidaten .kbtn{background:var(--bg2,#16223c);color:var(--ink,#e8eefc);border:1px solid var(--line,#22304a);border-radius:6px;padding:3px 8px;font-size:11px;cursor:pointer}
+</style>
+<section class="panel" id="panel-kandidaten">
+  <div class="sechead">🗂️ Kaderplaner-Pipeline <small style="color:var(--ink3)">Kandidaten · Kontakt · Wechselwahrscheinlichkeit</small></div>
+  <div id="kandWrap"></div>
+</section>
   <!-- SCOUTING -->
   <section class="panel" id="panel-scout">
     <div class="fbar">
@@ -690,6 +709,7 @@
 <div class="tabbar" id="tabbar">
   <button class="ti active" data-tab="home"><span class="ic">🏠</span>Home</button>
   <button class="ti" data-tab="scout"><span class="ic">🔍</span>Scout</button>
+  <button class="ti" data-tab="kandidaten"><span class="ic">🗂️</span>Kader</button>
   <button class="ti" data-tab="db"><span class="ic">🗄️</span>Daten</button>
   <button class="ti" data-tab="elf"><span class="ic">⚽</span>Elf</button>
   <button class="ti" data-tab="sxi"><span class="ic">👥</span>Schatten</button>
@@ -1092,7 +1112,84 @@ window.addEventListener('beforeinstallprompt',e=>{
   const b=document.getElementById('installBtn');
   if(b){b.style.display='inline-block';b.onclick=()=>{deferredPrompt.prompt();};}
 });
-function renderAll(){renderHome();renderList();renderGems();renderJugend();renderShortlist();renderDB();fillCompareSelects();updateCompare();try{renderLineup();}catch(e){}}
+/* ===== Kaderplaner-Pipeline (Kandidaten-CRM-Sicht) =====
+   Zusatzfelder je Spieler in CRM[pid]: k=Kontaktdaten, lc=letzter Kontakt (ISO),
+   w=Wechselwahrscheinlichkeit 1-4, rl=Zielrolle, tp=Zielposition, pl=verantw. Kaderplaner.
+   Werden vom bestehenden lineupSync() automatisch mitsynchronisiert. */
+const KAND_DUE_DAYS=21;
+let PLANNERS=['Dome','Nico'];
+const WPROB={1:{t:'gering',c:'#8fa3c7'},2:{t:'mittel',c:'#ffd60a'},3:{t:'hoch',c:'#ffb347'},4:{t:'sehr hoch',c:'#5fe09b'}};
+const KPOS=['TW','IV','LV','RV','DM','ZM','OM','LM','RM','ST'];
+let kandFP='',kandDue=false,kandQ='';
+function kEsc(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+function daysSince(iso){if(!iso)return null;const d=new Date(iso+'T00:00:00'),n=new Date(todayISO()+'T00:00:00');return Math.round((n-d)/86400000);}
+function kandList(){return players.filter(p=>{const C=crmOf(p);return (C.f||C.pl||C.w||C.lc||C.s==='att')&&C.s!=='no';});}
+function kandIsDue(p){const C=crmOf(p);const ds=daysSince(C.lc);return ds===null||ds>KAND_DUE_DAYS;}
+function kandPlanners(){const s=new Set(PLANNERS);kandList().forEach(p=>{const q=crmOf(p).pl;if(q)s.add(q);});return [...s];}
+function renderKandidaten(){
+  const wrap=document.getElementById('kandWrap'); if(!wrap)return;
+  const planners=kandPlanners();
+  let list=kandList();
+  if(kandFP)list=list.filter(p=>(crmOf(p).pl||'')===kandFP);
+  if(kandDue)list=list.filter(kandIsDue);
+  if(kandQ){const q=kandQ.toLowerCase();list=list.filter(p=>(p.name||'').toLowerCase().includes(q));}
+  list.sort((a,b)=>{
+    const da=kandIsDue(a)?1:0,db=kandIsDue(b)?1:0; if(da!==db)return db-da;
+    const sa=daysSince(crmOf(a).lc),sb=daysSince(crmOf(b).lc);
+    const va=sa===null?1e9:sa,vb=sb===null?1e9:sb; if(va!==vb)return vb-va;
+    const wa=crmOf(a).w||0,wb=crmOf(b).w||0; if(wa!==wb)return wb-wa;
+    return (a.name||'').localeCompare(b.name||'');
+  });
+  const opt=(arr,cur,ph)=>'<option value="">'+ph+'</option>'+arr.map(o=>'<option value="'+kEsc(o)+'"'+(String(cur)===String(o)?' selected':'')+'>'+kEsc(o)+'</option>').join('');
+  const dueCount=kandList().filter(kandIsDue).length;
+  let html='<div class="card" style="padding:8px 10px;margin-bottom:8px"><div class="frow" style="gap:8px;flex-wrap:wrap;align-items:center">'
+    +'<input id="kandSearch" class="kand-in" style="max-width:180px" placeholder="Kandidat suchen…" value="'+kEsc(kandQ)+'">'
+    +'<select id="kandPl" class="kand-in" style="max-width:160px">'+opt(planners,kandFP,'Alle Planer')+'</select>'
+    +'<label style="display:flex;align-items:center;gap:5px;font-size:12px;color:var(--ink,#e8eefc)"><input type="checkbox" id="kandDueChk"'+(kandDue?' checked':'')+'> nur überfällig</label>'
+    +'<span style="flex:1"></span>'
+    +'<span class="kchip" style="background:rgba(255,70,70,.15);color:#ff8a8a">'+dueCount+' überfällig</span>'
+    +'<span class="kchip" style="background:var(--bg2,#16223c);color:var(--ink3,#8fa3c7)">'+kandList().length+' Kandidaten</span>'
+    +'</div></div>';
+  if(!list.length){
+    html+='<div class="card" style="padding:16px;text-align:center;color:var(--ink3,#8fa3c7)">Keine Kandidaten für diesen Filter. Spieler über ☆ „Auf die Shortlist" (im Spielerprofil) aufnehmen — oder hier direkt Wechselwahrscheinlichkeit/Planer setzen.</div>';
+    wrap.innerHTML=html; wireKand(); return;
+  }
+  const rows=list.map(p=>{
+    const C=crmOf(p),ds=daysSince(C.lc),due=kandIsDue(p);
+    const wsel='<select class="kand-in" data-kf="w" data-id="'+p.id+'"><option value="">–</option>'+[1,2,3,4].map(n=>'<option value="'+n+'"'+(C.w==n?' selected':'')+'>'+WPROB[n].t+'</option>').join('')+'</select>';
+    const posSel='<select class="kand-in" data-kf="tp" data-id="'+p.id+'">'+opt(KPOS,C.tp,(p.pos||'Pos'))+'</select>';
+    const plSel='<select class="kand-in" data-kf="pl" data-id="'+p.id+'">'+opt(planners,C.pl,'—')+'</select>';
+    const badge=due?(ds===null?'<span class="kchip" style="background:#ff5b5b22;color:#ff8a8a">nie kontaktiert</span>':'<span class="kchip" style="background:#ff5b5b22;color:#ff8a8a">überfällig · '+ds+' T</span>'):'<span class="kand-sub">vor '+ds+' T</span>';
+    return '<tr class="'+(due?'due':'')+'">'
+      +'<td><span class="kand-name" data-open="'+p.id+'">'+kEsc(p.name)+'</span><div class="kand-sub">'+kEsc(p.club||'')+(p.pos?' · '+kEsc(p.pos):'')+(p.alter?' · '+p.alter+'J':'')+'</div></td>'
+      +'<td>'+wsel+'</td>'
+      +'<td><input class="kand-in" data-kf="rl" data-id="'+p.id+'" value="'+kEsc(C.rl||'')+'" placeholder="Rolle"></td>'
+      +'<td>'+posSel+'</td>'
+      +'<td><input class="kand-in" data-kf="k" data-id="'+p.id+'" value="'+kEsc(C.k||'')+'" placeholder="Handy / E-Mail"></td>'
+      +'<td style="white-space:nowrap"><input type="date" class="kand-in" style="width:132px" data-kf="lc" data-id="'+p.id+'" value="'+(C.lc||'')+'"> <button class="kbtn" data-today="'+p.id+'">heute</button><div style="margin-top:3px">'+badge+'</div></td>'
+      +'<td>'+plSel+'</td>'
+      +'<td><input class="kand-in" data-kf="n" data-id="'+p.id+'" value="'+kEsc(C.n||'')+'" placeholder="Notiz"></td>'
+      +'</tr>';
+  }).join('');
+  html+='<div class="kwrap"><table class="kand-table"><thead><tr><th>Kandidat</th><th>Wechsel-W.</th><th>Rolle</th><th>Position</th><th>Kontaktdaten</th><th>Letzter Kontakt</th><th>Verantw.</th><th>Notiz</th></tr></thead><tbody>'+rows+'</tbody></table></div>';
+  wrap.innerHTML=html; wireKand();
+}
+function wireKand(){
+  const w=document.getElementById('kandWrap'); if(!w)return;
+  const s=document.getElementById('kandSearch'); if(s){s.oninput=e=>{kandQ=e.target.value;};s.onchange=e=>{kandQ=e.target.value;renderKandidaten();};s.onkeydown=e=>{if(e.key==='Enter'){kandQ=e.target.value;renderKandidaten();}};}
+  const pl=document.getElementById('kandPl'); if(pl)pl.onchange=e=>{kandFP=e.target.value;renderKandidaten();};
+  const dc=document.getElementById('kandDueChk'); if(dc)dc.onchange=e=>{kandDue=e.target.checked;renderKandidaten();};
+  w.querySelectorAll('[data-kf]').forEach(el=>{el.onchange=()=>{
+    const id=el.dataset.id,kf=el.dataset.kf;let v=el.value;
+    if(kf==='w')v=v?+v:'';
+    const upd={};upd[kf]=(v===''||v==null)?undefined:v;
+    if(kf==='lc'&&v)upd.c=1;
+    crmSet(id,upd);renderKandidaten();
+  };});
+  w.querySelectorAll('[data-today]').forEach(b=>{b.onclick=()=>{crmSet(b.dataset.today,{lc:todayISO(),c:1});renderKandidaten();};});
+  w.querySelectorAll('[data-open]').forEach(el=>{el.onclick=()=>{try{openModal(el.dataset.open);}catch(e){}};});
+}
+function renderAll(){renderHome();renderList();renderGems();renderJugend();renderShortlist();renderDB();fillCompareSelects();updateCompare();try{renderLineup();}catch(e){}try{renderKandidaten();}catch(e){}}
 
 /* ================= MODAL ================= */
 function nrm(s){return (s||'').toLowerCase().replace(/ä/g,'ae').replace(/ö/g,'oe').replace(/ü/g,'ue').replace(/ß/g,'ss').replace(/\s+/g,' ').trim();}
@@ -1523,6 +1620,7 @@ function goTab(tab){
   const el=document.getElementById('panel-'+tab);
   if(el)el.classList.add('active');
   if(tab==='cmp')updateCompare();
+  if(tab==='kandidaten')renderKandidaten();
   if(tab==='sxi'){try{renderLineup();}catch(e){}}
   try{window.scrollTo({top:0});}catch(e){}
 }
