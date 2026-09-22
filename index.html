@@ -422,6 +422,7 @@
   <button class="active" data-tab="home">Home</button>
   <button data-tab="scout">Scouting</button>
   <button data-tab="kandidaten">🗂️ Kandidaten</button>
+  <button data-tab="kaderplan">📋 Kaderplan</button>
   <button data-tab="db">Datenbank</button>
   <button data-tab="elf">⚽ Aufstellung</button>
   <button data-tab="sxi">👥 Schattenelf</button>
@@ -480,6 +481,44 @@
 <section class="panel" id="panel-kandidaten">
   <div class="sechead">🗂️ Kaderplaner-Pipeline <small style="color:var(--ink3)">Kandidaten · Kontakt · Wechselwahrscheinlichkeit</small></div>
   <div id="kandWrap"></div>
+</section>
+<style id="kpCss">
+#panel-kaderplan .kp-head{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+#panel-kaderplan .kp-sum{display:flex;gap:6px;flex-wrap:wrap}
+#panel-kaderplan .kchip{display:inline-block;padding:2px 9px;border-radius:999px;font-size:12px;font-weight:600}
+#panel-kaderplan table.kp-table{width:100%;border-collapse:collapse;font-size:13px}
+#panel-kaderplan .kp-table th,#panel-kaderplan .kp-table td{padding:6px 8px;border-bottom:1px solid var(--line,#22304a);text-align:left;vertical-align:middle}
+#panel-kaderplan .kp-table th{color:var(--ink3,#8fa3c7);font-weight:600;font-size:11px;text-transform:uppercase;letter-spacing:.03em}
+#panel-kaderplan tr.kp-grp td{background:var(--bg2,#111c34);color:var(--ink,#e8eefc);font-weight:700;font-size:12px;letter-spacing:.04em}
+#panel-kaderplan tr.kp-open td{background:rgba(255,70,70,.08)}
+#panel-kaderplan .kp-pos{font-weight:700;color:var(--ink2,#c7d3ea);white-space:nowrap}
+#panel-kaderplan .kp-ov{display:inline-block;min-width:20px;text-align:center;padding:1px 5px;border-radius:5px;color:#0b1224;font-weight:800;font-size:11px}
+#panel-kaderplan .kp-name{cursor:pointer}
+#panel-kaderplan .kp-name:hover{text-decoration:underline}
+#panel-kaderplan .kp-none{color:var(--ink3,#8fa3c7)}
+#panel-kaderplan .kp-club{color:var(--ink3,#8fa3c7);font-style:normal;font-size:11px}
+#panel-kaderplan .kp-fit{font-size:10px;font-weight:700}
+#panel-kaderplan .kp-st{display:inline-block;padding:1px 7px;border-radius:999px;font-size:11px;font-weight:700;white-space:nowrap}
+#panel-kaderplan .kp-st.ok{background:rgba(47,210,122,.15);color:#5fe09b}
+#panel-kaderplan .kp-st.thin{background:rgba(255,179,71,.15);color:#ffb347}
+#panel-kaderplan .kp-st.off{background:rgba(255,70,70,.18);color:#ff8a8a}
+#panel-kaderplan .kbtn{background:var(--bg2,#16223c);color:var(--ink,#e8eefc);border:1px solid var(--line,#22304a);border-radius:7px;padding:5px 10px;font-size:12px;cursor:pointer}
+#panel-kaderplan .kwrap{overflow-x:auto}
+@media print{
+  @page{margin:1.2cm}
+  body{background:#fff!important}
+  .navwrap,nav,.tabbar{display:none!important}
+  .panel:not(#panel-kaderplan){display:none!important}
+  #panel-kaderplan .kp-noprint{display:none!important}
+  #panel-kaderplan{color:#000!important;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  #panel-kaderplan .kp-table th,#panel-kaderplan .kp-table td{border-bottom:1px solid #bbb}
+  #panel-kaderplan tr.kp-grp td{background:#eee!important;color:#000!important}
+  #panel-kaderplan tr.kp-open td{background:#ffecec!important}
+  #panel-kaderplan .kp-pos,#panel-kaderplan .kp-club,#panel-kaderplan .kp-none{color:#000!important}
+}
+</style>
+<section class="panel" id="panel-kaderplan">
+  <div id="kaderplanWrap"></div>
 </section>
   <!-- SCOUTING -->
   <section class="panel" id="panel-scout">
@@ -710,6 +749,7 @@
   <button class="ti active" data-tab="home"><span class="ic">🏠</span>Home</button>
   <button class="ti" data-tab="scout"><span class="ic">🔍</span>Scout</button>
   <button class="ti" data-tab="kandidaten"><span class="ic">🗂️</span>Kader</button>
+  <button class="ti" data-tab="kaderplan"><span class="ic">📋</span>Plan</button>
   <button class="ti" data-tab="db"><span class="ic">🗄️</span>Daten</button>
   <button class="ti" data-tab="elf"><span class="ic">⚽</span>Elf</button>
   <button class="ti" data-tab="sxi"><span class="ic">👥</span>Schatten</button>
@@ -1189,7 +1229,66 @@ function wireKand(){
   w.querySelectorAll('[data-today]').forEach(b=>{b.onclick=()=>{crmSet(b.dataset.today,{lc:todayISO(),c:1});renderKandidaten();};});
   w.querySelectorAll('[data-open]').forEach(el=>{el.onclick=()=>{try{openModal(el.dataset.open);}catch(e){}};});
 }
-function renderAll(){renderHome();renderList();renderGems();renderJugend();renderShortlist();renderDB();fillCompareSelects();updateCompare();try{renderLineup();}catch(e){}try{renderKandidaten();}catch(e){}}
+/* ===== Kaderplan-Board: druckbare Kaderplanung (Stamm/Backup/Ziel je Position) auf LINEUP+SHADOW ===== */
+let kpShowZiel=true;
+function kpCellOwn(p,want){
+  if(!p)return '<span class="kp-none">—</span>';
+  const s=scores(p),tag=want?posFit(p,want):null;
+  return '<span class="kp-ov" style="background:'+tierColor(s.total)+'">'+Math.round(s.total)+'</span> <span class="kp-name" data-open="'+p.id+'">'+kEsc(p.name)+'</span>'+(tag?' <span class="kp-fit" style="color:'+tag.col+'">'+kEsc(tag.tag)+'</span>':'');
+}
+function kpCellExt(p,want){
+  if(!p)return '<span class="kp-none">—</span>';
+  const W=p.own?null:wscore(p),v=W?W.k:scores(p).total,tag=want?posFit(p,want):null;
+  return '<span class="kp-ov" style="background:'+tierColor(v)+'">'+Math.round(v)+'</span> <span class="kp-name" data-open="'+p.id+'">'+kEsc(p.name)+'</span> <i class="kp-club">'+kEsc(p.own?'eigen':(p.club||''))+'</i>'+(tag?' <span class="kp-fit" style="color:'+tag.col+'">'+kEsc(tag.tag)+'</span>':'');
+}
+function renderKaderplan(){
+  const wrap=document.getElementById('kaderplanWrap'); if(!wrap)return;
+  if(!Object.keys(LINEUP.slots).length){ try{initLineupSeed();}catch(e){} }
+  const form=FORMATIONS[LINEUP.formation];
+  const P=id=>id&&players.find(z=>z.id===id);
+  const groups={TOR:[],ABWEHR:[],MITTELFELD:[],ANGRIFF:[]};
+  form.forEach((sl,i)=>{const role=sl[0],y=sl[2];const g=role==='TW'?'TOR':(y>=66?'ABWEHR':(y>=40?'MITTELFELD':'ANGRIFF'));groups[g].push({i,role,x:sl[1]});});
+  Object.values(groups).forEach(a=>a.sort((p,q)=>p.x-q.x));
+  let open=0,thin=0,ok=0,body='';
+  ['TOR','ABWEHR','MITTELFELD','ANGRIFF'].forEach(g=>{
+    if(!groups[g].length)return;
+    body+='<tr class="kp-grp"><td colspan="'+(kpShowZiel?5:4)+'">'+g+'</td></tr>';
+    groups[g].forEach(o=>{
+      const i=o.i,role=o.role,want=ROLE2POS[role];
+      const st=P(LINEUP.slots[i]),b=P((SHADOW[i]||{}).b),z=P((SHADOW[i]||{}).z);
+      let status;
+      if(!st){status='<span class="kp-st off">✕ offen</span>';open++;}
+      else if(!b){status='<span class="kp-st thin">⚠ kein Backup</span>';thin++;}
+      else{status='<span class="kp-st ok">✓ besetzt</span>';ok++;}
+      body+='<tr'+(!st?' class="kp-open"':'')+'><td class="kp-pos">'+role+'</td>'
+        +'<td>'+kpCellOwn(st,null)+'</td>'
+        +'<td>'+kpCellOwn(b,want)+'</td>'
+        +(kpShowZiel?'<td>'+kpCellExt(z,want)+'</td>':'')
+        +'<td>'+status+'</td></tr>';
+    });
+  });
+  const d=new Date(),dstr=String(d.getDate()).padStart(2,'0')+'.'+String(d.getMonth()+1).padStart(2,'0')+'.'+d.getFullYear();
+  let html='<div class="sechead">📋 Kaderplan <small style="color:var(--ink3)">Formation '+LINEUP.formation+' · Stand '+dstr+'</small></div>';
+  html+='<div class="card" style="padding:8px 10px;margin-bottom:8px"><div class="kp-head">'
+    +'<div class="kp-sum"><span class="kchip" style="background:rgba(47,210,122,.15);color:#5fe09b">'+ok+' besetzt</span>'
+    +'<span class="kchip" style="background:rgba(255,179,71,.15);color:#ffb347">'+thin+' ohne Backup</span>'
+    +'<span class="kchip" style="background:rgba(255,70,70,.18);color:#ff8a8a">'+open+' offen</span></div>'
+    +'<span style="flex:1"></span>'
+    +'<label class="kp-noprint" style="display:flex;align-items:center;gap:5px;font-size:12px"><input type="checkbox" id="kpZiel"'+(kpShowZiel?' checked':'')+'> 🎯 Zielbild nächste Saison</label>'
+    +'<button class="kbtn kp-noprint" id="kpFill">⚡ Backups &amp; Ziele auto-füllen</button>'
+    +'<button class="kbtn kp-noprint" id="kpPrint">🖨️ Als PDF / drucken</button></div>'
+    +'<div class="kp-noprint" style="font-size:11px;color:var(--ink3);margin-top:4px">„Stammspieler" + „Backup" = so sieht der Kader jetzt aus · „🎯 Ziel" = Wunsch/Transferziel nächste Saison. Formation &amp; Startelf im Tab ⚽ Aufstellung setzen; Backup/Ziel je Position dort in der Schattenelf editierbar. Positions-Tags (✓/◐/~) zeigen Mehrfachpositionen.</div></div>';
+  html+='<div class="kwrap"><table class="kp-table"><thead><tr><th>Pos</th><th>Stammspieler (jetzt)</th><th>Backup (jetzt)</th>'+(kpShowZiel?'<th>🎯 Ziel nächste Saison</th>':'')+'<th>Status</th></tr></thead><tbody>'+body+'</tbody></table></div>';
+  wrap.innerHTML=html; wireKaderplan();
+}
+function wireKaderplan(){
+  const w=document.getElementById('kaderplanWrap'); if(!w)return;
+  const z=document.getElementById('kpZiel'); if(z)z.onchange=e=>{kpShowZiel=e.target.checked;renderKaderplan();};
+  const f=document.getElementById('kpFill'); if(f)f.onclick=()=>{try{shadowAutoFill();}catch(e){}renderKaderplan();};
+  const pr=document.getElementById('kpPrint'); if(pr)pr.onclick=()=>{try{window.print();}catch(e){}};
+  w.querySelectorAll('[data-open]').forEach(el=>{el.onclick=()=>{try{startPlayer(el.dataset.open);}catch(e){}};});
+}
+function renderAll(){renderHome();renderList();renderGems();renderJugend();renderShortlist();renderDB();fillCompareSelects();updateCompare();try{renderLineup();}catch(e){}try{renderKandidaten();}catch(e){}try{renderKaderplan();}catch(e){}}
 
 /* ================= MODAL ================= */
 function nrm(s){return (s||'').toLowerCase().replace(/ä/g,'ae').replace(/ö/g,'oe').replace(/ü/g,'ue').replace(/ß/g,'ss').replace(/\s+/g,' ').trim();}
@@ -1621,6 +1720,7 @@ function goTab(tab){
   if(el)el.classList.add('active');
   if(tab==='cmp')updateCompare();
   if(tab==='kandidaten')renderKandidaten();
+  if(tab==='kaderplan')renderKaderplan();
   if(tab==='sxi'){try{renderLineup();}catch(e){}}
   try{window.scrollTo({top:0});}catch(e){}
 }
