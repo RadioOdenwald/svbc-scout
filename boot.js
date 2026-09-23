@@ -206,7 +206,7 @@ async function loadAndStart(){
   window.__SVBC_DATA=ds.body; window.__SVBC_USER=SV.profile; window.__SVBC_DSVER=ds.version;
   loading('App wird gestartet …',100);
   document.body.classList.add('role-'+SV.profile.role);
-  if(!(SV.profile.role==='admin'||SV.profile.role==='vorstand'||SV.profile.role==='planer'))document.body.classList.add('ro');
+  if(!(SV.profile.role==='admin'||SV.profile.role==='vorstand'||SV.profile.role==='planer'||SV.profile.role==='trainer'))document.body.classList.add('ro');
   const s=document.createElement('script'); s.src='app.js?v='+encodeURIComponent(CFG.build||'');
   s.onload=()=>{ document.body.classList.remove('gated'); gate.classList.add('done'); setTimeout(()=>{ gate.style.display='none'; },600); };
   s.onerror=()=>{ viewLogin('Die App konnte nicht geladen werden. Bitte neu laden.','err'); };

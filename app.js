@@ -2100,7 +2100,7 @@ function openSlotPicker(i,depth){
 }
 
 /* ===== App-Modus: installierbar, offline-fest, aktualisiert sich selbst ===== */
-const APP_BUILD='20260923-1312', OUTBOX_KEY='svbcOutbox', APP_HIDE_KEY='svbcInstallHide';
+const APP_BUILD='20260923-1639-r7', OUTBOX_KEY='svbcOutbox', APP_HIDE_KEY='svbcInstallHide';
 let _appPrompt=null, _appNew=null, _obT=null;
 function appStandalone(){ try{ return !!(window.matchMedia&&matchMedia('(display-mode: standalone)').matches)||navigator.standalone===true; }catch(e){ return false; } }
 function appPlatform(){
@@ -3295,6 +3295,693 @@ function sbQuick(sq){
         <select data-qf="${svEsc(p.id)}|team" aria-label="Teamgeist">${opt(r15,b.ch.team||'')}</select></div>`; }).join('')}</div></div>`;
 }
 { const _rkp=renderKaderplan; renderKaderplan=function(){ const r=_rkp.apply(this,arguments); try{ if(!crmIsTyping())sbKaderRender(); }catch(e){ console.warn('Kader-Profil',e); } return r; }; }
+
+/* =====================================================================
+   SV/BSC Scout · Trainings-Kern (läuft in der App UND im Erinnerungs-/Co-Trainer-Dienst)
+   - Kennzahlen je Spieler & Team, Tendenz-Warnungen, einfacher Sprach-/Text-Parser
+   ===================================================================== */
+const TRC=(function(){
+  const REASONS={verletzt:'Verletzt',krank:'Krank',arbeit:'Arbeit/Schicht',urlaub:'Urlaub',uni:'Schule/Uni',familie:'Familie',zweite:'In der Zweiten',privat:'Privat',ohne:'Ohne Grund'};
+  const EXCUSE_NEUTRAL={verletzt:1,krank:1,zweite:1};          // zählen nicht gegen die Beteiligung
+  const FOKUS={lauf:'Laufintensiv',athletik:'Athletik/Kraft',taktik:'Taktik',technik:'Technik',spielform:'Spielformen',abschluss:'Torabschluss',standards:'Standards',umschalt:'Umschalten',regeneration:'Regeneration',torwart:'Torwarttraining'};
+  const ART={muskel:'Muskel',band:'Bänder/Sehnen',knochen:'Knochen',gelenk:'Gelenk/Meniskus',prellung:'Prellung',krankheit:'Krankheit',sonstiges:'Sonstiges'};
+  const DAY=86400000;
+  const iso=d=>{ const x=new Date(d); return x.getFullYear()+'-'+String(x.getMonth()+1).padStart(2,'0')+'-'+String(x.getDate()).padStart(2,'0'); };
+  const addDays=(s,n)=>iso(new Date(new Date(s+'T12:00:00').getTime()+n*DAY));
+  const diffDays=(a,b)=>Math.round((new Date(a+'T12:00:00')-new Date(b+'T12:00:00'))/DAY);
+  const fmt=s=>{ if(!s)return ''; const [y,m,d]=String(s).split('-'); return d+'.'+m+'.'; };
+  const trainings=st=>(st&&st.sessions||[]).filter(s=>s.t==='training');
+  function rows(st,pid){ const out=[]; for(const s of trainings(st)){ for(const a of s.a||[]){ if(a[0]===pid){ out.push({d:s.d,st:a[1],g:a[2],mot:a[3],fit:a[4],n:a[5]}); break; } } } return out.sort((x,y)=>x.d<y.d?1:-1); }
+  function rate(list){ const c=list.filter(r=>!(r.st==='weg'&&EXCUSE_NEUTRAL[r.g])); if(!c.length)return null; return c.filter(r=>r.st!=='weg').length/c.length; }
+  function activeInjury(st,pid,today){ return (st&&st.injuries||[]).find(i=>i.p===pid&&!i.z&&i.b<=today)||null; }
+  function playerStats(st,pid,today){
+    const R=rows(st,pid), w=(a,b)=>R.filter(r=>{ const dd=diffDays(today,r.d); return dd>=a&&dd<b; });
+    const r28=w(0,28), rPrev=w(28,84), rSeason=w(0,365);
+    const mot=R.filter(r=>r.mot).map(r=>({d:r.d,v:r.mot})), fit=R.filter(r=>r.fit).map(r=>({d:r.d,v:r.fit}));
+    const seen=R.find(r=>r.st!=='weg');
+    let streak=0; for(const r of R){ if(r.st==='weg'&&!EXCUSE_NEUTRAL[r.g])streak++; else break; }
+    const inj=(st&&st.injuries||[]).filter(i=>i.p===pid);
+    return { n28:r28.length, rate28:rate(r28), ratePrev:rate(rPrev), rateSeason:rate(rSeason), da28:r28.filter(r=>r.st!=='weg').length,
+      ohne28:r28.filter(r=>r.st==='weg'&&r.g==='ohne').length, spaet28:r28.filter(r=>r.st==='spaet').length,
+      mot, fit, lastSeen:seen?seen.d:null, streak, rows:R, injury:activeInjury(st,pid,today), injuries:inj,
+      inj12:inj.filter(i=>diffDays(today,i.b)<=365).length };
+  }
+  function teamStats(st,today,squadIds){
+    const S=trainings(st), set=squadIds?new Set(squadIds):null;
+    const win=(a,b)=>{ let da=0,n=0,cnt=0; for(const s of S){ const dd=diffDays(today,s.d); if(dd<a||dd>=b)continue; cnt++; for(const x of s.a||[]){ if(set&&!set.has(x[0]))continue; if(x[1]==='weg'&&EXCUSE_NEUTRAL[x[2]])continue; n++; if(x[1]!=='weg')da++; } } return {rate:n?da/n:null,sessions:cnt}; };
+    const weeks=[]; for(let k=11;k>=0;k--){ const w=win(k*7,k*7+7); weeks.push({from:addDays(today,-k*7-6),rate:w.rate,sessions:w.sessions}); }
+    const perSession=S.slice(0,12).map(s=>({d:s.d,da:(s.a||[]).filter(x=>x[1]!=='weg'&&(!set||set.has(x[0]))).length}));
+    return {r21:win(0,21),prev:win(21,63),r28:win(0,28),season:win(0,365),weeks,perSession};
+  }
+  const pct=v=>v==null?'–':Math.round(v*100)+' %';
+  function avg(a){ return a.length?a.reduce((x,y)=>x+y,0)/a.length:null; }
+  /* Tendenz-Warnungen: [{key, lvl:'hoch'|'mittel'|'info', pid, t (Titel), d (Details), ask:{…} (Rückfrage)}] */
+  function alerts(st,squad,today){
+    const out=[], name=p=>p.name;
+    for(const p of squad){
+      const s=playerStats(st,p.id,today);
+      if(s.injury){
+        const i=s.injury;
+        if(i.pr&&i.pr<today)out.push({key:'inj-over:'+i.id,lvl:'mittel',pid:p.id,t:`Ist ${name(p)} wieder fit?`,d:`${i.dg} seit ${fmt(i.b)} – Prognose war ${fmt(i.pr)}`,ask:{type:'fit',injury:i.id}});
+        const back=s.rows.find(r=>r.st!=='weg'&&r.d>i.b);
+        if(back)out.push({key:'inj-back:'+i.id,lvl:'info',pid:p.id,t:`${name(p)} war wieder im Training`,d:`Am ${fmt(back.d)} dabei – Verletzung (${i.dg}) als ausgeheilt abschließen?`,ask:{type:'close',injury:i.id,date:back.d}});
+        continue;                                                  // Verletzte nicht zusätzlich wegen Beteiligung warnen
+      }
+      if(s.ohne28>=2)out.push({key:'ohne:'+p.id+':'+s.ohne28,lvl:'hoch',pid:p.id,t:`${name(p)} fehlt ohne Grund`,d:`${s.ohne28}× unentschuldigt in den letzten 4 Wochen – Gespräch suchen?`});
+      else if(s.streak>=3)out.push({key:'streak:'+p.id+':'+s.streak,lvl:'hoch',pid:p.id,t:`${name(p)} war ${s.streak}× in Folge nicht da`,d:`Zuletzt im Training: ${s.lastSeen?fmt(s.lastSeen):'unbekannt'}.`});
+      if(s.rate28!=null&&s.ratePrev!=null&&s.n28>=3&&s.ratePrev-s.rate28>=0.25&&s.rate28<0.7)
+        out.push({key:'drop:'+p.id+':'+Math.round(s.rate28*10),lvl:'mittel',pid:p.id,t:`Trainingsbeteiligung von ${name(p)} sinkt`,d:`${pct(s.ratePrev)} → ${pct(s.rate28)} (letzte 4 Wochen).`});
+      const m3=s.mot.slice(0,3).map(x=>x.v), mPrev=s.mot.slice(3,8).map(x=>x.v);
+      if(m3.length>=2&&avg(m3)<=2.3)out.push({key:'mot:'+p.id+':'+s.mot[0].d,lvl:'mittel',pid:p.id,t:`${name(p)} wirkt lustlos`,d:`Motivation zuletzt Ø ${avg(m3).toFixed(1)} von 5.`});
+      else if(m3.length>=2&&mPrev.length>=2&&avg(mPrev)-avg(m3)>=1.2)out.push({key:'motd:'+p.id+':'+s.mot[0].d,lvl:'info',pid:p.id,t:`Motivation von ${name(p)} lässt nach`,d:`Ø ${avg(mPrev).toFixed(1)} → ${avg(m3).toFixed(1)}.`});
+      const f2=s.fit.slice(0,2).map(x=>x.v);
+      if(f2.length===2&&avg(f2)<=2)out.push({key:'fit:'+p.id+':'+s.fit[0].d,lvl:'info',pid:p.id,t:`${name(p)} wirkt platt`,d:`Fitness zuletzt ${f2.join(' / ')} von 5 – Belastung steuern.`});
+      if(s.inj12>=3)out.push({key:'injmany:'+p.id+':'+s.inj12,lvl:'info',pid:p.id,t:`${name(p)}: ${s.inj12} Verletzungen in 12 Monaten`,d:`Verletzungsanfällig – Belastung und Prävention im Blick behalten.`});
+    }
+    const T=teamStats(st,today,squad.map(p=>p.id));
+    if(T.r21.rate!=null&&T.prev.rate!=null&&T.r21.sessions>=3&&T.prev.rate-T.r21.rate>=0.12)
+      out.push({key:'team:'+Math.round(T.r21.rate*20),lvl:'hoch',pid:null,t:'Trainingsbeteiligung im Team sinkt',d:`${pct(T.prev.rate)} → ${pct(T.r21.rate)} in den letzten 3 Wochen.`});
+    const order={hoch:0,mittel:1,info:2}; return out.sort((a,b)=>order[a.lvl]-order[b.lvl]);
+  }
+
+  /* ---------- Einfacher Text-Parser (ohne KI): „Max und Tim waren heute nicht da, Tom verletzt (Zerrung, 3 Wochen)“ ---------- */
+  const N=s=>String(s||'').toLowerCase().replace(/ä/g,'ae').replace(/ö/g,'oe').replace(/ü/g,'ue').replace(/ß/g,'ss').normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+  const NUM={ein:1,eine:1,einen:1,zwei:2,drei:3,vier:4,fuenf:5,sechs:6,sieben:7,acht:8,neun:9,zehn:10,zwoelf:12};
+  function nameIndex(squad){
+    const first={}, last={}; squad.forEach(p=>{ const w=N(p.name).split(/\s+/).filter(Boolean); if(!w.length)return; (first[w[0]]=first[w[0]]||[]).push(p); const l=w[w.length-1]; (last[l]=last[l]||[]).push(p); });
+    const idx=[]; squad.forEach(p=>{ const w=N(p.name).split(/\s+/).filter(Boolean); if(!w.length)return; idx.push({k:w.join(' '),p,len:3});
+      const l=w[w.length-1]; if(last[l].length===1&&l.length>=3)idx.push({k:l,p,len:2}); if(first[w[0]].length===1&&w[0].length>=3)idx.push({k:w[0],p,len:1});
+      (p.alias||[]).forEach(a=>{ const k=N(a); if(k.length>=3)idx.push({k,p,len:2}); }); });
+    const out=idx.sort((a,b)=>b.k.length-a.k.length);
+    out.ambig={}; Object.entries(last).forEach(([k,L])=>{ if(L.length>1&&k.length>=3)out.ambig[k]=L; }); Object.entries(first).forEach(([k,L])=>{ if(L.length>1&&k.length>=3)out.ambig[k]=(out.ambig[k]||[]).concat(L.filter(x=>!(out.ambig[k]||[]).includes(x))); });
+    return out;
+  }
+  function ambiguous(text,idx,found){
+    const t=' '+N(text).replace(/[^a-z0-9]+/g,' ')+' ', res=[];
+    for(const [k,L] of Object.entries(idx.ambig||{})){ if(!t.includes(' '+k+' '))continue; if(L.some(p=>found.includes(p.id)&&t.includes(' '+N(p.name)+' ')))continue;
+      const rest=L.filter(p=>!t.includes(' '+N(p.name)+' ')); if(rest.length>1)res.push({k,names:rest.map(p=>p.name)}); }
+    return res;
+  }
+  function findPlayers(clause,idx){
+    const hits=[]; let s=' '+clause.replace(/[^a-z0-9]+/g,' ')+' ';
+    for(const e of idx){ const k=' '+e.k+' '; let pos=s.indexOf(k); while(pos>=0){ if(!hits.some(h=>h.p.id===e.p.id))hits.push({p:e.p,pos}); s=s.slice(0,pos)+' '+'#'.repeat(e.k.length)+' '+s.slice(pos+k.length); pos=s.indexOf(k); } }
+    return hits.sort((a,b)=>a.pos-b.pos).map(h=>h.p);
+  }
+  function parseDate(t,today){
+    if(/\bvorgestern\b/.test(t))return addDays(today,-2);
+    if(/\bgestern\b/.test(t))return addDays(today,-1);
+    const m=t.match(/\b(\d{1,2})\.(\d{1,2})\.?(\d{2,4})?/); if(m){ const y=m[3]?(m[3].length===2?'20'+m[3]:m[3]):today.slice(0,4); const d=`${y}-${m[2].padStart(2,'0')}-${m[1].padStart(2,'0')}`; return d>today?`${+y-1}${d.slice(4)}`:d; }
+    const wd={montag:1,dienstag:2,mittwoch:3,donnerstag:4,freitag:5,samstag:6,sonntag:0}; for(const k in wd){ if(new RegExp('\\b(am |letzten )?'+k+'\\b').test(t)){ let d=today; for(let i=0;i<7;i++){ if(new Date(d+'T12:00:00').getDay()===wd[k]&&!(i===0&&!/heute/.test(t)&&false))return d; d=addDays(d,-1); } } }
+    return today;
+  }
+  function weeks(t){ const m=t.match(/(\d+|ein|eine|einen|zwei|drei|vier|fuenf|sechs|sieben|acht|neun|zehn|zwoelf)\s*(woche|wochen|tag|tage|tagen|monat|monate|monaten)/); if(!m)return null; const n=+m[1]||NUM[m[1]]||1; return /tag/.test(m[2])?n:/monat/.test(m[2])?n*30:n*7; }
+  function injuryInfo(raw){
+    const t=N(raw); let art='sonstiges';
+    if(/zerrung|muskelfaser|faserriss|muskel|wade|oberschenkel|adduktor|leiste/.test(t))art='muskel';
+    if(/band|baender|sehne|achilles|kreuzband|umgeknickt/.test(t))art='band';
+    if(/bruch|gebrochen|fraktur|knochen/.test(t))art='knochen';
+    if(/meniskus|knie|sprunggelenk|gelenk|schulter/.test(t)&&art==='sonstiges')art='gelenk';
+    if(/prellung|pferdekuss|stauchung/.test(t))art='prellung';
+    if(/krank|grippe|erkaelt|fieber|corona|infekt|magen/.test(t))art='krankheit';
+    const bp=(t.match(/(oberschenkel|wade|knie|sprunggelenk|knoechel|leiste|adduktor|ruecken|schulter|fuss|zeh|hand|kopf|hueft|achilles|kreuzband|meniskus)/)||[])[1]||null;
+    return {art,koerperteil:bp};
+  }
+  const INJ=/verletz|zerrung|faserriss|muskel|baender|bandriss|kreuzband|meniskus|umgeknickt|prellung|bruch|gebrochen|knie|sprunggelenk|leiste|adduktor|wade|oberschenkel|ruecken|schulter|achilles|pferdekuss/;
+  function parse(text,squad,today,st){
+    const t0=N(text), datum=parseDate(t0,today), idx=nameIndex(squad);
+    const clauses=t0.split(/[.;!\n]+|,\s*(?=[a-z])/).map(s=>s.trim()).filter(Boolean);
+    const sp={}, inj=[], close=[], session={}, found=new Set(); let restDa=/alle (anderen|weiteren|uebrigen)? ?(waren )?(da|dabei|anwesend)|sonst (waren )?alle da/.test(t0);
+    let last=[];
+    const set=(p,o)=>{ sp[p.id]=Object.assign(sp[p.id]||{player_id:p.id},o); found.add(p.id); };
+    for(const c of clauses){
+      let ps=findPlayers(c,idx); if(!ps.length&&/\b(er|der|ihn|sein)\b/.test(c))ps=last; if(ps.length)last=ps;
+      const absent=/nicht da|nicht im training|nicht dabei|gefehlt|fehlt|fehlte|fehlen|abwesend|abgesagt|kam nicht|nicht gekommen|war nicht|waren nicht|nicht erschienen/.test(c);
+      const late=/zu spaet|verspaetet|spaeter gekommen|kam spaet/.test(c);
+      const back=/wieder fit|wieder dabei|wieder im training|zurueck im training|wieder mit trainiert|wieder voll/.test(c);
+      let grund=null;
+      if(INJ.test(c))grund='verletzt'; else if(/krank|grippe|erkaelt|fieber|infekt|magen/.test(c))grund='krank';
+      else if(/arbeit|schicht|arbeiten|dienst|job/.test(c))grund='arbeit'; else if(/urlaub|verreist|ferien/.test(c))grund='urlaub';
+      else if(/uni|schule|klausur|pruefung|studium/.test(c))grund='uni'; else if(/familie|hochzeit|geburtstag|beerdigung|taufe/.test(c))grund='familie';
+      else if(/zweite|2\. mannschaft|reserve/.test(c))grund='zweite'; else if(/ohne grund|unentschuldigt|ohne absage|nicht abgemeldet|ohne abmeldung|keine absage|einfach nicht/.test(c))grund='ohne';
+      else if(/privat|termin/.test(c))grund='privat';
+      let mot=null, fit=null;
+      if(/lustlos|unmotiviert|kein bock|keinen bock|null bock|faul|desinteressiert|schlecht drauf|genervt/.test(c))mot=/sehr|total|komplett|null bock/.test(c)?1:2;
+      else if(/super motiviert|sehr motiviert|voll dabei|brennt|ueberragend|herausragend|top einstellung/.test(c))mot=5;
+      else if(/motiviert|engagiert|gut drauf|stark|gut trainiert|fleissig|guten eindruck/.test(c))mot=4;
+      if(/muede|platt|kaputt|erschoepft|schwere beine|ausgelaugt|angeschlagen/.test(c))fit=/sehr|total|komplett/.test(c)?1:2;
+      else if(/fit\b|frisch|spritzig|topfit/.test(c)&&!back)fit=4;
+      if(ps.length){
+        for(const p of ps){
+          if(back){ set(p,{status:'da'}); const i=(st&&st.injuries||[]).find(x=>x.p===p.id&&!x.z); if(i)close.push({injury_id:i.id,player_id:p.id,zurueck:datum,diagnose:i.dg}); continue; }
+          if(absent||(grund&&grund!=='verletzt')||(grund==='verletzt'&&!/trotzdem|trainiert|dabei/.test(c))){ if(absent||grund)set(p,{status:'weg',grund:grund||'ohne'}); }
+          else if(late)set(p,{status:'spaet'});
+          if(mot)set(p,Object.assign({motivation:mot},sp[p.id]&&sp[p.id].status?{}:{status:'da'}));
+          if(fit)set(p,Object.assign({fitness:fit},sp[p.id]&&sp[p.id].status?{}:{status:'da'}));
+          if(grund==='verletzt'&&INJ.test(c)&&!(st&&st.injuries||[]).some(x=>x.p===p.id&&!x.z)){
+            const raw=text.split(/[.;!\n]+/).find(x=>N(x).includes(N(p.name).split(' ').pop())||N(x).includes(N(p.name).split(' ')[0]))||c;
+            let dg=(raw.match(/:\s*([^,.;()]{3,60})/)||raw.match(/\(\s*([^,.;()]{3,60})/)||raw.match(/(?:wegen|mit|hat sich|hat)\s+(?:einer|einem|einen|eine|ein|der|dem|den|die)?\s*([^,.;()]{3,60})/i)||[])[1]||'';
+            dg=dg.replace(/^(sich\s+)?(verletzt|verletzung)\s*/i,'').replace(/\s*(zugezogen|eingefangen|verletzt)$/i,'').trim();
+            if(!dg||!INJ.test(N(dg))&&dg.length<4)dg='Verletzung';
+            const I=injuryInfo(raw), w=weeks(N(raw));
+            inj.push({player_id:p.id,diagnose:dg.trim().replace(/^\w/,x=>x.toUpperCase()),art:I.art,koerperteil:I.koerperteil,beginn:datum,prognose:w?addDays(datum,w):null});
+          }
+        }
+      } else {
+        if(/laufintensiv|viel gelaufen|laeufe|ausdauer/.test(c))(session.fokus=session.fokus||[]).push('lauf');
+        if(/taktik/.test(c))(session.fokus=session.fokus||[]).push('taktik');
+        if(/torschuss|abschluss/.test(c))(session.fokus=session.fokus||[]).push('abschluss');
+        if(/standard/.test(c))(session.fokus=session.fokus||[]).push('standards');
+        if(/spielform|abschlussspiel|kleinfeld/.test(c))(session.fokus=session.fokus||[]).push('spielform');
+        if(/athletik|kraft|stabi/.test(c))(session.fokus=session.fokus||[]).push('athletik');
+        if(/regeneration|auslaufen|locker/.test(c)){ (session.fokus=session.fokus||[]).push('regeneration'); session.intensitaet=2; }
+        if(/sehr intensiv|hart|knackig|brutal/.test(c))session.intensitaet=5; else if(/intensiv|laufintensiv/.test(c)&&!session.intensitaet)session.intensitaet=4;
+        if(/sehr positiv|super training|top training|richtig gut|klasse|starke einheit/.test(c))session.stimmung=5;
+        else if(/positiv|gut|ordentlich|zufrieden/.test(c)&&!/nicht gut/.test(c))session.stimmung=session.stimmung||4;
+        else if(/zaeh|schlecht|mies|lustlos|unkonzentriert|enttaeuschend/.test(c))session.stimmung=2;
+      }
+    }
+    if(session.fokus)session.fokus=[...new Set(session.fokus)];
+    const actions=[];
+    const spieler=Object.values(sp);
+    if(spieler.length||Object.keys(session).length||restDa)actions.push({type:'training',input:Object.assign({datum,typ:'training',spieler,rest_da:restDa||spieler.some(x=>x.status==='weg')},session)});
+    inj.forEach(i=>actions.push({type:'verletzung',input:i}));
+    close.forEach(c=>actions.push({type:'verletzung_ende',input:c}));
+    return {datum,actions,found:[...found],ambig:ambiguous(text,idx,[...found])};
+  }
+  /* einfache Fragen ohne KI */
+  function answer(text,squad,st,today){
+    const t=N(text), idx=nameIndex(squad), ps=findPlayers(t,idx);
+    if(ps.length&&/fit|verletz|dabei|wieder|zurueck|training/.test(t)){
+      return ps.map(p=>{ const s=playerStats(st,p.id,today); const i=s.injury;
+        if(i)return `${p.name}: verletzt seit ${fmt(i.b)} (${i.dg})${i.pr?', Prognose '+fmt(i.pr)+(i.pr<today?' – überschritten':''):''}. ${s.lastSeen&&s.lastSeen>i.b?'War am '+fmt(s.lastSeen)+' wieder im Training.':'Seitdem nicht im Training.'}`;
+        const last=s.injuries.find(x=>x.z); return `${p.name}: aktuell keine offene Verletzung${last?' (zuletzt '+last.dg+', zurück am '+fmt(last.z)+')':''}. Zuletzt im Training: ${s.lastSeen?fmt(s.lastSeen):'–'}. Beteiligung 4 Wochen: ${pct(s.rate28)}.`; }).join('\n');
+    }
+    if(/wer .*verletzt|verletzte|lazarett/.test(t)){ const L=squad.map(p=>({p,i:activeInjury(st,p.id,today)})).filter(x=>x.i); return L.length?'Aktuell verletzt:\n'+L.map(x=>`• ${x.p.name}: ${x.i.dg}${x.i.pr?' (Prognose '+fmt(x.i.pr)+')':''}`).join('\n'):'Aktuell ist niemand als verletzt eingetragen.'; }
+    if(/beteiligung|wie viele|anwesenheit/.test(t)){ const T=teamStats(st,today,squad.map(p=>p.id)); return `Trainingsbeteiligung: letzte 3 Wochen ${pct(T.r21.rate)} (${T.r21.sessions} Einheiten), davor ${pct(T.prev.rate)}. Saison: ${pct(T.season.rate)}.`; }
+    return null;
+  }
+  return {REASONS,FOKUS,ART,EXCUSE_NEUTRAL,iso,addDays,diffDays,fmt,rows,playerStats,teamStats,alerts,parse,answer,activeInjury,pct,N};
+})();
+
+/* =====================================================================
+   SV/BSC Scout · Runde 7: Training (App in der App) + Co-Trainer
+   - Einheiten & Anwesenheit mit Gründen, Motivation & Fitness je Spieler
+   - Verletzungen mit Verlauf, Prognose und „wieder fit“
+   - Tendenz-Warnungen, Rückfragen vor dem Spieltag, Aufstellungs-Hinweise
+   - Co-Trainer-Chat mit Spracheingabe; mit KI-Schlüssel versteht er freie Sätze & Fragen
+   Rechte: Trainer = Kaderplaner. Training & Verletzungen sehen nur Admin, Vorstand, Kaderplaner, Trainer.
+   ===================================================================== */
+function canEdit(){ const r=svRole(); return r==='admin'||r==='vorstand'||r==='planer'||r==='trainer'; }
+function canWriteField(k){ return canEdit(); }
+function canContacts(){ return canEdit(); }
+function canTraining(){ return canEdit(); }
+SV_PAGES.training=['Training','Anwesenheit, Fitness, Verletzungen – und dein Co-Trainer'];
+{ const _ta=svTabAllowed; svTabAllowed=function(t){ if(t==='training')return canTraining(); return _ta.apply(this,arguments); }; }
+Object.assign(SV_ROLE_INFO.trainer,{d:'Wie die Kaderplaner – mit Fokus Training',yes:['Alles sehen & bearbeiten','Training, Fitness & Verletzungen','Kandidaten & Aufstellung','Co-Trainer'],no:['Nutzerverwaltung']});
+Object.assign(SV_ROLE_INFO.planer,{yes:['Kandidaten & Kontakte pflegen','Kaderplan & Aufstellung','Training & Verletzungen','Co-Trainer']});
+
+const TR={st:{sessions:[],injuries:[]},loaded:false,loading:null,view:'home',ai:null,chat:[],chatBusy:false,greeted:false};
+const TR_POS=['TW','IV','AV','ZM','OM','Flügel','ST'];
+function trToday(){ return todayISO(); }
+function trSquad(){
+  const inAtt=new Set(); TR.st.sessions.forEach(s=>(s.a||[]).forEach(a=>inAtt.add(a[0])));
+  return players.filter(p=>p.own&&!p.isJugend&&!p.verzicht&&(p.kader===1||inAtt.has(p.id)))
+    .sort((a,b)=>(TR_POS.indexOf(a.pos)-TR_POS.indexOf(b.pos))||(a.kader||1)-(b.kader||1)||a.name.localeCompare(b.name,'de'));
+}
+function trP(id){ return players.find(p=>p.id===id); }
+function trName(id){ const p=trP(id); return p?p.name:id; }
+function trShort(id){ const p=trP(id); if(!p)return id; const w=p.name.split(' '); return w.length>1?w[0][0]+'. '+w.slice(1).join(' '):p.name; }
+async function trLoad(force){
+  if(!canTraining())return; if(TR.loading&&!force)return TR.loading;
+  TR.loading=(async()=>{
+    try{ const {data,error}=await SVB.sb.rpc('training_state',{p_since:TRC.addDays(trToday(),-560)}); if(error)throw error;
+      if(data){ TR.st={sessions:data.sessions||[],injuries:(data.injuries||[]).map(i=>Object.assign(i,{id:String(i.id)}))}; TR.loaded=true; } }
+    catch(e){ console.warn('Training laden',e); }
+    try{ const {data}=await SVB.sb.rpc('ai_status'); TR.ai=data||{ready:false}; }catch(e){ TR.ai={ready:false}; }
+    TR.loading=null; trAfter();
+  })();
+  return TR.loading;
+}
+function trAfter(){ try{ if(document.querySelector('#panel-training.active'))trRender(); }catch(e){} try{trHomeCard();}catch(e){} try{ if(document.querySelector('#panel-elf.active'))renderLineup(); }catch(e){} trBadge(); }
+function trAlerts(){ return TR.loaded?TRC.alerts(TR.st,trSquad().map(p=>({id:p.id,name:p.name})),trToday()):[]; }
+function trBadge(){ const n=trAlerts().filter(a=>a.lvl!=='info').length; document.querySelectorAll('[data-cnt="training"]').forEach(el=>{ el.textContent=n; el.style.display=n?'':'none'; }); }
+function trInjury(pid){ return TR.loaded?TRC.activeInjury(TR.st,pid,trToday()):null; }
+function trSessionOn(d,typ){ return TR.st.sessions.find(s=>s.d===d&&s.t===(typ||'training')); }
+
+/* ---------- Speichern ---------- */
+async function trSaveSession(p){ const {data,error}=await SVB.sb.rpc('training_save',{p}); if(error)throw new Error(error.message); await trLoad(true); return data; }
+async function trSaveInjury(i){
+  const row={player_id:i.player_id,diagnose:String(i.diagnose||'Verletzung').slice(0,200),art:i.art||null,koerperteil:i.koerperteil||null,beginn:i.beginn,prognose:i.prognose||null,zurueck:i.zurueck||null,notiz:i.notiz||null};
+  const q=i.id?SVB.sb.from('injuries').update(row).eq('id',i.id):SVB.sb.from('injuries').insert(row);
+  const {error}=await q; if(error)throw new Error(/check/.test(error.message)?'Datum passt nicht (Rückkehr/Prognose vor Beginn?)':error.message); await trLoad(true);
+}
+async function trCloseInjury(id,date){ const {error}=await SVB.sb.from('injuries').update({zurueck:date}).eq('id',id); if(error)throw new Error(error.message); await trLoad(true); }
+async function trDeleteSession(id){ const {error}=await SVB.sb.from('training_sessions').delete().eq('id',id); if(error)throw new Error(error.message); await trLoad(true); }
+async function trDeleteInjury(id){ const {error}=await SVB.sb.from('injuries').delete().eq('id',id); if(error)throw new Error(error.message); await trLoad(true); }
+
+/* ---------- kleine Bausteine ---------- */
+const trPct=v=>v==null?'–':Math.round(v*100)+'%';
+function trRateCls(v){ return v==null?'':v>=0.8?'ok':v>=0.6?'mid':'bad'; }
+function trDots(vals,max){ return `<span class="trdots">${vals.slice(0,8).reverse().map(v=>`<i class="v${v}" title="${v}/5"></i>`).join('')}</span>`; }
+function trSpark(weeks){
+  const W=weeks, w=260, h=56, bw=w/W.length;
+  return `<svg class="trspark" viewBox="0 0 ${w} ${h+14}" preserveAspectRatio="none" role="img" aria-label="Trainingsbeteiligung je Woche">${W.map((x,i)=>{ const v=x.rate==null?0:x.rate, bh=Math.max(2,v*h);
+    return `<g><rect x="${i*bw+3}" y="${h-bh}" width="${bw-6}" height="${bh}" rx="3" class="${x.rate==null?'na':trRateCls(x.rate)}"><title>KW ab ${TRC.fmt(x.from)}: ${x.rate==null?'kein Training':trPct(x.rate)}</title></rect>${i%3===0?`<text x="${i*bw+bw/2}" y="${h+12}" text-anchor="middle">${TRC.fmt(x.from).slice(0,5)}</text>`:''}</g>`; }).join('')}</svg>`;
+}
+function trAlertHtml(a,compact){
+  const ask=a.ask?(a.ask.type==='fit'?`<div class="tra-q"><button class="btn sm" data-q-fit="${a.ask.injury}">Ja, wieder fit</button><button class="btn ghost sm" data-q-prog="${a.ask.injury}">Noch nicht · +1 Woche</button></div>`
+    :a.ask.type==='close'?`<div class="tra-q"><button class="btn sm" data-q-close="${a.ask.injury}" data-date="${a.ask.date}">Verletzung abschließen</button></div>`:''):'';
+  return `<div class="tra l-${a.lvl}">${a.pid?`<span class="tra-av" data-svp="${svEsc(a.pid)}">${avaHtml(trP(a.pid)||{name:'?',id:''})}</span>`:`<span class="tra-av team">${SVI('kand')}</span>`}
+    <div class="tra-b"><b ${a.pid?`data-svp="${svEsc(a.pid)}"`:''}>${svEsc(a.t)}</b><span>${svEsc(a.d)}</span>${compact?'':ask}</div></div>`;
+}
+function trWireAlerts(root){
+  root.querySelectorAll('[data-svp]').forEach(x=>x.onclick=()=>openModal(x.dataset.svp));
+  root.querySelectorAll('[data-q-fit]').forEach(b=>b.onclick=async()=>{ b.disabled=true; try{ await trCloseInjury(b.dataset.qFit,trToday()); kToast('✓ Als wieder fit eingetragen'); }catch(e){ kToast('⚠️ '+e.message); } });
+  root.querySelectorAll('[data-q-close]').forEach(b=>b.onclick=async()=>{ b.disabled=true; try{ await trCloseInjury(b.dataset.qClose,b.dataset.date); kToast('✓ Verletzung abgeschlossen'); }catch(e){ kToast('⚠️ '+e.message); } });
+  root.querySelectorAll('[data-q-prog]').forEach(b=>b.onclick=async()=>{ const i=TR.st.injuries.find(x=>x.id===b.dataset.qProg); if(!i)return; b.disabled=true;
+    try{ await trSaveInjury({id:i.id,player_id:i.p,diagnose:i.dg,art:i.art,koerperteil:i.kt,beginn:i.b,prognose:TRC.addDays(i.pr&&i.pr>trToday()?i.pr:trToday(),7),notiz:i.n}); kToast('✓ Prognose um eine Woche verlängert'); }catch(e){ kToast('⚠️ '+e.message); } });
+}
+
+/* ---------- Training-Panel ---------- */
+function trRender(){
+  const P=document.getElementById('panel-training'); if(!P)return;
+  if(!canTraining()){ P.innerHTML='<div class="card"><div class="empty">Training sehen nur Trainer, Kaderplaner und Vorstand.</div></div>'; return; }
+  if(!TR.loaded){ P.innerHTML='<div class="card"><div class="empty">Lade Trainingsdaten …</div></div>'; trLoad(); return; }
+  const V=TR.view, tabs=[['home','Übersicht'],['sessions','Einheiten'],['players','Spieler'],['injuries','Verletzungen']];
+  P.innerHTML=`<div class="trtop">
+      <div class="trtabs">${tabs.map(([k,t])=>`<button class="${V===k?'on':''}" data-trv="${k}">${t}</button>`).join('')}</div>
+      <div class="tract"><button class="btn" data-tr-new>${SVI('plus')} Training erfassen</button><button class="btn ghost" data-tr-inj>${SVI('plus')} Verletzung</button><button class="btn ghost" data-tr-chat>${SVI('chat')} Co-Trainer</button></div></div>
+    <div id="trBody"></div>`;
+  P.querySelectorAll('[data-trv]').forEach(b=>b.onclick=()=>{ TR.view=b.dataset.trv; trRender(); });
+  P.querySelector('[data-tr-new]').onclick=()=>trSessionEditor(trToday());
+  P.querySelector('[data-tr-inj]').onclick=()=>trInjuryEditor(null);
+  P.querySelector('[data-tr-chat]').onclick=()=>trChatOpen();
+  const B=document.getElementById('trBody');
+  ({home:trViewHome,sessions:trViewSessions,players:trViewPlayers,injuries:trViewInjuries})[V](B);
+}
+function trViewHome(B){
+  const sq=trSquad(), today=trToday(), T=TRC.teamStats(TR.st,today,sq.map(p=>p.id)), al=trAlerts();
+  const inj=sq.map(p=>({p,i:trInjury(p.id)})).filter(x=>x.i);
+  const trend=T.r21.rate!=null&&T.prev.rate!=null?T.r21.rate-T.prev.rate:null;
+  const last=TR.st.sessions.find(s=>s.t==='training');
+  const todayS=trSessionOn(today);
+  const empty=!TR.st.sessions.length;
+  B.innerHTML=`
+    ${empty?`<div class="card trhero"><div><h3>Los geht's mit dem Training</h3><p>Nach jeder Einheit kurz eintragen, wer da war – oder dem Co-Trainer einfach sagen: <em>„Max und Tim waren heute nicht da, Tom hat eine Zerrung.“</em> Ab 3–4 Einheiten erkennt die App Tendenzen und warnt früh.</p></div>
+      <div class="btnrow"><button class="btn" data-tr-new2>${SVI('plus')} Heutiges Training erfassen</button><button class="btn ghost" data-tr-chat2>${SVI('chat')} Co-Trainer ausprobieren</button></div></div>`:''}
+    <div class="tiles trtiles">
+      <div class="tile"><div class="v ${trRateCls(T.r21.rate)}">${trPct(T.r21.rate)}</div><div class="l">Beteiligung · 3 Wochen</div><div class="s">${trend==null?(T.r21.sessions+' Einheiten'):`<b class="${trend>=0?'ok':'bad'}">${trend>=0?'▲':'▼'} ${Math.abs(Math.round(trend*100))} Pkt.</b> ggü. davor`}</div></div>
+      <div class="tile"><div class="v">${T.season.sessions}</div><div class="l">Einheiten · 12 Monate</div><div class="s">Saison-Beteiligung ${trPct(T.season.rate)}</div></div>
+      <div class="tile"><div class="v ${inj.length?'bad':''}">${inj.length}</div><div class="l">Aktuell verletzt</div><div class="s">${inj.length?svEsc(inj.slice(0,2).map(x=>x.p.name.split(' ').pop()).join(', '))+(inj.length>2?' …':''):'alle an Bord'}</div></div>
+      <div class="tile"><div class="v ${al.some(a=>a.lvl==='hoch')?'bad':''}">${al.filter(a=>a.lvl!=='info').length}</div><div class="l">Hinweise</div><div class="s">${last?'letzte Einheit '+TRC.fmt(last.d):'noch keine Einheit'}</div></div>
+    </div>
+    <div class="trgrid">
+      <div class="card"><h3 class="trh">${SVI('bell')} Co-Trainer-Hinweise</h3>${al.length?al.slice(0,8).map(a=>trAlertHtml(a)).join(''):'<div class="note">Keine Auffälligkeiten. Die App schaut auf Beteiligung, Fehlen ohne Grund, Motivation, Fitness und Verletzungs-Prognosen.</div>'}</div>
+      <div class="card"><h3 class="trh">${SVI('chart')} Trainingsbeteiligung je Woche</h3>${trSpark(T.weeks)}
+        <div class="note">Verletzt, krank und „in der Zweiten“ zählen nicht gegen die Beteiligung.</div>
+        ${todayS?`<div class="trtoday">${SVI('check')} Heute erfasst: ${(todayS.a||[]).filter(a=>a[1]!=='weg').length} da · ${(todayS.a||[]).filter(a=>a[1]==='weg').length} fehlen <button class="btn ghost sm" data-edit-s="${todayS.id}">Bearbeiten</button></div>`:''}</div>
+    </div>
+    ${trMatchdayHtml()}
+    <div class="card"><h3 class="trh">${SVI('shield')} Lazarett</h3>${inj.length?`<div class="trinjl">${inj.map(({p,i})=>trInjRow(p,i)).join('')}</div>`:'<div class="note">Niemand verletzt eingetragen.</div>'}</div>`;
+  const q=s=>B.querySelector(s);
+  if(q('[data-tr-new2]'))q('[data-tr-new2]').onclick=()=>trSessionEditor(today);
+  if(q('[data-tr-chat2]'))q('[data-tr-chat2]').onclick=()=>trChatOpen();
+  B.querySelectorAll('[data-edit-s]').forEach(b=>b.onclick=()=>trSessionEditor(null,b.dataset.editS));
+  trWireAlerts(B); trWireInj(B); trWireMatchday(B);
+}
+function trInjRow(p,i){
+  const today=trToday(), days=TRC.diffDays(today,i.b), over=i.pr&&i.pr<today, left=i.pr?TRC.diffDays(i.pr,today):null;
+  return `<div class="trinj${over?' over':''}">${avaHtml(p)}<div class="trinj-b"><b data-svp="${svEsc(p.id)}">${svEsc(p.name)}</b><span>${svEsc(i.dg)}${i.kt?' · '+svEsc(i.kt):''} · seit ${TRC.fmt(i.b)} (${days} T)</span>
+    ${i.pr?`<div class="trprog"><i style="width:${Math.max(4,Math.min(100,days/Math.max(1,TRC.diffDays(i.pr,i.b))*100))}%"></i></div><small>${over?'Prognose '+TRC.fmt(i.pr)+' überschritten':'voraussichtlich zurück '+TRC.fmt(i.pr)+' · noch '+left+' T'}</small>`:'<small>keine Prognose</small>'}</div>
+    <div class="trinj-a"><button class="btn sm" data-inj-fit="${i.id}">Wieder fit</button><button class="iconbtn" data-inj-ed="${i.id}" title="Bearbeiten">${SVI('sliders')}</button></div></div>`;
+}
+function trWireInj(B){
+  B.querySelectorAll('[data-inj-fit]').forEach(b=>b.onclick=async()=>{ b.disabled=true; try{ await trCloseInjury(b.dataset.injFit,trToday()); kToast('✓ Wieder fit – Verletzung abgeschlossen'); }catch(e){ kToast('⚠️ '+e.message); b.disabled=false; } });
+  B.querySelectorAll('[data-inj-ed]').forEach(b=>b.onclick=()=>trInjuryEditor(b.dataset.injEd));
+  B.querySelectorAll('[data-svp]').forEach(x=>x.onclick=()=>openModal(x.dataset.svp));
+}
+/* Rückfragen vor dem Spieltag: Spieler der aktuellen Elf mit offenen Punkten */
+function trMatchdayHtml(){
+  let F=null; try{ F=FORMATIONS[LINEUP.formation]; }catch(e){}
+  if(!F)return '';
+  const today=trToday(), items=[];
+  F.forEach((slot,i)=>{ const p=trP(LINEUP.slots[i]); if(!p)return; const s=TRC.playerStats(TR.st,p.id,today);
+    const recent=s.rows.filter(r=>TRC.diffDays(today,r.d)<=10);
+    if(s.injury)items.push({p,slot:slot[0],lvl:'hoch',t:`verletzt – ${s.injury.dg}${s.injury.pr?', Prognose '+TRC.fmt(s.injury.pr):''}`,q:'fit',inj:s.injury.id});
+    else if(recent.length>=2&&recent.filter(r=>r.st==='weg').length>=2)items.push({p,slot:slot[0],lvl:'mittel',t:`fehlte ${recent.filter(r=>r.st==='weg').length}× in den letzten 10 Tagen (${[...new Set(recent.filter(r=>r.st==='weg').map(r=>TRC.REASONS[r.g]||r.g))].join(', ')})`});
+    else if(s.mot[0]&&TRC.diffDays(today,s.mot[0].d)<=10&&s.mot[0].v<=2)items.push({p,slot:slot[0],lvl:'mittel',t:`zuletzt lustlos im Training (Motivation ${s.mot[0].v}/5)`});
+    else if(s.fit[0]&&TRC.diffDays(today,s.fit[0].d)<=10&&s.fit[0].v<=2)items.push({p,slot:slot[0],lvl:'info',t:`wirkte zuletzt platt (Fitness ${s.fit[0].v}/5)`});
+    else if(!s.mot.some(m=>TRC.diffDays(today,m.d)<=7))items.push({p,slot:slot[0],lvl:'info',t:'Wie war sein Eindruck im Training diese Woche?',q:'rate'}); });
+  if(!items.length)return `<div class="card"><h3 class="trh">${SVI('pitch')} Rückfragen zur Startelf</h3><div class="note">Alle Spieler der aktuellen Elf sind fit, im Training und bewertet. 👍</div></div>`;
+  const issues=items.filter(x=>x.q!=='rate'), rate=items.filter(x=>x.q==='rate');
+  return `<div class="card"><h3 class="trh">${SVI('pitch')} Rückfragen zur Startelf <small>(${svEsc(LINEUP.formation)})</small></h3>
+    ${issues.map(x=>`<div class="trmd l-${x.lvl}"><span class="trmd-slot">${svEsc(x.slot)}</span><div class="trmd-b"><b data-svp="${svEsc(x.p.id)}">${svEsc(x.p.name)}</b><span>${svEsc(x.t)}</span>
+      ${x.q==='fit'?`<div class="tra-q"><button class="btn sm" data-q-fit="${x.inj}">Ist wieder fit</button></div>`:''}</div></div>`).join('')}
+    ${rate.length?`<div class="trmd-rh">Wie war der Eindruck diese Woche? <small>Motivation 1–5 antippen</small></div><div class="trrgrid">${rate.map(x=>`<div class="trrg" data-rate="${svEsc(x.p.id)}"><span data-svp="${svEsc(x.p.id)}"><em>${svEsc(x.slot)}</em> ${svEsc(x.p.name.split(' ').pop())}</span><div>${[1,2,3,4,5].map(n=>`<button data-m="${n}">${n}</button>`).join('')}</div></div>`).join('')}</div>`:''}
+    ${issues.length?'<div class="note" style="margin-top:8px">Tipp: Verletzte und Unsichere in der Aufstellung tauschen – der Positions-Check zeigt, wer passt.</div>':''}</div>`;
+}
+function trWireMatchday(B){
+  B.querySelectorAll('[data-rate] [data-m]').forEach(b=>b.onclick=async()=>{ const pid=b.closest('[data-rate]').dataset.rate, v=+b.dataset.m;
+    const s=TR.st.sessions.find(x=>x.t==='training'&&(x.a||[]).some(a=>a[0]===pid&&a[1]!=='weg'))||null;
+    try{ await trSaveSession({datum:s?s.d:trToday(),typ:'training',spieler:[{player_id:pid,status:'da',motivation:v}]}); kToast('✓ Motivation '+v+'/5 für '+trShort(pid)); }catch(e){ kToast('⚠️ '+e.message); } });
+  trWireAlerts(B);
+}
+function trViewSessions(B){
+  const S=TR.st.sessions;
+  B.innerHTML=`<div class="card">${S.length?`<div class="trsl">${S.slice(0,120).map(s=>{ const da=(s.a||[]).filter(a=>a[1]!=='weg').length, weg=(s.a||[]).filter(a=>a[1]==='weg');
+    return `<button class="trs" data-edit-s="${s.id}"><div class="trs-d"><b>${new Date(s.d+'T12:00:00').toLocaleDateString('de-DE',{weekday:'short'})}</b><span>${TRC.fmt(s.d)}${s.d.slice(0,4)!==trToday().slice(0,4)?s.d.slice(2,4):''}</span></div>
+      <div class="trs-b"><div class="trs-f">${s.t!=='training'?`<i class="typ">${svEsc(s.t)}</i>`:''}${(s.f||[]).map(f=>`<i>${svEsc(TRC.FOKUS[f]||f)}</i>`).join('')}${s.i?`<i class="int">Intensität ${s.i}/5</i>`:''}${s.s?`<i class="st s${s.s}">Eindruck ${s.s}/5</i>`:''}</div>
+      <span>${weg.length?'Fehlend: '+svEsc(weg.slice(0,6).map(a=>trShort(a[0])+(a[2]==='ohne'?' (!)':'')).join(', '))+(weg.length>6?' …':''):'Alle da'}${s.n?' · '+svEsc(s.n.slice(0,80)):''}</span></div>
+      <div class="trs-n"><b>${da}</b><span>da</span></div></button>`; }).join('')}</div>`:'<div class="empty">Noch keine Einheiten erfasst.</div>'}</div>`;
+  B.querySelectorAll('[data-edit-s]').forEach(b=>b.onclick=()=>trSessionEditor(null,b.dataset.editS));
+}
+let trSort='rate';
+function trViewPlayers(B){
+  const today=trToday(), rows=trSquad().map(p=>({p,s:TRC.playerStats(TR.st,p.id,today)}));
+  const key={rate:x=>x.s.rate28==null?2:x.s.rate28,season:x=>x.s.rateSeason==null?2:x.s.rateSeason,ohne:x=>-x.s.ohne28,name:x=>x.p.name,mot:x=>x.s.mot[0]?x.s.mot[0].v:9};
+  rows.sort((a,b)=>{ const ka=key[trSort](a), kb=key[trSort](b); return ka<kb?-1:ka>kb?1:0; });
+  const th=(k,t)=>`<th><button data-sort="${k}" class="${trSort===k?'on':''}">${t}</button></th>`;
+  B.innerHTML=`<div class="card"><div class="trtw"><table class="trtab"><thead><tr>${th('name','Spieler')}<th>Pos</th>${th('rate','4 Wochen')}${th('season','12 Monate')}<th>Trend</th>${th('ohne','Ohne Grund')}${th('mot','Motivation')}<th>Fitness</th><th>Status</th></tr></thead><tbody>
+    ${rows.map(({p,s})=>{ const tr=s.rate28!=null&&s.ratePrev!=null?s.rate28-s.ratePrev:null;
+      return `<tr data-svp="${svEsc(p.id)}"><td><b>${svEsc(p.name)}</b>${p.kader===2?' <small>II</small>':''}</td><td>${svEsc(p.pos||'–')}</td>
+      <td><span class="trpill ${trRateCls(s.rate28)}">${trPct(s.rate28)}</span> <small>${s.n28}×</small></td><td>${trPct(s.rateSeason)}</td>
+      <td>${tr==null?'–':`<b class="${tr>=0?'ok':'bad'}">${tr>=0.05?'▲':tr<=-0.05?'▼':'▶'}</b>`}</td><td>${s.ohne28?`<b class="bad">${s.ohne28}</b>`:'0'}</td>
+      <td>${s.mot.length?trDots(s.mot.map(m=>m.v)):'–'}</td><td>${s.fit.length?trDots(s.fit.map(m=>m.v)):'–'}</td>
+      <td>${s.injury?`<span class="trpill bad">🩹 ${svEsc(s.injury.dg)}</span>`:s.lastSeen?`<small>zuletzt ${TRC.fmt(s.lastSeen)}</small>`:'–'}</td></tr>`; }).join('')}</tbody></table></div>
+    <div class="note">Beteiligung = anwesend ÷ Einheiten, bei denen der Spieler erfasst ist (verletzt/krank/„in der Zweiten“ zählen nicht dagegen).</div></div>`;
+  B.querySelectorAll('[data-sort]').forEach(b=>b.onclick=e=>{ e.stopPropagation(); trSort=b.dataset.sort; trViewPlayers(B); });
+  B.querySelectorAll('tr[data-svp]').forEach(r=>r.onclick=()=>openModal(r.dataset.svp));
+}
+function trViewInjuries(B){
+  const today=trToday(), act=TR.st.injuries.filter(i=>!i.z), hist=TR.st.injuries.filter(i=>i.z);
+  const byArt={}; TR.st.injuries.filter(i=>TRC.diffDays(today,i.b)<=365).forEach(i=>byArt[i.art||'sonstiges']=(byArt[i.art||'sonstiges']||0)+1);
+  const daysOut=hist.filter(i=>TRC.diffDays(today,i.b)<=365).reduce((a,i)=>a+TRC.diffDays(i.z,i.b),0);
+  B.innerHTML=`<div class="card"><h3 class="trh">${SVI('shield')} Aktuell verletzt (${act.length})</h3>${act.length?`<div class="trinjl">${act.map(i=>trInjRow(trP(i.p)||{id:i.p,name:i.p},i)).join('')}</div>`:'<div class="note">Niemand verletzt.</div>'}</div>
+    <div class="card"><h3 class="trh">${SVI('chart')} Letzte 12 Monate</h3><div class="trart">${Object.entries(byArt).map(([k,n])=>`<span><b>${n}</b> ${svEsc(TRC.ART[k]||k)}</span>`).join('')||'<span class="note">keine</span>'}<span><b>${daysOut}</b> Ausfalltage (abgeschlossen)</span></div></div>
+    <div class="card"><h3 class="trh">Verlauf</h3>${hist.length?`<div class="trhist">${hist.slice(0,80).map(i=>`<div class="trh-r" data-inj-ed="${i.id}"><b>${svEsc(trName(i.p))}</b><span>${svEsc(i.dg)}${i.kt?' · '+svEsc(i.kt):''}</span><em>${TRC.fmt(i.b)}${i.b.slice(2,4)} – ${TRC.fmt(i.z)}${i.z.slice(2,4)} · ${TRC.diffDays(i.z,i.b)} T</em></div>`).join('')}</div>`:'<div class="note">Noch keine abgeschlossenen Verletzungen.</div>'}</div>`;
+  trWireInj(B);
+  B.querySelectorAll('.trh-r[data-inj-ed]').forEach(r=>r.onclick=()=>trInjuryEditor(r.dataset.injEd));
+}
+
+/* ---------- Einheit bearbeiten ---------- */
+function trSessionEditor(datum,sid){
+  const s0=sid?TR.st.sessions.find(s=>s.id===sid):trSessionOn(datum||trToday());
+  const st={id:s0&&s0.id,datum:s0?s0.d:(datum||trToday()),typ:s0?s0.t:'training',fokus:new Set(s0?s0.f||[]:[]),i:s0?s0.i:null,s:s0?s0.s:null,n:s0?s0.n||'':'',
+    rows:{}, orig:new Set(), open:null, extra:[]};
+  (s0&&s0.a||[]).forEach(a=>{ st.rows[a[0]]={status:a[1],grund:a[2],motivation:a[3],fitness:a[4],notiz:a[5]||''}; st.orig.add(a[0]); if(!trSquad().some(p=>p.id===a[0]))st.extra.push(a[0]); });
+  const M=svModal(`<div class="mhead"><div class="rm-ic" style="width:46px;height:46px">${SVI('activity')}</div><div><h2 style="margin:0">${s0?'Einheit bearbeiten':'Training erfassen'}</h2><div class="msub">Anwesenheit, Gründe, Eindruck – für alle gespeichert</div></div></div><div id="trEd"></div>`);
+  const draw=()=>{
+    const E=document.getElementById('trEd'); if(!E)return;
+    const list=[...trSquad(),...st.extra.map(trP).filter(Boolean).filter(p=>!trSquad().includes(p))];
+    const cnt={da:0,spaet:0,weg:0,offen:0}; list.forEach(p=>{ const r=st.rows[p.id]; if(r&&r.status)cnt[r.status]++; else cnt.offen++; });
+    E.innerHTML=`<div class="tred-top">
+        <div class="field"><label>Datum</label><input type="date" id="trD" value="${svEsc(st.datum)}" max="${TRC.addDays(trToday(),14)}"></div>
+        <div class="field"><label>Art</label><select id="trT">${[['training','Training'],['spiel','Spiel'],['test','Testspiel'],['sonstiges','Sonstiges']].map(([k,t])=>`<option value="${k}"${st.typ===k?' selected':''}>${t}</option>`).join('')}</select></div></div>
+      <div class="sbsec"><h4>Inhalt</h4><div class="chips">${Object.entries(TRC.FOKUS).map(([k,t])=>`<button type="button" class="pchip${st.fokus.has(k)?' on':''}" data-fk="${k}">${t}</button>`).join('')}</div>
+        <div class="trscale"><span>Intensität</span>${[1,2,3,4,5].map(n=>`<button type="button" data-int="${n}" class="${st.i===n?'on':''}">${n}</button>`).join('')}<small>${['','sehr locker','locker','mittel','intensiv','sehr intensiv'][st.i||0]||''}</small></div>
+        <div class="trscale"><span>Eindruck</span>${[1,2,3,4,5].map(n=>`<button type="button" data-st="${n}" class="${st.s===n?'on s'+n:''}">${n}</button>`).join('')}<small>${['','schwach','zäh','ok','gut','top'][st.s||0]||''}</small></div>
+        <div class="field" style="margin-top:8px"><label>Notiz zur Einheit</label><input id="trN" maxlength="2000" value="${svEsc(st.n)}" placeholder="z.B. sehr laufintensiv, gute Stimmung, Standards geübt"></div></div>
+      <div class="sbsec"><h4>Anwesenheit <small>${cnt.da} da · ${cnt.spaet} spät · ${cnt.weg} fehlen${cnt.offen?' · '+cnt.offen+' offen':''}</small></h4>
+        <div class="btnrow" style="margin-bottom:8px"><button type="button" class="btn ghost sm" id="trAll">Alle offenen = da</button><button type="button" class="btn ghost sm" id="trAdd">${SVI('plus')} Spieler aus der Zweiten</button></div>
+        <div class="tratt">${list.map(p=>{ const r=st.rows[p.id]||{}, o=st.open===p.id;
+          return `<div class="trr${r.status?' s-'+r.status:''}"><div class="trr-h"><span class="trr-n" data-open-r="${svEsc(p.id)}"><b>${svEsc(p.name)}</b><em>${svEsc(p.pos||'')}${p.kader===2?' · II':''}${trInjury(p.id)?' · 🩹':''}${r.motivation?' · M'+r.motivation:''}${r.fitness?' · F'+r.fitness:''}</em></span>
+            <div class="trseg"><button type="button" data-set="${svEsc(p.id)}:da" class="${r.status==='da'?'on':''}">Da</button><button type="button" data-set="${svEsc(p.id)}:spaet" class="${r.status==='spaet'?'on':''}">Spät</button><button type="button" data-set="${svEsc(p.id)}:weg" class="${r.status==='weg'?'on':''}">Fehlt</button></div></div>
+            ${r.status==='weg'?`<div class="trg">${Object.entries(TRC.REASONS).map(([k,t])=>`<button type="button" data-gr="${svEsc(p.id)}:${k}" class="${r.grund===k?'on'+(k==='ohne'?' warn':''):''}">${t}</button>`).join('')}</div>`:''}
+            ${o?`<div class="trx"><div class="trscale"><span>Motivation</span>${[1,2,3,4,5].map(n=>`<button type="button" data-mo="${svEsc(p.id)}:${n}" class="${r.motivation===n?'on s'+n:''}">${n}</button>`).join('')}</div>
+              <div class="trscale"><span>Fitness/Frische</span>${[1,2,3,4,5].map(n=>`<button type="button" data-fi="${svEsc(p.id)}:${n}" class="${r.fitness===n?'on s'+n:''}">${n}</button>`).join('')}</div>
+              <input data-no="${svEsc(p.id)}" maxlength="500" value="${svEsc(r.notiz||'')}" placeholder="Notiz, z.B. „sehr lustlos“, „stark im Abschlussspiel“"></div>`:`<button type="button" class="trr-more" data-open-r="${svEsc(p.id)}">+ Motivation, Fitness, Notiz</button>`}</div>`; }).join('')}</div></div>
+      <div class="btnrow sbact"><button class="btn" type="button" id="trSave">Für alle speichern</button><button class="btn ghost" type="button" id="trCancel">Abbrechen</button>${st.id?`<button class="btn ghost" type="button" id="trDel" style="margin-left:auto;color:#fca5a5">Einheit löschen</button>`:''}</div>`;
+    const keep=()=>{ const d=document.getElementById('trD'), t=document.getElementById('trT'), n=document.getElementById('trN'); if(d)st.datum=d.value||st.datum; if(t)st.typ=t.value; if(n)st.n=n.value;
+      E.querySelectorAll('[data-no]').forEach(i=>{ const r=st.rows[i.dataset.no]=st.rows[i.dataset.no]||{}; r.notiz=i.value; }); };
+    E.querySelectorAll('[data-fk]').forEach(b=>b.onclick=()=>{ keep(); const k=b.dataset.fk; if(st.fokus.has(k))st.fokus.delete(k); else st.fokus.add(k); draw(); });
+    E.querySelectorAll('[data-int]').forEach(b=>b.onclick=()=>{ keep(); const n=+b.dataset.int; st.i=st.i===n?null:n; draw(); });
+    E.querySelectorAll('[data-st]').forEach(b=>b.onclick=()=>{ keep(); const n=+b.dataset.st; st.s=st.s===n?null:n; draw(); });
+    E.querySelectorAll('[data-set]').forEach(b=>b.onclick=()=>{ keep(); const [id,v]=b.dataset.set.split(':'); const r=st.rows[id]=st.rows[id]||{}; r.status=r.status===v?null:v; if(v==='weg'&&r.status&&!r.grund)r.grund=trInjury(id)?'verletzt':null; if(r.status!=='weg')r.grund=null; draw(); });
+    E.querySelectorAll('[data-gr]').forEach(b=>b.onclick=()=>{ keep(); const [id,g]=b.dataset.gr.split(':'); st.rows[id].grund=g; draw(); });
+    E.querySelectorAll('[data-mo]').forEach(b=>b.onclick=()=>{ keep(); const [id,n]=b.dataset.mo.split(':'); const r=st.rows[id]=st.rows[id]||{}; r.motivation=r.motivation===+n?null:+n; if(!r.status)r.status='da'; draw(); });
+    E.querySelectorAll('[data-fi]').forEach(b=>b.onclick=()=>{ keep(); const [id,n]=b.dataset.fi.split(':'); const r=st.rows[id]=st.rows[id]||{}; r.fitness=r.fitness===+n?null:+n; if(!r.status)r.status='da'; draw(); });
+    E.querySelectorAll('[data-open-r]').forEach(b=>b.onclick=()=>{ keep(); st.open=st.open===b.dataset.openR?null:b.dataset.openR; draw(); });
+    document.getElementById('trAll').onclick=()=>{ keep(); list.forEach(p=>{ const r=st.rows[p.id]=st.rows[p.id]||{}; if(!r.status)r.status=trInjury(p.id)?'weg':'da'; if(r.status==='weg'&&!r.grund)r.grund='verletzt'; }); draw(); };
+    document.getElementById('trAdd').onclick=()=>{ keep(); const cand=players.filter(p=>p.own&&!p.isJugend&&p.kader===2&&!list.includes(p)).sort((a,b)=>a.name.localeCompare(b.name,'de'));
+      const nm=prompt('Name des Spielers (2. Mannschaft/Gast):\n'+cand.slice(0,30).map(p=>p.name).join(', ')); if(!nm)return;
+      const k=TRC.N(nm), hit=cand.find(p=>TRC.N(p.name)===k)||cand.find(p=>TRC.N(p.name).includes(k)); if(!hit)return kToast('Kein Spieler der Zweiten mit diesem Namen'); st.extra.push(hit.id); st.rows[hit.id]={status:'da'}; draw(); };
+    document.getElementById('trCancel').onclick=()=>closeOverlay();
+    if(document.getElementById('trDel'))document.getElementById('trDel').onclick=async()=>{ if(!confirm('Diese Einheit samt Anwesenheit löschen?'))return; try{ await trDeleteSession(st.id); closeOverlay(); kToast('Einheit gelöscht'); }catch(e){ kToast('⚠️ '+e.message); } };
+    document.getElementById('trSave').onclick=async()=>{ keep();
+      const miss=Object.entries(st.rows).filter(([,r])=>r.status==='weg'&&!r.grund); if(miss.length){ kToast('Bitte Grund angeben: '+miss.map(([id])=>trShort(id)).join(', ')); return; }
+      const sp=[]; Object.entries(st.rows).forEach(([id,r])=>{ if(r.status)sp.push({player_id:id,status:r.status,grund:r.status==='weg'?r.grund:null,motivation:r.motivation||null,fitness:r.fitness||null,notiz:(r.notiz||'').trim()||null}); else if(st.orig.has(id))sp.push({player_id:id,status:''}); });
+      if(s0&&(s0.d!==st.datum||s0.t!==st.typ)){ try{ await trDeleteSession(s0.id); }catch(e){} }
+      const b=document.getElementById('trSave'); b.disabled=true; b.textContent='Speichert …';
+      try{ await trSaveSession({datum:st.datum,typ:st.typ,fokus:[...st.fokus],intensitaet:st.i,stimmung:st.s,notiz:st.n.trim()||null,spieler:sp});
+        closeOverlay(); kToast('✓ Einheit vom '+TRC.fmt(st.datum)+' gespeichert – '+sp.filter(x=>x.status==='weg').length+' fehlten'); }
+      catch(e){ b.disabled=false; b.textContent='Für alle speichern'; kToast('⚠️ '+e.message); } };
+  };
+  draw();
+}
+
+/* ---------- Verletzung bearbeiten ---------- */
+function trInjuryEditor(id,pid){
+  const i0=id?TR.st.injuries.find(x=>x.id===id):null;
+  const st=i0?{id:i0.id,player_id:i0.p,diagnose:i0.dg,art:i0.art||'',koerperteil:i0.kt||'',beginn:i0.b,prognose:i0.pr||'',zurueck:i0.z||'',notiz:i0.n||''}
+    :{player_id:pid||'',diagnose:'',art:'',koerperteil:'',beginn:trToday(),prognose:'',zurueck:'',notiz:''};
+  const sq=trSquad();
+  svModal(`<div class="mhead"><div class="rm-ic" style="width:46px;height:46px">${SVI('shield')}</div><div><h2 style="margin:0">${i0?'Verletzung bearbeiten':'Verletzung eintragen'}</h2><div class="msub">Gesundheitsdaten – sichtbar nur fürs Trainerteam und den Vorstand</div></div></div>
+    <div class="editgrid" style="margin-top:14px">
+      <div class="field" style="grid-column:1/-1"><label>Spieler</label><select id="ijP"><option value="">– wählen –</option>${sq.map(p=>`<option value="${svEsc(p.id)}"${st.player_id===p.id?' selected':''}>${svEsc(p.name)}</option>`).join('')}</select></div>
+      <div class="field" style="grid-column:1/-1"><label>Diagnose / Beschwerden</label><input id="ijD" maxlength="200" value="${svEsc(st.diagnose)}" placeholder="z.B. Zerrung hinterer Oberschenkel links"></div>
+      <div class="field"><label>Art</label><select id="ijA"><option value="">–</option>${Object.entries(TRC.ART).map(([k,t])=>`<option value="${k}"${st.art===k?' selected':''}>${t}</option>`).join('')}</select></div>
+      <div class="field"><label>Körperteil</label><input id="ijK" maxlength="60" value="${svEsc(st.koerperteil)}" placeholder="z.B. Knie rechts"></div>
+      <div class="field"><label>Seit</label><input type="date" id="ijB" value="${svEsc(st.beginn)}"></div>
+      <div class="field"><label>Voraussichtlich zurück</label><input type="date" id="ijPr" value="${svEsc(st.prognose)}"><div class="trquick">${[1,2,3,4,6,8].map(w=>`<button type="button" data-w="${w}">+${w} W</button>`).join('')}</div></div>
+      <div class="field"><label>Wieder im Training am</label><input type="date" id="ijZ" value="${svEsc(st.zurueck)}"></div>
+      <div class="field" style="grid-column:1/-1"><label>Notiz</label><input id="ijN" maxlength="1000" value="${svEsc(st.notiz)}" placeholder="z.B. Arzttermin Do, Physio 2× pro Woche"></div>
+    </div>
+    <div class="note" style="margin-top:8px">Der Co-Trainer gibt auf Wunsch eine grobe Einschätzung zu typischen Ausfallzeiten – ersetzt aber nie Arzt oder Physio.</div>
+    <div class="btnrow sbact"><button class="btn" id="ijSave">Speichern</button><button class="btn ghost" id="ijCancel">Abbrechen</button>${i0?'<button class="btn ghost" id="ijDel" style="margin-left:auto;color:#fca5a5">Löschen</button>':''}</div>`);
+  const $i=x=>document.getElementById(x);
+  document.querySelectorAll('.trquick [data-w]').forEach(b=>b.onclick=()=>{ $i('ijPr').value=TRC.addDays($i('ijB').value||trToday(),+b.dataset.w*7); });
+  $i('ijCancel').onclick=()=>closeOverlay();
+  if($i('ijDel'))$i('ijDel').onclick=async()=>{ if(!confirm('Eintrag löschen?'))return; try{ await trDeleteInjury(i0.id); closeOverlay(); kToast('Gelöscht'); }catch(e){ kToast('⚠️ '+e.message); } };
+  $i('ijSave').onclick=async()=>{
+    const v={id:st.id,player_id:$i('ijP').value,diagnose:$i('ijD').value.trim(),art:$i('ijA').value||null,koerperteil:$i('ijK').value.trim()||null,beginn:$i('ijB').value,prognose:$i('ijPr').value||null,zurueck:$i('ijZ').value||null,notiz:$i('ijN').value.trim()||null};
+    if(!v.player_id||!v.diagnose||!v.beginn)return kToast('Bitte Spieler, Diagnose und Beginn angeben');
+    try{ await trSaveInjury(v); closeOverlay(); kToast('✓ Verletzung von '+trShort(v.player_id)+' gespeichert'); }catch(e){ kToast('⚠️ '+e.message); } };
+}
+
+/* ---------- Spielerprofil: Training & Fitness ---------- */
+function trProfile(pid){
+  if(!canTraining()||!TR.loaded)return;
+  const M=document.getElementById('modal'), p=trP(pid); if(!M||!p||M.querySelector('.trprof'))return;
+  const s=TRC.playerStats(TR.st,pid,trToday()); if(!p.own&&!s.rows.length&&!s.injuries.length)return;
+  const anchor=M.querySelector('.sbwrap')||M.querySelector('.svpos-box')||M.querySelector('.mhead'); if(!anchor)return;
+  const abs=s.rows.filter(r=>r.st==='weg').slice(0,6);
+  const el=document.createElement('div'); el.className='card trprof';
+  el.innerHTML=`<div class="trprof-h"><h3 class="trh">${SVI('activity')} Training &amp; Fitness</h3><div class="btnrow"><button class="btn ghost sm" data-pr-rate>Bewerten</button><button class="btn ghost sm" data-pr-inj>${SVI('plus')} Verletzung</button></div></div>
+    ${s.injury?`<div class="trinj over" style="margin-bottom:10px"><div class="trinj-b"><b>🩹 ${svEsc(s.injury.dg)}</b><span>seit ${TRC.fmt(s.injury.b)}${s.injury.pr?' · Prognose '+TRC.fmt(s.injury.pr):''}</span></div><div class="trinj-a"><button class="btn sm" data-inj-fit="${s.injury.id}">Wieder fit</button></div></div>`:''}
+    <div class="trkpi"><div><b class="${trRateCls(s.rate28)}">${trPct(s.rate28)}</b><span>Beteiligung 4 W. (${s.n28})</span></div><div><b>${trPct(s.rateSeason)}</b><span>12 Monate</span></div>
+      <div><b class="${s.ohne28?'bad':''}">${s.ohne28}</b><span>ohne Grund (4 W.)</span></div><div><b>${s.lastSeen?TRC.fmt(s.lastSeen):'–'}</b><span>zuletzt da</span></div></div>
+    ${s.mot.length||s.fit.length?`<div class="trmf">${s.mot.length?`<div><span>Motivation</span>${trDots(s.mot.map(m=>m.v))}</div>`:''}${s.fit.length?`<div><span>Fitness</span>${trDots(s.fit.map(m=>m.v))}</div>`:''}</div>`:''}
+    ${abs.length?`<div class="trabs"><span>Zuletzt gefehlt:</span> ${abs.map(r=>`<i class="${r.g==='ohne'?'bad':''}">${TRC.fmt(r.d)} ${svEsc(TRC.REASONS[r.g]||r.g)}</i>`).join('')}</div>`:''}
+    ${s.rows.filter(r=>r.n).slice(0,3).map(r=>`<div class="trnote">„${svEsc(r.n)}“ <small>${TRC.fmt(r.d)}</small></div>`).join('')}
+    ${s.injuries.filter(i=>i.z).length?`<div class="trabs"><span>Verletzungshistorie:</span> ${s.injuries.filter(i=>i.z).slice(0,6).map(i=>`<i>${svEsc(i.dg)} (${TRC.fmt(i.b)}${i.b.slice(2,4)}, ${TRC.diffDays(i.z,i.b)} T)</i>`).join('')}</div>`:''}
+    ${!s.rows.length&&!s.injuries.length?'<div class="note">Noch keine Trainingsdaten für diesen Spieler.</div>':''}`;
+  anchor.after(el);
+  el.querySelector('[data-pr-inj]').onclick=()=>trInjuryEditor(null,pid);
+  el.querySelector('[data-pr-rate]').onclick=()=>trQuickRate(pid);
+  el.querySelectorAll('[data-inj-fit]').forEach(b=>b.onclick=async()=>{ try{ await trCloseInjury(b.dataset.injFit,trToday()); openModal(pid); kToast('✓ Wieder fit'); }catch(e){ kToast('⚠️ '+e.message); } });
+}
+function trQuickRate(pid){
+  const p=trP(pid); let mo=null, fi=null;
+  svModal(`<div class="mhead">${avaHtml(p)}<div><h2 style="margin:0">${svEsc(p.name)}</h2><div class="msub">Eindruck aus dem Training</div></div></div>
+    <div class="field" style="margin-top:12px"><label>Datum</label><input type="date" id="qrD" value="${trToday()}"></div>
+    <div class="trscale" id="qrM"><span>Motivation</span>${[1,2,3,4,5].map(n=>`<button type="button" data-v="${n}">${n}</button>`).join('')}</div>
+    <div class="trscale" id="qrF"><span>Fitness/Frische</span>${[1,2,3,4,5].map(n=>`<button type="button" data-v="${n}">${n}</button>`).join('')}</div>
+    <div class="field"><label>Notiz</label><input id="qrN" maxlength="500" placeholder="z.B. sehr lustlos, stark im Abschlussspiel"></div>
+    <div class="btnrow sbact"><button class="btn" id="qrS">Speichern</button><button class="btn ghost" id="qrC">Zurück</button></div>`);
+  const sel=(box,cb)=>document.querySelectorAll('#'+box+' [data-v]').forEach(b=>b.onclick=()=>{ document.querySelectorAll('#'+box+' [data-v]').forEach(x=>x.className=''); b.className='on s'+b.dataset.v; cb(+b.dataset.v); });
+  sel('qrM',v=>mo=v); sel('qrF',v=>fi=v);
+  document.getElementById('qrC').onclick=()=>openModal(pid);
+  document.getElementById('qrS').onclick=async()=>{ const d=document.getElementById('qrD').value||trToday(), n=document.getElementById('qrN').value.trim();
+    if(!mo&&!fi&&!n)return kToast('Bitte etwas bewerten');
+    try{ await trSaveSession({datum:d,typ:'training',spieler:[Object.assign({player_id:pid,status:'da'},mo?{motivation:mo}:{},fi?{fitness:fi}:{},n?{notiz:n}:{})]}); openModal(pid); kToast('✓ Bewertung gespeichert'); }catch(e){ kToast('⚠️ '+e.message); } };
+}
+{ const _om4=openModal; openModal=function(){ const r=_om4.apply(this,arguments); try{ trProfile(arguments[0]); }catch(e){ console.warn('Training-Profil',e); } return r; }; }
+
+/* ---------- Aufstellung: Verletzte markieren ---------- */
+{ const _lc2=lineupCardHtml; lineupCardHtml=function(p){ let h=_lc2.apply(this,arguments); try{ const i=trInjury(p.id); if(i)h=h.replace('<div class="fcardm"','<div class="fcardm trhurt" title="Verletzt: '+svEsc(i.dg)+'"').replace(/<\/div>$/,'<span class="trhurt-b">🩹</span></div>'); }catch(e){} return h; }; }
+{ const _fr=sbFitRow; sbFitRow=function(){ const r=_fr.apply(this,arguments); try{
+    const el=document.getElementById('sbFitRow'); if(!el||!TR.loaded)return r; const F=FORMATIONS[LINEUP.formation];
+    const hurt=F.map((s,i)=>trP(LINEUP.slots[i])).filter(p=>p&&trInjury(p.id));
+    if(hurt.length){ const box=el.querySelector('.sbfitbox'); if(box){ box.classList.remove('good'); box.classList.add('warn');
+      box.querySelector('.sbfit-t').insertAdjacentHTML('beforeend',`<span>🩹 Verletzt: ${hurt.map(p=>`<b>${svEsc(p.name.split(' ').pop())}</b> (${svEsc(trInjury(p.id).dg)})`).join(' · ')}</span>`); } }
+  }catch(e){} return r; }; }
+
+/* ---------- Übersicht: Co-Trainer-Karte ---------- */
+function trHomeCard(){
+  const host=document.getElementById('svRemind')||document.getElementById('svHello'); if(!host||!canTraining())return;
+  let el=document.getElementById('trHome'); if(!el){ el=document.createElement('div'); el.id='trHome'; host.after(el); }
+  if(!TR.loaded){ el.innerHTML=''; return; }
+  const al=trAlerts().filter(a=>a.lvl!=='info').slice(0,3), T=TRC.teamStats(TR.st,trToday(),trSquad().map(p=>p.id));
+  el.innerHTML=`<div class="card trhome"><div class="rm-h"><div class="rm-ic co">${SVI('chat')}</div><div class="rm-t"><h3>Co-Trainer</h3><p>${TR.st.sessions.length?`Trainingsbeteiligung 3 Wochen: <b>${trPct(T.r21.rate)}</b>`+(al.length?` · ${al.length} Hinweis${al.length>1?'e':''}`:' · alles im grünen Bereich'):'Noch keine Einheiten – einfach nach dem Training reinsprechen.'}</p></div>
+    <button class="btn sm" data-home-chat>${SVI('chat')} Fragen / eintragen</button></div>${al.map(a=>trAlertHtml(a,true)).join('')}
+    <div class="rm-f"><button class="btn ghost" data-home-tr>Training öffnen →</button></div></div>`;
+  el.querySelector('[data-home-chat]').onclick=()=>trChatOpen();
+  el.querySelector('[data-home-tr]').onclick=()=>goTab('training');
+  el.querySelectorAll('[data-svp]').forEach(x=>x.onclick=()=>openModal(x.dataset.svp));
+}
+
+/* ---------- Co-Trainer-Chat ---------- */
+function trSquadLite(){ return trSquad().map(p=>({id:p.id,name:p.name})); }
+function trGreeting(){
+  const al=trAlerts(), fn=svFirst(SVU.name)||'Coach', h=new Date().getHours(), g=h<11?'Guten Morgen':h<17?'Hi':'Guten Abend';
+  const todayS=trSessionOn(trToday());
+  let t=`${g} ${fn}! `;
+  if(al.length)t+=`Mir fällt gerade auf:\n${al.slice(0,3).map(a=>'• '+a.t+' – '+a.d).join('\n')}\n\n`;
+  else t+='Aktuell keine Auffälligkeiten im Training. ';
+  t+=todayS?'Das heutige Training ist schon eingetragen – willst du noch Eindrücke zu einzelnen Spielern ergänzen?':'Wie war das Training? Sag mir einfach, wer gefehlt hat und warum – oder wer besonders auffiel.';
+  return t;
+}
+function trChatOpen(){
+  if(!canTraining())return;
+  if(!TR.chat.length)TR.chat.push({role:'assistant',content:TR.loaded?trGreeting():'Hallo! Einen Moment, ich lade die Trainingsdaten …',local:true});
+  const M=svModal(`<div class="trchat"><div class="trc-h"><div class="rm-ic co">${SVI('chat')}</div><div><h2 style="margin:0">Co-Trainer</h2><div class="msub" id="trcMode"></div></div></div>
+    <div class="trc-log" id="trcLog"></div>
+    <div class="trc-sug" id="trcSug"></div>
+    <form class="trc-in" id="trcForm"><textarea id="trcTxt" rows="1" placeholder="z.B. „Seltenreich und Garotti waren heute nicht da, Simon hat eine Zerrung“"></textarea>
+      <button type="button" class="iconbtn trc-mic" id="trcMic" title="Sprechen">🎙️</button><button type="submit" class="btn" id="trcGo">Senden</button></form></div>`);
+  M.classList.add('trchatmodal');
+  trChatDraw(); trChatMode();
+  const ta=document.getElementById('trcTxt');
+  ta.addEventListener('input',()=>{ ta.style.height='auto'; ta.style.height=Math.min(140,ta.scrollHeight)+'px'; });
+  ta.addEventListener('keydown',e=>{ if(e.key==='Enter'&&!e.shiftKey){ e.preventDefault(); document.getElementById('trcForm').requestSubmit(); } });
+  document.getElementById('trcForm').onsubmit=e=>{ e.preventDefault(); const v=ta.value.trim(); if(!v||TR.chatBusy)return; ta.value=''; ta.style.height='auto'; trChatSend(v); };
+  trMicSetup();
+  if(!TR.loaded)trLoad().then(()=>{ if(TR.chat.length===1&&TR.chat[0].local){ TR.chat[0].content=trGreeting(); trChatDraw(); } trChatMode(); });
+  setTimeout(()=>ta.focus(),200);
+}
+function trChatMode(){ const el=document.getElementById('trcMode'); if(!el)return; const ai=TR.ai&&TR.ai.ready;
+  el.innerHTML=ai?'KI-Modus · versteht freie Sätze und Fragen':'Einfacher Modus · Anwesenheit, Gründe, Verletzungen'+(isAdmin()?' · <a href="#" id="trcKey">KI einschalten</a>':'');
+  const k=document.getElementById('trcKey'); if(k)k.onclick=e=>{ e.preventDefault(); closeOverlay(); goTab('admin'); setTimeout(()=>{ const c=document.getElementById('trAi'); if(c)c.scrollIntoView({behavior:'smooth'}); },500); };
+  const sug=document.getElementById('trcSug'); if(sug){ const S=['Heute fehlten …','Wer ist aktuell verletzt?','Wie ist die Trainingsbeteiligung?'].concat(ai?['Wie siehst du die Elf fürs Wochenende?','Wer ist in den letzten Wochen auffällig?']:[]);
+    sug.innerHTML=S.map(s=>`<button type="button">${svEsc(s)}</button>`).join(''); sug.querySelectorAll('button').forEach(b=>b.onclick=()=>{ const ta=document.getElementById('trcTxt'); if(/…$/.test(b.textContent)){ ta.value=b.textContent.replace('…',''); ta.focus(); } else trChatSend(b.textContent); }); } }
+function trActSummary(a){
+  const i=a.input||{};
+  if(a.type==='training'){
+    const sp=(i.spieler||[]), weg=sp.filter(x=>x.status==='weg'), sp2=sp.filter(x=>x.status==='spaet'), rated=sp.filter(x=>x.motivation||x.fitness||x.notiz);
+    return `<b>Training ${TRC.fmt(i.datum)}${i.datum&&i.datum.slice(0,4)!==trToday().slice(0,4)?i.datum.slice(0,4):''}</b>
+      ${weg.length?`<div>Fehlend: ${weg.map(x=>`${svEsc(trShort(x.player_id))} <em class="${x.grund==='ohne'?'bad':''}">(${svEsc(TRC.REASONS[x.grund]||'Grund?')})</em>`).join(', ')}</div>`:''}
+      ${sp2.length?`<div>Zu spät: ${sp2.map(x=>svEsc(trShort(x.player_id))).join(', ')}</div>`:''}
+      ${rated.length?`<div>Eindrücke: ${rated.map(x=>`${svEsc(trShort(x.player_id))}${x.motivation?' M'+x.motivation:''}${x.fitness?' F'+x.fitness:''}${x.notiz?' „'+svEsc(x.notiz)+'“':''}`).join(', ')}</div>`:''}
+      ${(i.fokus||[]).length||i.intensitaet||i.stimmung?`<div>Einheit: ${(i.fokus||[]).map(f=>svEsc(TRC.FOKUS[f]||f)).join(', ')}${i.intensitaet?' · Intensität '+i.intensitaet+'/5':''}${i.stimmung?' · Eindruck '+i.stimmung+'/5':''}</div>`:''}
+      ${i.notiz?`<div>Notiz: ${svEsc(i.notiz)}</div>`:''}
+      <label class="trc-rest"><input type="checkbox" data-rest ${i.rest_da?'checked':''}> Alle anderen Kaderspieler als anwesend eintragen</label>`;
+  }
+  if(a.type==='verletzung')return `<b>🩹 Verletzung: ${svEsc(trName(i.player_id))}</b><div>${svEsc(i.diagnose||'')}${i.koerperteil?' · '+svEsc(i.koerperteil):''} · seit ${TRC.fmt(i.beginn)}${i.prognose?' · voraussichtlich zurück '+TRC.fmt(i.prognose):''}</div>`;
+  if(a.type==='verletzung_ende'){ const inj=TR.st.injuries.find(x=>x.id===i.injury_id); return `<b>✅ Wieder fit: ${svEsc(trName(inj?inj.p:i.player_id))}</b><div>${svEsc(inj?inj.dg:i.diagnose||'')} – zurück am ${TRC.fmt(i.zurueck)}</div>`; }
+  return '';
+}
+async function trExec(a,rest){
+  const i=a.input||{};
+  if(a.type==='training'){
+    const sp=(i.spieler||[]).filter(x=>x.player_id).map(x=>Object.assign({player_id:x.player_id,status:x.status||'da'},x.status==='weg'?{grund:x.grund||'ohne'}:{},x.motivation?{motivation:x.motivation}:{},x.fitness?{fitness:x.fitness}:{},x.notiz?{notiz:x.notiz}:{}));
+    if(rest){ const ex=trSessionOn(i.datum), have=new Set([...sp.map(x=>x.player_id),...(ex&&ex.a||[]).map(x=>x[0])]);
+      trSquad().filter(p=>p.kader===1&&!have.has(p.id)).forEach(p=>{ const inj=trInjury(p.id); sp.push(inj?{player_id:p.id,status:'weg',grund:'verletzt'}:{player_id:p.id,status:'da'}); }); }
+    const p={datum:i.datum||trToday(),typ:'training',spieler:sp}; ['fokus','intensitaet','stimmung','notiz'].forEach(k=>{ if(i[k]!=null&&!(Array.isArray(i[k])&&!i[k].length))p[k]=i[k]; });
+    await trSaveSession(p); return 'Training '+TRC.fmt(p.datum)+' eingetragen';
+  }
+  if(a.type==='verletzung'){ await trSaveInjury(i); return 'Verletzung von '+trShort(i.player_id)+' eingetragen'; }
+  if(a.type==='verletzung_ende'){ await trCloseInjury(i.injury_id,i.zurueck||trToday()); return 'Verletzung abgeschlossen'; }
+}
+function trChatDraw(){
+  const L=document.getElementById('trcLog'); if(!L)return;
+  L.innerHTML=TR.chat.map((m,mi)=>`<div class="trm ${m.role==='user'?'me':'co'}"><div class="trm-t">${svEsc(m.content).replace(/\n/g,'<br>')}</div>
+    ${(m.actions||[]).map((a,ai)=>`<div class="trc-act${a.done?' done':''}${a.skip?' skip':''}" data-ai="${mi}:${ai}">${trActSummary(a)}
+      <div class="btnrow">${a.done?`<span class="ok">✓ ${svEsc(a.done)}</span>`:a.skip?'<span class="note">verworfen</span>':`<button class="btn sm" data-do>Eintragen</button><button class="btn ghost sm" data-skip>Verwerfen</button>`}</div></div>`).join('')}</div>`).join('')
+    +(TR.chatBusy?'<div class="trm co"><div class="trm-t trtyping"><i></i><i></i><i></i></div></div>':'');
+  L.querySelectorAll('[data-ai]').forEach(box=>{ const [mi,ai]=box.dataset.ai.split(':').map(Number), a=TR.chat[mi].actions[ai];
+    const d=box.querySelector('[data-do]'); if(d)d.onclick=async()=>{ d.disabled=true; const rest=box.querySelector('[data-rest]'); try{ a.done=await trExec(a,rest&&rest.checked); trChatDraw(); kToast('✓ '+a.done); }catch(e){ d.disabled=false; kToast('⚠️ '+e.message); } };
+    const s=box.querySelector('[data-skip]'); if(s)s.onclick=()=>{ a.skip=true; trChatDraw(); }; });
+  L.scrollTop=L.scrollHeight;
+}
+async function trChatSend(text){
+  TR.chat.push({role:'user',content:text}); TR.chatBusy=true; trChatDraw();
+  if(!TR.loaded)await trLoad();
+  let reply=null;
+  if(TR.ai&&TR.ai.ready){
+    try{ const hist=TR.chat.filter(m=>!m.local||m.role==='user').slice(-12).map(m=>({role:m.role,content:m.content+(m.actions&&m.actions.length?'\n[Vorschläge: '+m.actions.map(a=>a.type+(a.done?' – eingetragen':a.skip?' – verworfen':' – offen')).join(', ')+']':'')}));
+      const {data,error}=await SVB.sb.functions.invoke('coach',{body:{messages:hist}});
+      if(error)throw error;
+      if(data&&data.ok)reply={role:'assistant',content:data.text||(data.actions&&data.actions.length?'Hab ich so verstanden – passt das?':'…'),actions:data.actions||[]};
+      else if(data&&data.error&&data.error!=='kein-schluessel')reply={role:'assistant',content:'⚠️ '+data.error+'\n\nIch versuche es im einfachen Modus:',local:true};
+    }catch(e){ reply=null; }
+  }
+  if(!reply||reply.local){
+    const sq=trSquadLite(), P=TRC.parse(text,sq,trToday(),TR.st);
+    let content, actions=P.actions;
+    if(P.ambig&&P.ambig.length){ content=(reply?reply.content+'\n':'')+P.ambig.map(a=>`Welchen meinst du mit „${a.k.replace(/^\w/,c=>c.toUpperCase())}“: ${a.names.join(', ')}?`).join('\n')+(actions.length?'\n\nDen Rest habe ich schon vorbereitet:':' Schreib bitte den vollen Namen.'); }
+    else if(actions.length){ content=(reply?reply.content+'\n':'')+'Verstanden – so würde ich es eintragen:'; }
+    else { const ans=TRC.answer(text,sq,TR.st,trToday()); content=(reply?reply.content+'\n':'')+(ans||'Das habe ich nicht verstanden. Im einfachen Modus verstehe ich Sätze wie „Max und Tim waren heute nicht da (Arbeit), Tom hat eine Zerrung, drei Wochen“ oder Fragen wie „Ist Tom wieder fit?“.'+(TR.ai&&TR.ai.ready?'':' Für freie Fragen und Aufstellungs-Tipps kann der Admin die KI einschalten.')); }
+    reply={role:'assistant',content,actions,local:true};
+  }
+  TR.chatBusy=false; TR.chat.push(reply); trChatDraw();
+}
+/* Spracheingabe (Web Speech API – iPhone/Safari & Chrome) */
+function trMicSetup(){
+  const b=document.getElementById('trcMic'), SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+  if(!b)return; if(!SR){ b.title='Diktieren: Mikrofon-Taste der Handy-Tastatur nutzen'; b.onclick=()=>{ kToast('Tipp: Mikrofon-Taste auf der Tastatur antippen und losreden'); document.getElementById('trcTxt').focus(); }; return; }
+  let rec=null;
+  b.onclick=()=>{
+    if(rec){ rec.stop(); return; }
+    rec=new SR(); rec.lang='de-DE'; rec.interimResults=true; rec.continuous=true;
+    const ta=document.getElementById('trcTxt'), base=ta.value?ta.value+' ':'';
+    rec.onresult=e=>{ let t=''; for(let i=0;i<e.results.length;i++)t+=e.results[i][0].transcript; ta.value=base+t; ta.dispatchEvent(new Event('input')); };
+    rec.onend=()=>{ b.classList.remove('rec'); rec=null; };
+    rec.onerror=e=>{ b.classList.remove('rec'); rec=null; if(e.error==='not-allowed')kToast('Mikrofon nicht erlaubt – in den Einstellungen freigeben'); };
+    try{ rec.start(); b.classList.add('rec'); kToast('🎙️ Ich höre zu … nochmal tippen zum Beenden'); }catch(e){ rec=null; }
+  };
+}
+/* schwebender Knopf */
+function trFab(){
+  if(!canTraining()||document.getElementById('trFab'))return;
+  const b=document.createElement('button'); b.id='trFab'; b.className='trfab'; b.setAttribute('aria-label','Co-Trainer'); b.innerHTML=SVI('chat')+'<span>Co-Trainer</span>';
+  b.onclick=()=>trChatOpen(); document.body.appendChild(b);
+}
+
+/* ---------- Admin: KI-Schlüssel ---------- */
+async function trAiCard(P){
+  if(!P||!isAdmin())return;
+  let s=null; try{ const {data}=await SVB.sb.rpc('ai_status'); s=data; }catch(e){}
+  const el=document.createElement('div'); el.className='card'; el.id='trAi';
+  el.innerHTML=`<div class="adm-head"><div><h3 style="margin:0;display:flex;gap:8px;align-items:center">${SVI('chat')} KI-Co-Trainer</h3>
+    <p style="margin:6px 0 0;font-size:13.5px">Ohne KI versteht der Co-Trainer einfache Sätze zu Anwesenheit, Gründen und Verletzungen. Mit einem Anthropic-API-Schlüssel versteht er freie Sätze, beantwortet Fragen zu Fitness, Verletzungen und Aufstellung und denkt aktiv mit. Kosten: je nach Nutzung wenige Euro im Monat, abgerechnet direkt über euer Anthropic-Konto.</p></div>
+    <span class="pill ${s&&s.ready?'on':'wait'}">${s&&s.ready?'aktiv · '+svEsc(s.model||''):'nicht eingerichtet'}</span></div>
+    <div class="invite" style="grid-template-columns:2fr 1fr auto"><div><label for="trAiKey">API-Schlüssel (beginnt mit sk-ant-)</label><input id="trAiKey" class="search" type="password" autocomplete="off" placeholder="${s&&s.ready?'•••••••• (hinterlegt – nur zum Ersetzen ausfüllen)':'sk-ant-…'}"></div>
+      <div><label for="trAiModel">Modell</label><select id="trAiModel">${[['claude-sonnet-5','Claude Sonnet 5 (empfohlen)'],['claude-haiku-4-5-20251001','Claude Haiku 4.5 (günstig)'],['claude-opus-5-5','Claude Opus 5.5 (stärkstes)']].map(([k,t])=>`<option value="${k}"${s&&s.model===k?' selected':''}>${t}</option>`).join('')}</select></div>
+      <button class="btn" id="trAiSave" style="height:46px">Speichern</button></div>
+    <p class="note">Den Schlüssel legst du selbst unter console.anthropic.com an (API Keys). Er liegt in einem geschützten Bereich der Datenbank, ist für niemanden in der App lesbar und wird nur vom Co-Trainer-Dienst verwendet. ${s&&s.ready?'<a href="#" id="trAiOff">KI wieder ausschalten</a>':''}</p>`;
+  P.appendChild(el);
+  document.getElementById('trAiSave').onclick=async()=>{ const k=document.getElementById('trAiKey').value.trim(), m=document.getElementById('trAiModel').value;
+    try{ const {error}=await SVB.sb.rpc('ai_set',{p_key:k||null,p_model:m,p_clear:false}); if(error)throw error; document.getElementById('trAiKey').value=''; kToast('✓ KI-Co-Trainer gespeichert'); TR.ai=null; trLoad(true); svAdminRender(); }
+    catch(e){ kToast('⚠️ '+(e.message||e)); } };
+  const off=document.getElementById('trAiOff'); if(off)off.onclick=async e=>{ e.preventDefault(); try{ await SVB.sb.rpc('ai_set',{p_key:null,p_model:null,p_clear:true}); kToast('KI ausgeschaltet'); trLoad(true); svAdminRender(); }catch(x){ kToast('⚠️ '+x.message); } };
+}
+{ const _ar1=svAdminRender; svAdminRender=async function(){ const r=await _ar1.apply(this,arguments); try{ const P=document.getElementById('panel-admin'); if(P&&!P.querySelector('#trAi'))await trAiCard(P); }catch(e){} return r; }; }
+
+/* ---------- Start ---------- */
+{ const _gt2=goTab; goTab=function(tab){ const r=_gt2.apply(this,arguments); if(tab==='training')trRender(); return r; }; }
+{ const _si2=svInit; svInit=function(){
+    const r=_si2.apply(this,arguments);
+    const show=canTraining();
+    document.querySelectorAll('[data-tab="training"],[data-sheet="training"]').forEach(b=>{ b.style.display=show?'':'none'; });
+    document.querySelectorAll('.tabbar .ti[data-tab="scout"]').forEach(b=>{ b.style.display=show?'none':''; });
+    if(show){ trFab(); trLoad();
+      try{ const ch=SVB.sb.channel('training-live'); let t=null; const pull=()=>{ clearTimeout(t); t=setTimeout(()=>trLoad(true),500); };
+        ['training_sessions','training_attendance','injuries'].forEach(tb=>ch.on('postgres_changes',{event:'*',schema:'public',table:tb},pull)); ch.subscribe(); }catch(e){}
+      document.addEventListener('visibilitychange',()=>{ if(document.visibilityState==='visible')trLoad(true); });
+      { const _rh3=renderHome; renderHome=function(){ const x=_rh3.apply(this,arguments); try{trHomeCard();}catch(e){} return x; }; }
+      if((location.hash||'').slice(1)==='training')setTimeout(()=>goTab('training'),50);
+    }
+    return r; }; }
 
 /* ================= INIT ================= */
 renderWeights();
