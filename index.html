@@ -854,13 +854,15 @@ function scores(p){
   let total=(prod*W.prod+share*W.share+ctx*W.ctx+pot*W.pot+trend*W.trend+presse*W.presse+scout*W.scout)/sum;
   let sdsB=0;
   if(p.sds>0){sdsB=Math.min(6,p.sds*2);total=Math.min(100,total+sdsB);} /* FuPa Elf der Woche/Spieler des Spieltags: +2 je Nominierung, max +6 */
+  let mvpAdj=0, mvpVal=(typeof p.mvp==='number')?p.mvp:null;
+  if(mvpVal!=null){const _b=total;total=Math.min(100,total*(0.94+0.12*(mvpVal/100)));mvpAdj=Math.round((total-_b)*10)/10;} /* FuPa-MVP: team-relativer Leistungswert als +-6% Modifikator */
   let adjD=0, adjBase=null;
   if(p.adjTo!=null){adjBase=Math.round(total*10)/10;adjD=Math.round((p.adjTo-total)*10)/10;total=p.adjTo;} /* Insider-Rating: Modellwert wird transparent überschrieben */
   const spTeam=(p.toreBelegt&&p.kaderDoc&&p.kaderStarts)?Math.max(6,p.kaderStarts):(p.teamSp||sp);
   const proj=Math.round((p.tore/Math.max(1,spTeam))*wOf(p)*30); /* xT über Team-Spiele: reale Einsatzquote eingerechnet, keine Vollzeit-Hochrechnung */
   return {prod:Math.round(prod),share:Math.round(share),ctx:Math.round(ctx),pot:Math.round(pot),
     trend:Math.round(trend),presse:Math.round(presse),scout:Math.round(scout),total:Math.round(total*10)/10,
-    gpg,proj,tratio,defMode,gaTxt,sdsB,adjD,adjBase,shareRaw:(p.tT&&p.tT>0)?p.tore/p.tT:null};
+    mvp:mvpVal,mvpAdj,gpg,proj,tratio,defMode,gaTxt,sdsB,adjD,adjBase,shareRaw:(p.tT&&p.tT>0)?p.tore/p.tT:null};
 }
 
 /* ================= GEMS ================= */
@@ -1288,7 +1290,18 @@ function wireKaderplan(){
   const pr=document.getElementById('kpPrint'); if(pr)pr.onclick=()=>{try{window.print();}catch(e){}};
   w.querySelectorAll('[data-open]').forEach(el=>{el.onclick=()=>{try{startPlayer(el.dataset.open);}catch(e){}};});
 }
-function renderAll(){renderHome();renderList();renderGems();renderJugend();renderShortlist();renderDB();fillCompareSelects();updateCompare();try{renderLineup();}catch(e){}try{renderKandidaten();}catch(e){}try{renderKaderplan();}catch(e){}}
+/* ===== FuPa MVP-Wert: team-relativer Leistungswert (0-100), fliesst als +-6% Modifikator in den MScore ===== */
+function _mvpNorm(s){s=(s||'').toLowerCase();s=s.split('ä').join('ae').split('ö').join('oe').split('ü').join('ue').split('ß').join('ss');try{s=s.normalize('NFKD').replace(/[̀-ͯ]/g,'');}catch(e){}return s.replace(/[^a-z]/g,'');}
+const MVP_SEED={
+ 'juliusfries':82,'florianseltenreich':78,'simongoderbauer':100,'paulbartmann':76,
+ 'andrewalter':78,'nicogarotti':78,'svenschill':66,'lukasgoderbauer':70,'juliangoderbauer':71
+};
+let _mvpSeeded=false, mvpSeedHits=0;
+function applyMvpSeed(){ if(_mvpSeeded)return; _mvpSeeded=true; mvpSeedHits=0;
+  players.forEach(p=>{ if(!p.own)return; const k=_mvpNorm(p.name); if(MVP_SEED[k]!=null){ p.mvp=MVP_SEED[k]; mvpSeedHits++; } });
+}
+
+function renderAll(){try{applyMvpSeed();}catch(e){}renderHome();renderList();renderGems();renderJugend();renderShortlist();renderDB();fillCompareSelects();updateCompare();try{renderLineup();}catch(e){}try{renderKandidaten();}catch(e){}try{renderKaderplan();}catch(e){}}
 
 /* ================= MODAL ================= */
 function nrm(s){return (s||'').toLowerCase().replace(/ä/g,'ae').replace(/ö/g,'oe').replace(/ü/g,'ue').replace(/ß/g,'ss').replace(/\s+/g,' ').trim();}
@@ -1480,6 +1493,7 @@ function openModal(id){
         ${p.kaderDoc?`<div><span>Startelf 25/26 (dok.)</span><b>${p.kaderStarts} von ${p.kaderDoc} Spielen</b></div>`:''}
         ${p.starts2425!=null?`<div><span>Startelf 24/25 (dok.)</span><b>${p.starts2425} von ${p.docPrev||8} Spielen</b></div>`:''}
         ${p.sds?`<div><span>Elf der Woche (FuPa)</span><b>${p.sds}× nominiert</b></div>`:''}
+        ${typeof p.mvp==='number'?`<div><span>FuPa-MVP-Wert</span><b>${p.mvp} % <i style="color:var(--ink3);font-weight:600">(team-relativ)</i></b></div>`:''}
         ${prevLine}
         <div><span>Formtrend</span><b>${s.tratio!=null?(s.tratio>=1.15?'▲ steigend':s.tratio<=0.85?'▼ fallend':'≈ stabil'):'–'}</b></div>
         <div><span>Liga-Gewicht</span><b>× ${wOf(p).toFixed(2)}</b></div>
@@ -1508,6 +1522,7 @@ function openModal(id){
         <div class="srow"><span class="sy" style="font-size:11px">${l}</span><span class="sbar" style="width:100%;max-width:none"><i style="width:${v}%;background:${tierColor(v)}"></i></span><b style="font-variant-numeric:tabular-nums">${v} <i style="color:var(--ink3);font-style:normal;font-weight:600">· ${w}%</i></b></div>`).join('')}
       ${s.adjD?`<div class="srow"><span class="sy" style="font-size:11px">🎯 Insider</span><span class="sbar" style="width:100%;max-width:none"><i style="width:${Math.min(100,Math.abs(s.adjD)*4)}%;background:#4da3ff"></i></span><b>${s.adjD>0?'+':''}${s.adjD}</b></div>`:''}
       ${s.sdsB?`<div class="srow"><span class="sy" style="font-size:11px">🏅 Elf d. Woche</span><span class="sbar" style="width:100%;max-width:none"><i style="width:${s.sdsB*10}%;background:#b39df7"></i></span><b>+${s.sdsB}</b></div>`:''}
+      ${s.mvpAdj?`<div class="srow"><span class="sy" style="font-size:11px">🔵 FuPa-MVP ${s.mvp}%</span><span class="sbar" style="width:100%;max-width:none"><i style="width:${Math.min(100,Math.abs(s.mvpAdj)*8)}%;background:#2fd27a"></i></span><b>${s.mvpAdj>0?'+':''}${s.mvpAdj}</b></div>`:''}
     </div>
     <div class="seas"><h4>Einordnung — antippen ›</h4>
       ${(!s.defMode||p.tore>0)?`<div class="srow clk" data-rank="tore"><span class="sy">🏅</span><span class="sm">Torjäger-Rang: <b>#${(()=>{const pool=players.filter(x=>x.liga===p.liga&&x.isJugend===p.isJugend).sort((a,b)=>b.tore-a.tore);return pool.findIndex(x=>x.id===p.id)+1;})()}</b> von ${players.filter(x=>x.liga===p.liga&&x.isJugend===p.isJugend).length} erfassten Spielern (${p.isJugend?'Jugend':LIGA_NAME[p.liga]})</span><span></span></div>`:``}
