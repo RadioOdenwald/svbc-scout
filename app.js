@@ -2100,7 +2100,7 @@ function openSlotPicker(i,depth){
 }
 
 /* ===== App-Modus: installierbar, offline-fest, aktualisiert sich selbst ===== */
-const APP_BUILD='20260923-1243', OUTBOX_KEY='svbcOutbox', APP_HIDE_KEY='svbcInstallHide';
+const APP_BUILD='20260923-1309', OUTBOX_KEY='svbcOutbox', APP_HIDE_KEY='svbcInstallHide';
 let _appPrompt=null, _appNew=null, _obT=null;
 function appStandalone(){ try{ return !!(window.matchMedia&&matchMedia('(display-mode: standalone)').matches)||navigator.standalone===true; }catch(e){ return false; } }
 function appPlatform(){
@@ -2953,6 +2953,348 @@ async function svTeamLoad(){ try{ const {data}=await SVB.sb.rpc('team_names'); i
     svTeamLoad().then(()=>{ svRemindRender(); svBadges(); if(document.querySelector('#panel-kandidaten.active'))try{renderKandidaten();}catch(e){} });
     if(/(^|&)kandidaten/.test((location.hash||'').slice(1))&&svMyCands().length){ kandFP='__me'; try{renderKandidaten();}catch(e){} }
     return r; }; }
+
+/* =====================================================================
+   SV/BSC Scout · Runde 6: Spielerbogen wie in EA FC
+   - Spielerrolle je Position, Special Skills (mit „+“ für herausragend), starker & schwacher Fuß
+   - Charakter & Training (1–5), Charakter-Tags, Stärken/Schwächen
+   - Spielerkarte im Profil, Positions-Check + Auto-Sortieren in der Aufstellung
+   - Kader-Profil: Was haben wir, was fehlt – und Suche nach Rollen/Skills/Fuß
+   ===================================================================== */
+Object.assign(SV_FIELD,{wf:'Schwacher Fuß',rol:'Spielerrolle',sk:'Special Skills',ch:'Charakter & Training',tg:'Charakter-Tags',sts:'Stärken',sws:'Schwächen'});
+Object.assign(SV_TRAINER_FIELDS,{wf:1,rol:1,sk:1,ch:1,tg:1,sts:1,sws:1});
+
+/* ---------- Kataloge (angelehnt an EA SPORTS FC: PlayStyles & Player Roles) ---------- */
+const SB_IC={
+  abschluss:'<circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="4"/><circle cx="12" cy="12" r=".6" fill="currentColor"/>',
+  wucht:'<path d="M3 12h9"/><path d="m9 8 4 4-4 4"/><path d="M16 5l2 3 3-1-1 3 2 2-3 1v3l-3-1-2 2"/>',
+  kopfball:'<circle cx="10" cy="9" r="4"/><path d="M5 21v-2a5 5 0 0 1 10 0v2"/><circle cx="18" cy="5" r="2.2"/>',
+  standard:'<path d="M5 21V4"/><path d="M5 4h10l-2 3.5 2 3.5H5"/><circle cx="17" cy="18" r="2.5"/>',
+  elfer:'<rect x="3" y="4" width="18" height="10" rx="1"/><circle cx="12" cy="19" r="2"/><path d="M12 14v3"/>',
+  steilpass:'<path d="M4 20 20 4"/><path d="M13 4h7v7"/><path d="M4 12l3 3M10 18l-3-3"/>',
+  flanke:'<path d="M4 20c2-10 9-15 16-15"/><path d="m16 3 4 2-2 4"/>',
+  langball:'<path d="M3 18c4-12 14-12 18 0"/><path d="m18 14 3 4-5 1"/>',
+  kurzpass:'<circle cx="5" cy="17" r="2"/><circle cx="12" cy="6" r="2"/><circle cx="19" cy="17" r="2"/><path d="M6.5 15 10.5 8M13.5 8l4 7M7 17h10"/>',
+  dribbling:'<path d="M4 18c3 0 3-4 6-4s3 4 6 4 3-4 4-4"/><circle cx="12" cy="7" r="3"/>',
+  tempo:'<path d="M13 2 4 14h7l-1 8 9-12h-7z"/>',
+  erstkontakt:'<path d="M6 3v7a6 6 0 0 0 12 0V3"/><path d="M6 7h3M15 7h3"/>',
+  pressresistent:'<path d="M12 3 4 6v6c0 4.5 3.4 8 8 9 4.6-1 8-4.5 8-9V6z"/><circle cx="12" cy="12" r="3"/>',
+  zweikampf:'<path d="M12 3 4 6v6c0 4.5 3.4 8 8 9 4.6-1 8-4.5 8-9V6z"/><path d="m9 12 2 2 4-4"/>',
+  antizipation:'<path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/>',
+  luftduell:'<path d="M12 21V9"/><path d="m7 13 5-5 5 5"/><path d="m7 7 5-5 5 5"/>',
+  block:'<rect x="3" y="4" width="18" height="16" rx="1"/><path d="M3 9h18M3 15h18M9 4v5M15 9v6M9 15v5"/>',
+  graetsche:'<path d="M3 17h14l4-4"/><circle cx="7" cy="9" r="3"/><path d="M10 11l5 3"/>',
+  motor:'<path d="M3 12h4l2-5 4 10 2-5h6"/>',
+  robust:'<path d="M12 21V3"/><circle cx="12" cy="5" r="2"/><path d="M5 12a7 7 0 0 0 14 0"/><path d="M3 12h4M17 12h4"/>',
+  einwurf:'<path d="M7 20V9a3 3 0 0 1 6 0v11"/><circle cx="10" cy="4" r="2"/><path d="M13 12c3-4 6-5 8-5"/>',
+  reflexe:'<path d="M8 13V5a2 2 0 0 1 4 0v6-8a2 2 0 0 1 4 0v8-5a2 2 0 0 1 4 0v8a8 8 0 0 1-16 0v-3a2 2 0 0 1 4 0"/>',
+  strafraum:'<rect x="3" y="6" width="18" height="14" rx="1"/><path d="M7 20v-6h10v6"/><path d="M12 2v6"/>',
+  fussarbeit:'<path d="M5 20c0-5 2-9 4-12 1-2 4-2 4 1 0 2-1 4 1 5 2 1 6 1 6 4 0 2-3 2-6 2z"/>',
+  einsgegeneins:'<circle cx="7" cy="7" r="3"/><circle cx="17" cy="17" r="3"/><path d="M10 10l4 4"/>',
+  abwurf:'<path d="M4 18c5-10 11-12 16-12"/><path d="M4 18h4"/><path d="m17 3 3 3-3 3"/>'
+};
+const SB_SKILLS=[
+  {k:'abschluss',t:'Knipser',g:'Abschluss',fc:'Finesse Shot',d:'Eiskalt vor dem Tor, platziert sicher'},
+  {k:'wucht',t:'Wuchtiger Schuss',g:'Abschluss',fc:'Power Shot',d:'Harter Schuss, auch aus der Distanz'},
+  {k:'kopfball',t:'Kopfballstark',g:'Abschluss',fc:'Precision Header',d:'Trifft mit dem Kopf, stark bei Flanken'},
+  {k:'standard',t:'Standardspezialist',g:'Abschluss',fc:'Dead Ball',d:'Freistöße und Ecken mit Qualität'},
+  {k:'elfer',t:'Elfmeterschütze',g:'Abschluss',fc:'—',d:'Nervenstark vom Punkt'},
+  {k:'steilpass',t:'Tödlicher Pass',g:'Passspiel',fc:'Incisive Pass',d:'Sieht und spielt den Pass in die Tiefe'},
+  {k:'flanke',t:'Flankengott',g:'Passspiel',fc:'Whipped Pass',d:'Scharfe, präzise Flanken'},
+  {k:'langball',t:'Spielverlagerung',g:'Passspiel',fc:'Long Ball Pass',d:'Lange Bälle kommen an'},
+  {k:'kurzpass',t:'Ballsicher im Kurzpass',g:'Passspiel',fc:'Tiki Taka',d:'Verliert kaum einen Ball, hält das Spiel am Laufen'},
+  {k:'dribbling',t:'Dribbler',g:'Ballkontrolle',fc:'Technical / Trickster',d:'Geht ins Eins-gegen-eins und kommt vorbei'},
+  {k:'tempo',t:'Tempo',g:'Ballkontrolle',fc:'Rapid / Quick Step',d:'Antritt und Endgeschwindigkeit'},
+  {k:'erstkontakt',t:'Erster Kontakt',g:'Ballkontrolle',fc:'First Touch',d:'Saubere Ballannahme auch unter Druck'},
+  {k:'pressresistent',t:'Pressingresistent',g:'Ballkontrolle',fc:'Press Proven',d:'Behauptet den Ball gegen Druck'},
+  {k:'zweikampf',t:'Zweikampfmonster',g:'Defensive',fc:'Bruiser / Anticipate',d:'Gewinnt die Duelle am Boden'},
+  {k:'antizipation',t:'Antizipation',g:'Defensive',fc:'Intercept',d:'Liest das Spiel, fängt Bälle ab'},
+  {k:'luftduell',t:'Lufthoheit',g:'Defensive',fc:'Aerial Fortress',d:'Gewinnt Kopfballduelle'},
+  {k:'block',t:'Blockt alles',g:'Defensive',fc:'Block',d:'Wirft sich in jeden Schuss'},
+  {k:'graetsche',t:'Grätsche',g:'Defensive',fc:'Slide Tackle',d:'Saubere Tacklings im richtigen Moment'},
+  {k:'motor',t:'Laufmaschine',g:'Physis',fc:'Relentless',d:'Läuft 90 Minuten durch'},
+  {k:'robust',t:'Robust',g:'Physis',fc:'Enforcer',d:'Körperlich präsent, schwer wegzuschieben'},
+  {k:'einwurf',t:'Weiter Einwurf',g:'Physis',fc:'Long Throw',d:'Einwurf als Standard-Waffe'},
+  {k:'reflexe',t:'Reflexe',g:'Torwart',fc:'Far Reach',d:'Hält die Unhaltbaren',tw:1},
+  {k:'strafraum',t:'Strafraumbeherrschung',g:'Torwart',fc:'Cross Claimer',d:'Kommt raus, pflückt Flanken',tw:1},
+  {k:'fussarbeit',t:'Mitspielender Torwart',g:'Torwart',fc:'Footwork',d:'Sicher mit dem Ball am Fuß',tw:1},
+  {k:'einsgegeneins',t:'Stark im 1 gegen 1',g:'Torwart',fc:'Rush Out',d:'Verkürzt den Winkel, gewinnt Duelle',tw:1},
+  {k:'abwurf',t:'Weiter Abwurf',g:'Torwart',fc:'Far Throw',d:'Schnelles Umschalten per Abwurf/Abstoß',tw:1}
+];
+const SB_SK={}; SB_SKILLS.forEach(s=>SB_SK[s.k]=s);
+const SB_GROUPS=['Abschluss','Passspiel','Ballkontrolle','Defensive','Physis','Torwart'];
+const SB_ROLES={
+  TW:[{k:'tw-linie',t:'Linienkeeper',fc:'Goalkeeper',d:'Bleibt im Tor, stark auf der Linie'},{k:'tw-sweeper',t:'Mitspielender Keeper',fc:'Sweeper Keeper',d:'Verteidigt den Raum hinter der Kette'},{k:'tw-aufbau',t:'Spieleröffnender Keeper',fc:'Ball-Playing Keeper',d:'Rückt im Ballbesitz mit auf, eröffnet das Spiel'}],
+  IV:[{k:'iv-klassisch',t:'Verteidiger',fc:'Defender',d:'Hält die Position, sichert ab'},{k:'iv-stopper',t:'Stopper',fc:'Stopper',d:'Rückt heraus, attackiert früh'},{k:'iv-spiel',t:'Spieleröffner',fc:'Ball-Playing Defender',d:'Eröffnet mit guten Pässen'},{k:'iv-halb',t:'Halbverteidiger',fc:'Wide Back',d:'Außen in der Dreierkette, schiebt mit auf'}],
+  AV:[{k:'av-klassisch',t:'Außenverteidiger',fc:'Fullback',d:'Defensiv solide, wenig Vorwärtsdrang'},{k:'av-falsch',t:'Einrückender AV',fc:'Falseback',d:'Rückt im Aufbau ins Zentrum'},{k:'av-schiene',t:'Schienenspieler',fc:'Wingback',d:'Beackert die ganze Seite'},{k:'av-offensiv',t:'Offensiver Schienenspieler',fc:'Attacking Wingback',d:'Geht bis zur Grundlinie, flankt'},{k:'av-invers',t:'Inverser AV',fc:'Inverted Wingback',d:'Zieht nach innen ins Mittelfeld'}],
+  ZM:[{k:'zm-sechser',t:'Abräumer (Sechser)',fc:'Holding',d:'Schützt die Abwehr, gewinnt Bälle'},{k:'zm-abkipp',t:'Abkippender Sechser',fc:'Centre-Half',d:'Lässt sich zwischen die IV fallen'},{k:'zm-tief',t:'Tiefer Spielmacher',fc:'Deep-Lying Playmaker',d:'Lenkt das Spiel von hinten'},{k:'zm-b2b',t:'Box-to-Box',fc:'Box-to-Box',d:'Von Strafraum zu Strafraum'},{k:'zm-crasher',t:'Strafraum-Crasher',fc:'Box Crasher',d:'Späte Läufe in den Strafraum, torgefährlich'},{k:'zm-halbraum',t:'Halbraumspieler',fc:'Half-Winger',d:'Zieht in den Halbraum, bindet Außen'}],
+  OM:[{k:'om-spielmacher',t:'Spielmacher',fc:'Playmaker',d:'Kreativzentrale, letzter Pass'},{k:'om-zehn',t:'Klassische 10',fc:'Classic 10',d:'Zwischen den Linien, Technik und Übersicht'},{k:'om-schatten',t:'Hängende Spitze',fc:'Shadow Striker',d:'Geht mit in die Spitze, torgefährlich'},{k:'om-halbraum',t:'Halbraumspieler',fc:'Half-Winger',d:'Pendelt zwischen Zentrum und Flügel'}],
+  'Flügel':[{k:'fl-winger',t:'Flügelspieler',fc:'Winger',d:'Tempo und Flanken an der Linie'},{k:'fl-breit',t:'Außenbahnspieler',fc:'Wide Midfielder',d:'Arbeitet auch nach hinten mit'},{k:'fl-spielmacher',t:'Flügel-Spielmacher',fc:'Wide Playmaker',d:'Kreativ von außen'},{k:'fl-invers',t:'Inverser Flügel',fc:'Inside Forward',d:'Zieht nach innen, schließt ab'}],
+  ST:[{k:'st-knipser',t:'Knipser',fc:'Poacher',d:'Lauert im Strafraum, macht die Tore'},{k:'st-ziel',t:'Zielspieler',fc:'Target Forward',d:'Macht Bälle fest, stark im Kopfball'},{k:'st-tief',t:'Pressing-/Konterstürmer',fc:'Advanced Forward',d:'Läuft an, sprintet in die Tiefe'},{k:'st-falsch9',t:'Falsche 9',fc:'False 9',d:'Lässt sich fallen, verbindet das Spiel'}]
+};
+const SB_ROLE={}; Object.entries(SB_ROLES).forEach(([pos,arr])=>arr.forEach(r=>{ SB_ROLE[r.k]={...r,pos}; }));
+const SB_CHAR=[{k:'fleiss',t:'Trainingsfleiß',s:'FLE'},{k:'lauf',t:'Laufstärke',s:'LAU'},{k:'team',t:'Teamgeist',s:'TEA'},{k:'zuv',t:'Zuverlässigkeit',s:'ZUV'},{k:'fuehr',t:'Führung',s:'FÜH'},{k:'ehrg',t:'Ehrgeiz',s:'EHR'}];
+const SB_TAGS=[{k:'twm',t:'Trainingsweltmeister'},{k:'seele',t:'Kabinen-Seele'},{k:'leader',t:'Führungsspieler'},{k:'coach',t:'Coach auf dem Platz'},{k:'mental',t:'Mentalitätsmonster'},{k:'joker',t:'Joker'},{k:'allround',t:'Allrounder'},{k:'jung',t:'Entwicklungspotenzial'},
+  {k:'verl',t:'Verletzungsanfällig',w:1},{k:'karten',t:'Kartengefährdet',w:1},{k:'muffel',t:'Trainingsmuffel',w:1},{k:'unzuv',t:'Unzuverlässig',w:1},{k:'hitz',t:'Hitzkopf',w:1}];
+const SB_TG={}; SB_TAGS.forEach(t=>SB_TG[t.k]=t);
+const SB_FOOT={Rechts:'R',Links:'L','Beidfüßig':'B'};
+
+/* ---------- Daten lesen / schreiben ---------- */
+function sbSk(v){ return String(v||'').split(',').map(x=>x.trim()).filter(Boolean).map(x=>({k:x.replace(/\+$/,''),plus:/\+$/.test(x)})).filter(x=>SB_SK[x.k]); }
+function sbCh(v){ const a=String(v||'').split(',').map(Number), o={}; SB_CHAR.forEach((c,i)=>{ const n=a[i]; o[c.k]=n>=1&&n<=5?n:0; }); return o; }
+function sbOf(p){ const C=crmOf(p);
+  return { foot:p.fuss||null, wf:(+C.wf>=1&&+C.wf<=5)?+C.wf:0, rol:SB_ROLE[C.rol]?C.rol:'', sk:sbSk(C.sk), ch:sbCh(C.ch),
+    tg:String(C.tg||'').split(',').filter(k=>SB_TG[k]), sts:String(C.sts||''), sws:String(C.sws||'') }; }
+function sbHas(b){ return !!(b.rol||b.sk.length||b.wf||b.tg.length||b.sts||b.sws||Object.values(b.ch).some(Boolean)); }
+function sbCanEdit(){ return canWriteField('sk'); }
+function sbStars(n,max){ let s=''; for(let i=1;i<=(max||5);i++)s+=`<i class="${i<=n?'on':''}">★</i>`; return `<span class="sbstars">${s}</span>`; }
+function sbHex(s,plus,size){ const S=SB_SK[s]; return `<span class="sbhex${plus?' plus':''}${size?' '+size:''}" title="${svEsc(S.t+(plus?'+ (herausragend)':'')+' – '+S.d)}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${SB_IC[s]||''}</svg>${plus?'<b>+</b>':''}</span>`; }
+function sbFootChip(p){ const f=SB_FOOT[p.fuss]; return f?`<span class="sbfoot f-${f}" title="Starker Fuß: ${svEsc(p.fuss)}">${f}</span>`:''; }
+function sbEye(p){ const s=p.scout||{}; const keys=['tempo','technik','zweikampf','spielint','mentalitaet']; const vals=keys.map(k=>+s[k]||5); return vals.every(v=>v===5)?null:vals; }
+
+/* ---------- Spielerkarte im Profil ---------- */
+function sbProfile(pid){
+  const M=document.getElementById('modal'), p=players.find(x=>x.id===pid); if(!M||!p||M.querySelector('.sbwrap'))return;
+  const anchor=M.querySelector('.svpos-box')||M.querySelector('.mhead'); if(!anchor)return;
+  const b=sbOf(p), sc=scores(p), ov=Math.round(sc.total), R=SB_ROLE[b.rol], eye=sbEye(p), ed=sbCanEdit();
+  const attrs=[['TEM',eye&&eye[0]*10],['TEC',eye&&eye[1]*10],['ZWK',eye&&eye[2]*10],['SPI',eye&&eye[3]*10],['MEN',eye&&eye[4]*10],['FLE',b.ch.fleiss?b.ch.fleiss*20:null],['LAU',b.ch.lauf?b.ch.lauf*20:null],['TEA',b.ch.team?b.ch.team*20:null]].filter(a=>a[1]).map(([k,v])=>[k,Math.min(99,v)]).slice(0,6);
+  const el=document.createElement('div'); el.className='sbwrap';
+  const tier=ov>=72?'t-elite':ov>=60?'t-gold':ov>=48?'t-silver':'t-bronze';
+  const chars=SB_CHAR.filter(c=>b.ch[c.k]);
+  el.innerHTML=`<div class="sbcard ${tier}">
+      <div class="sbc-top"><div class="sbc-ovr">${ov}<span>${svEsc(p.pos||'–')}</span></div>
+        <div class="sbc-foot">${b.foot?`<b>${svEsc(SB_FOOT[b.foot]||'')}</b><small>${svEsc(b.foot)}</small>`:'<small>Fuß ?</small>'}${b.wf?`<div title="Schwacher Fuß">${sbStars(b.wf)}</div>`:''}</div></div>
+      <div class="sbc-name">${svEsc(p.name)}</div>
+      <div class="sbc-role">${R?svEsc(R.t):'Rolle noch offen'}${R?`<small>${svEsc(R.fc)}</small>`:''}</div>
+      ${attrs.length?`<div class="sbc-attrs">${attrs.map(([k,v])=>`<div><b>${v}</b><span>${k}</span></div>`).join('')}</div>`:`<div class="sbc-attrs empty">Eye-Test und Charakter noch nicht bewertet</div>`}
+      ${b.sk.length?`<div class="sbc-sk">${b.sk.slice(0,4).map(x=>sbHex(x.k,x.plus,'sm')).join('')}</div>`:''}
+    </div>
+    <div class="sbside">
+      ${b.sk.length?`<div class="sbblk"><h5>Special Skills</h5><div class="sbsklist">${b.sk.map(x=>`<div class="sbsk">${sbHex(x.k,x.plus)}<div><b>${svEsc(SB_SK[x.k].t)}${x.plus?' <em>+</em>':''}</b><span>${svEsc(SB_SK[x.k].d)}</span></div></div>`).join('')}</div></div>`:''}
+      ${chars.length?`<div class="sbblk"><h5>Charakter &amp; Training</h5>${chars.map(c=>`<div class="sbbar"><span>${svEsc(c.t)}</span><i><u style="width:${b.ch[c.k]*20}%" class="v${b.ch[c.k]}"></u></i><b>${b.ch[c.k]}</b></div>`).join('')}</div>`:''}
+      ${b.tg.length?`<div class="sbblk sbtags">${b.tg.map(k=>`<span class="sbtag${SB_TG[k].w?' warn':''}">${svEsc(SB_TG[k].t)}</span>`).join('')}</div>`:''}
+      ${b.sts||b.sws?`<div class="sbblk sbnotes">${b.sts?`<p><b class="ok">Stärken</b> ${svEsc(b.sts)}</p>`:''}${b.sws?`<p><b class="bad">Schwächen</b> ${svEsc(b.sws)}</p>`:''}</div>`:''}
+      ${!sbHas(b)?`<div class="sbempty">${ed?'Noch kein Spielerbogen. Rolle, Special Skills, Fuß und Charakter in einer Minute anlegen.':'Für diesen Spieler gibt es noch keinen Spielerbogen.'}</div>`:''}
+      ${ed?`<button class="btn ${sbHas(b)?'ghost ':''}sm sbedit" type="button">${SVI('sliders')} ${sbHas(b)?'Spielerbogen bearbeiten':'Spielerbogen anlegen'}</button>`:''}
+    </div>`;
+  anchor.after(el);
+  const bt=el.querySelector('.sbedit'); if(bt)bt.onclick=()=>sbEditor(p.id);
+}
+
+/* ---------- Spielerbogen bearbeiten ---------- */
+function sbEditor(pid){
+  const p=players.find(x=>x.id===pid); if(!p||!sbCanEdit())return;
+  const b0=sbOf(p), st={foot:b0.foot, wf:b0.wf, rol:b0.rol, sk:Object.fromEntries(b0.sk.map(x=>[x.k,x.plus?2:1])), ch:{...b0.ch}, tg:new Set(b0.tg), sts:b0.sts, sws:b0.sws};
+  const isTW=p.pos==='TW', posList=[p.pos,...(p.pos2||[])].filter((x,i,a)=>x&&SB_ROLES[x]&&a.indexOf(x)===i);
+  const M=svModal(`<div class="mhead" style="gap:14px">${avaHtml(p)}<div><h2 style="margin:0">Spielerbogen</h2><div class="msub">${svEsc(p.name)} · ${svEsc(p.pos||'–')}${(p.pos2||[]).length?' · kann auch '+svEsc(p.pos2.join(', ')):''}</div></div></div><div id="sbEd"></div>`);
+  const draw=()=>{
+    const E=document.getElementById('sbEd'); if(!E)return;
+    E.innerHTML=`
+    <section class="sbsec"><h4>Fuß</h4>
+      <div class="sbseg">${['Rechts','Links','Beidfüßig'].map(f=>`<button type="button" data-foot="${f}" class="${st.foot===f?'on':''}">${f}</button>`).join('')}</div>
+      <div class="sbwf"><span>Schwacher Fuß</span>${[1,2,3,4,5].map(n=>`<button type="button" data-wf="${n}" class="${n<=st.wf?'on':''}" aria-label="${n} Sterne">★</button>`).join('')}<small>${['nicht bewertet','kaum','schwach','ordentlich','stark','wie der starke'][st.wf]}</small></div>
+      <p class="note">Gerade in der Innenverteidigung und auf den Außenbahnen wichtig: Linksfuß links, Rechtsfuß rechts.</p></section>
+    <section class="sbsec"><h4>Spielerrolle <small>wie in EA FC</small></h4>
+      ${posList.map(pos=>`<div class="sbrolegrp"><span class="lbl">${svEsc(pos)}</span><div class="chips">${SB_ROLES[pos].map(r=>`<button type="button" class="pchip role${st.rol===r.k?' on':''}" data-rol="${r.k}" title="${svEsc(r.fc)}">${svEsc(r.t)}</button>`).join('')}</div></div>`).join('')||'<p class="note">Erst eine Position festlegen.</p>'}
+      ${st.rol&&SB_ROLE[st.rol]?`<p class="sbroled"><b>${svEsc(SB_ROLE[st.rol].t)}</b> <em>${svEsc(SB_ROLE[st.rol].fc)}</em> – ${svEsc(SB_ROLE[st.rol].d)}</p>`:''}</section>
+    <section class="sbsec"><h4>Special Skills <small>1× tippen = hat er · 2× = herausragend (+)</small></h4>
+      ${SB_GROUPS.filter(g=>isTW?(g==='Torwart'||g==='Passspiel'):g!=='Torwart').map(g=>`<div class="sbskgrp"><span class="lbl">${g}</span><div class="chips">${SB_SKILLS.filter(s=>s.g===g).map(s=>{ const v=st.sk[s.k]||0; return `<button type="button" class="sbskchip v${v}" data-sk="${s.k}" title="${svEsc(s.d+' · EA FC: '+s.fc)}">${sbHex(s.k,v===2,'xs')}<span>${svEsc(s.t)}</span></button>`; }).join('')}</div></div>`).join('')}</section>
+    <section class="sbsec"><h4>Charakter &amp; Training <small>1 = schwach · 5 = top · nochmal tippen = leeren</small></h4>
+      ${SB_CHAR.map(c=>`<div class="sbrate"><span>${c.t}</span><div>${[1,2,3,4,5].map(n=>`<button type="button" data-ch="${c.k}:${n}" class="${n<=st.ch[c.k]?'on v'+st.ch[c.k]:''}">${n}</button>`).join('')}</div></div>`).join('')}</section>
+    <section class="sbsec"><h4>Charakter-Tags</h4><div class="chips">${SB_TAGS.map(t=>`<button type="button" class="pchip tag${t.w?' warn':''}${st.tg.has(t.k)?' on':''}" data-tg="${t.k}">${svEsc(t.t)}</button>`).join('')}</div></section>
+    <section class="sbsec"><h4>Bemerkungen</h4>
+      <div class="field"><label>Stärken</label><input id="sbSts" maxlength="160" value="${svEsc(st.sts)}" placeholder="z.B. Kopfballstark, gutes Timing, Führungsstimme"></div>
+      <div class="field" style="margin-top:8px"><label>Schwächen</label><input id="sbSws" maxlength="160" value="${svEsc(st.sws)}" placeholder="z.B. langsam im Antritt, schwacher linker Fuß"></div></section>
+    <div class="btnrow sbact"><button class="btn" type="button" id="sbSave">Für alle speichern</button><button class="btn ghost" type="button" id="sbCancel">Abbrechen</button></div>`;
+    const keep=()=>{ const a=document.getElementById('sbSts'), c=document.getElementById('sbSws'); if(a)st.sts=a.value; if(c)st.sws=c.value; };
+    E.querySelectorAll('[data-foot]').forEach(x=>x.onclick=()=>{ keep(); st.foot=st.foot===x.dataset.foot?null:x.dataset.foot; draw(); });
+    E.querySelectorAll('[data-wf]').forEach(x=>x.onclick=()=>{ keep(); const n=+x.dataset.wf; st.wf=st.wf===n?0:n; draw(); });
+    E.querySelectorAll('[data-rol]').forEach(x=>x.onclick=()=>{ keep(); st.rol=st.rol===x.dataset.rol?'':x.dataset.rol; draw(); });
+    E.querySelectorAll('[data-sk]').forEach(x=>x.onclick=()=>{ keep(); const k=x.dataset.sk; st.sk[k]=((st.sk[k]||0)+1)%3; if(!st.sk[k])delete st.sk[k]; draw(); });
+    E.querySelectorAll('[data-ch]').forEach(x=>x.onclick=()=>{ keep(); const [k,n]=x.dataset.ch.split(':'); st.ch[k]=st.ch[k]===+n?0:+n; draw(); });
+    E.querySelectorAll('[data-tg]').forEach(x=>x.onclick=()=>{ keep(); const k=x.dataset.tg; if(st.tg.has(k))st.tg.delete(k); else st.tg.add(k); draw(); });
+    document.getElementById('sbCancel').onclick=()=>openModal(p.id);
+    document.getElementById('sbSave').onclick=()=>{ keep(); sbSave(p,b0,st); };
+  };
+  draw();
+}
+function sbSave(p,b0,st){
+  const u={};
+  const sk=SB_SKILLS.map(s=>s.k).filter(k=>st.sk[k]).map(k=>k+(st.sk[k]===2?'+':'')).join(',');
+  const skOld=b0.sk.map(x=>x.k+(x.plus?'+':'')).sort().join(','); if(sk.split(',').filter(Boolean).sort().join(',')!==skOld)u.sk=sk||undefined;
+  if((st.foot||null)!==(b0.foot||null))u.fu=st.foot||undefined;
+  if(st.wf!==b0.wf)u.wf=st.wf||undefined;
+  if(st.rol!==b0.rol)u.rol=st.rol||undefined;
+  const ch=SB_CHAR.map(c=>st.ch[c.k]||0).join(','), chOld=SB_CHAR.map(c=>b0.ch[c.k]||0).join(','); if(ch!==chOld)u.ch=/[1-5]/.test(ch)?ch:undefined;
+  const tg=SB_TAGS.map(t=>t.k).filter(k=>st.tg.has(k)).join(','); if(tg!==b0.tg.slice().sort((a,b)=>SB_TAGS.findIndex(t=>t.k===a)-SB_TAGS.findIndex(t=>t.k===b)).join(','))u.tg=tg||undefined;
+  const sts=st.sts.trim().slice(0,160), sws=st.sws.trim().slice(0,160); if(sts!==b0.sts)u.sts=sts||undefined; if(sws!==b0.sws)u.sws=sws||undefined;
+  if(!Object.keys(u).length){ openModal(p.id); kToast('Keine Änderung'); return; }
+  crmSet(p.id,u); try{crmApply();}catch(e){} try{renderAll();}catch(e){} openModal(p.id);
+  kToast('✓ Spielerbogen von '+p.name+' für alle gespeichert');
+}
+{ const _om3=openModal; openModal=function(){ const r=_om3.apply(this,arguments); try{ sbProfile(arguments[0]); }catch(e){ console.warn('Spielerbogen',e); } return r; }; }
+
+/* ---------- Aufstellung: Positions-Check, Fuß, automatisch sortieren ---------- */
+function sbSlotSide(x){ return x<35?'L':x>65?'R':'Z'; }
+function sbSlotScore(p,slot){
+  const [role,x]=slot, want=ROLE2POS[role];
+  if(role==='TW')return p.pos==='TW'?1000:-1000;
+  if(p.pos==='TW')return -1000;
+  const F=posFit(p,want); let s=F?F.lvl*100:-80;
+  const side=sbSlotSide(x), f=SB_FOOT[p.fuss];
+  if(f&&side!=='Z'&&(want==='IV'||want==='AV'||want==='Flügel')){ if(f===side)s+=14; else if(f==='B')s+=8; else s-=6; }
+  return s;
+}
+function sbFitInfo(p,slot){
+  const want=ROLE2POS[slot[0]], F=slot[0]==='TW'?(p.pos==='TW'?{lvl:2}:null):posFit(p,want);
+  const side=sbSlotSide(slot[1]), f=SB_FOOT[p.fuss];
+  const footWarn=f&&side!=='Z'&&(want==='IV'||want==='AV'||want==='Flügel')&&f!=='B'&&f!==side;
+  const cls=!F?'bad':F.lvl>=2?'ok':F.lvl>=1.5?'neben':F.lvl>=1?'mid':'weak';
+  return {F,cls,footWarn,want};
+}
+{ const _lc=lineupCardHtml; lineupCardHtml=function(p,role,i){
+    let h=_lc.apply(this,arguments);
+    try{
+      const foot=sbFootChip(p);
+      if(i!=null){ const slot=FORMATIONS[LINEUP.formation][i]; const fi=sbFitInfo(p,slot);
+        const t={ok:'Passt: Hauptposition',neben:'Passt: Nebenposition',mid:'Möglich: '+(p.pos||'?')+' auf '+fi.want,weak:'Nur zur Not: '+(p.pos||'?')+' auf '+fi.want,bad:'Passt nicht: '+(p.pos||'?')+' auf '+fi.want}[fi.cls]+(fi.footWarn?' · falscher Fuß für diese Seite':'');
+        h=h.replace('<div class="ov">',`<span class="sbfit ${fi.cls}${fi.footWarn?' fw':''}" title="${svEsc(t)}"></span><div class="ov">`); }
+      if(foot)h=h.replace(/<\/div>$/,foot+'</div>');
+    }catch(e){}
+    return h; }; }
+function sbHungarian(a){ // Maximum-Zuordnung (n×n), klassischer Ungarischer Algorithmus
+  const n=a.length, INF=1e15, u=Array(n+1).fill(0), v=Array(n+1).fill(0), pp=Array(n+1).fill(0), way=Array(n+1).fill(0);
+  const cost=(i,j)=>-a[i][j];
+  for(let i=1;i<=n;i++){ pp[0]=i; let j0=0; const minv=Array(n+1).fill(INF), used=Array(n+1).fill(false);
+    do{ used[j0]=true; const i0=pp[j0]; let d=INF, j1=0;
+      for(let j=1;j<=n;j++) if(!used[j]){ const cur=cost(i0-1,j-1)-u[i0]-v[j]; if(cur<minv[j]){minv[j]=cur;way[j]=j0;} if(minv[j]<d){d=minv[j];j1=j;} }
+      for(let j=0;j<=n;j++){ if(used[j]){u[pp[j]]+=d;v[j]-=d;} else minv[j]-=d; }
+      j0=j1; }while(pp[j0]!==0);
+    do{ const j1=way[j0]; pp[j0]=pp[j1]; j0=j1; }while(j0); }
+  const res=Array(n); for(let j=1;j<=n;j++)res[pp[j]-1]=j-1; return res; }
+function sbOptimize(){
+  if(!canEdit())return svDenied('Die Aufstellung ändern nur Kaderplaner.');
+  const form=FORMATIONS[LINEUP.formation], idx=form.map((_,i)=>i).filter(i=>LINEUP.slots[i]);
+  const ps=idx.map(i=>players.find(z=>z.id===LINEUP.slots[i])).filter(Boolean); if(ps.length!==idx.length||!ps.length)return;
+  const mat=ps.map((p,pi)=>idx.map(si=>sbSlotScore(p,form[si])+(idx[pi]===si?3:0)));
+  const asg=sbHungarian(mat), ns={}; let moved=0;
+  ps.forEach((p,pi)=>{ const si=idx[asg[pi]]; ns[si]=p.id; if(si!==idx[pi])moved++; });
+  if(!moved){ kToast('✓ Alle stehen schon auf der besten Position'); return; }
+  LINEUP={formation:LINEUP.formation,slots:ns}; renderLineup();
+  kToast('✓ Positionen sortiert – '+moved+' Spieler umgestellt');
+}
+function sbFitRow(){
+  const host=document.getElementById('gapRow'); if(!host)return;
+  let el=document.getElementById('sbFitRow'); if(!el){ el=document.createElement('div'); el.id='sbFitRow'; el.className='sbfitrow'; host.after(el); }
+  const form=FORMATIONS[LINEUP.formation], issues=[], foot=[]; let n=0, ok=0;
+  form.forEach((slot,i)=>{ const p=players.find(z=>z.id===LINEUP.slots[i]); if(!p)return; n++; const fi=sbFitInfo(p,slot);
+    if(fi.cls==='bad'||fi.cls==='weak')issues.push(`<b>${svEsc(p.name.split(' ').slice(-1)[0])}</b> (${svEsc(p.pos||'?')}) als ${svEsc(slot[0])}`); else ok++;
+    if(fi.footWarn)foot.push(`<b>${svEsc(p.name.split(' ').slice(-1)[0])}</b> (${svEsc(p.fuss)}) auf ${sbSlotSide(slot[1])==='L'?'links':'rechts'}`); });
+  if(!n){ el.innerHTML=''; return; }
+  const good=!issues.length&&!foot.length;
+  el.innerHTML=`<div class="sbfitbox ${good?'good':'warn'}"><span class="sbfit-ic">${SVI(good?'check':'info')}</span>
+    <div class="sbfit-t"><b>Positions-Check: ${ok}/${n} auf passender Position</b>${issues.length?`<span>Passt nicht: ${issues.join(' · ')}</span>`:''}${foot.length?`<span>Fuß/Seite: ${foot.join(' · ')}</span>`:''}${good?'<span>Alle Spieler auf Haupt- oder Nebenposition – realistisch aufgestellt.</span>':''}</div>
+    ${canEdit()&&!good?`<button class="btn sm" id="sbOpt" type="button">${SVI('move')} Automatisch sortieren</button>`:''}</div>`;
+  const b=document.getElementById('sbOpt'); if(b)b.onclick=sbOptimize;
+}
+{ const _rl=renderLineup; renderLineup=function(){ const r=_rl.apply(this,arguments); try{sbFitRow();}catch(e){ console.warn(e); } return r; }; }
+
+/* ---------- Kader-Profil: Was haben wir, was fehlt? ---------- */
+const SB_POSG=['TW','IV','AV','ZM','OM','Flügel','ST'];
+let sbQ={pos:'',rol:'',sk:'',foot:'',kreis:'alle'}, sbQuickOpen=false;
+function sbSquad(){ return players.filter(p=>p.own&&!p.isJugend&&!p.verzicht&&(p.kader===1||(p.kader==null&&!/\bII\b/.test(p.club||'')))); }
+function sbGaps(sq){
+  const G=[], by=pos=>sq.filter(p=>p.pos===pos), bogen=p=>sbOf(p), hasSk=(k,list)=>(list||sq).some(p=>bogen(p).sk.some(x=>x.k===k)), hasRole=(k,list)=>(list||sq).some(p=>bogen(p).rol===k);
+  const iv=by('IV'), av=by('AV'), st=by('ST'), tw=by('TW');
+  const rated=sq.filter(p=>sbHas(bogen(p))).length;
+  if(tw.length<2)G.push({lvl:'hoch',t:'Nur '+tw.length+' Torwart im Kader',q:{pos:'TW'}});
+  if(iv.length&&!iv.some(p=>p.fuss==='Links'||p.fuss==='Beidfüßig'))G.push({lvl:'hoch',t:'Kein Linksfuß in der Innenverteidigung'+(iv.some(p=>!p.fuss)?' (Fuß bei '+iv.filter(p=>!p.fuss).length+' IV noch offen)':''),q:{pos:'IV',foot:'Links'}});
+  if(av.length<3)G.push({lvl:'mittel',t:'Nur '+av.length+' gelernte Außenverteidiger',q:{pos:'AV'}});
+  if(av.length&&!av.some(p=>p.fuss==='Links'||p.fuss==='Beidfüßig'))G.push({lvl:'mittel',t:'Kein Linksfuß auf der Außenverteidiger-Position',q:{pos:'AV',foot:'Links'}});
+  if(rated>=5){
+    if(!hasRole('st-ziel',st)&&!hasSk('kopfball',st))G.push({lvl:'mittel',t:'Kein Zielspieler / kopfballstarker Stürmer',q:{pos:'ST',rol:'st-ziel'}});
+    if(!hasSk('standard'))G.push({lvl:'mittel',t:'Kein Standardspezialist',q:{sk:'standard'}});
+    if(sq.filter(p=>bogen(p).sk.some(x=>x.k==='tempo')).length<2)G.push({lvl:'mittel',t:'Wenig Tempo im Kader (unter 2 Spieler mit „Tempo“)',q:{sk:'tempo'}});
+    if(!sq.some(p=>{const b=bogen(p); return b.tg.includes('leader')||b.ch.fuehr>=4;}))G.push({lvl:'mittel',t:'Kein ausgewiesener Führungsspieler',q:{}});
+    if(!hasRole('zm-sechser')&&!hasSk('zweikampf',by('ZM')))G.push({lvl:'niedrig',t:'Kein echter Abräumer auf der Sechs',q:{pos:'ZM',rol:'zm-sechser'}});
+    if(!hasSk('steilpass')&&!hasRole('om-spielmacher')&&!hasRole('zm-tief'))G.push({lvl:'niedrig',t:'Kein Spielmacher / tödlicher Pass',q:{sk:'steilpass'}});
+  }
+  return {G,rated};
+}
+function sbKaderRender(){
+  const wrap=document.getElementById('kaderplanWrap'); if(!wrap)return;
+  let el=document.getElementById('sbKader'); if(!el){ el=document.createElement('div'); el.id='sbKader'; wrap.parentNode.insertBefore(el,wrap); }
+  const sq=sbSquad(), {G,rated}=sbGaps(sq), ed=sbCanEdit();
+  const avg=k=>{ const v=sq.map(p=>sbOf(p).ch[k]).filter(Boolean); return v.length?(v.reduce((a,b)=>a+b,0)/v.length):0; };
+  const grp=SB_POSG.map(pos=>{ const L=sq.filter(p=>p.pos===pos).sort((a,b)=>scores(b).total-scores(a).total);
+    const feet={R:0,L:0,B:0,'?':0}; L.forEach(p=>feet[SB_FOOT[p.fuss]||'?']++);
+    return `<div class="sbpg"><div class="sbpg-h"><b>${pos}</b><span>${L.length}</span></div>
+      <div class="sbpg-f">${feet.R?`<i class="f-R">${feet.R}× R</i>`:''}${feet.L?`<i class="f-L">${feet.L}× L</i>`:''}${feet.B?`<i class="f-B">${feet.B}× B</i>`:''}${feet['?']?`<i>${feet['?']}× ?</i>`:''}</div>
+      <div class="sbpg-l">${L.map(p=>{ const b=sbOf(p), R=SB_ROLE[b.rol]; return `<div class="sbpl" data-svp="${svEsc(p.id)}"><span class="sbpl-n">${svEsc(p.name)}</span>${sbFootChip(p)}${R?`<em>${svEsc(R.t)}</em>`:''}<span class="sbpl-sk">${b.sk.slice(0,3).map(x=>sbHex(x.k,x.plus,'xs')).join('')}</span></div>`; }).join('')||'<div class="note">—</div>'}</div></div>`; }).join('');
+  const rolesAll=Object.values(SB_ROLES).flat();
+  const res=sbSearch();
+  el.innerHTML=`<div class="card sbkader">
+    <div class="adm-head"><div><h3 style="margin:0;display:flex;gap:8px;align-items:center">${SVI('layers')} Kader-Profil 26/27</h3>
+      <p style="margin:6px 0 0;font-size:13.5px">Rollen, Special Skills, Fuß und Charakter der Ersten – wie im Karrieremodus. So seht ihr, welche Typen fehlen, und sucht gezielt danach.</p></div>
+      <div class="adm-stats"><div class="adm-stat"><b>${sq.length}</b><span>im Kader</span></div><div class="adm-stat"><b>${rated}</b><span>mit Spielerbogen</span></div><div class="adm-stat"><b>${sq.filter(p=>p.fuss).length}</b><span>Fuß bekannt</span></div></div></div>
+    ${rated<sq.length?`<div class="sbhint">${SVI('info')}<span><b>${sq.length-rated} Spieler</b> haben noch keinen Spielerbogen, bei <b>${sq.length-sq.filter(p=>p.fuss).length}</b> fehlt der starke Fuß. Öffentlich steht das nirgends – am schnellsten geht es unten mit der <b>Schnell-Erfassung</b>.</span></div>`:''}
+    <div class="sbsub">Was uns fehlt</div>
+    <div class="sbgaps">${G.length?G.map((g,i)=>`<button class="sbgap l-${g.lvl==='hoch'?'h':g.lvl==='mittel'?'m':'n'}" data-gap="${i}"><span>${svEsc(g.t)}</span><em>Passende suchen →</em></button>`).join(''):`<div class="note">${rated>=5?'Keine offensichtlichen Lücken – stark!':'Sobald mindestens 5 Spielerbögen angelegt sind, zeigt die App hier auch fehlende Rollen und Skills.'}</div>`}</div>
+    ${rated?`<div class="sbsub">Charakter der Mannschaft (Ø)</div><div class="sbteamch">${SB_CHAR.map(c=>{ const a=avg(c.k); return `<div class="sbbar"><span>${c.t}</span><i><u style="width:${a*20}%" class="v${Math.round(a)}"></u></i><b>${a?a.toFixed(1):'–'}</b></div>`; }).join('')}</div>`:''}
+    <div class="sbsub">Kader nach Positionen</div>
+    <div class="sbpgrid">${grp}</div>
+    <div class="sbsub" id="sbSearchAnchor">Profil-Suche</div>
+    <div class="sbsearch">
+      <select id="sbQpos"><option value="">Alle Positionen</option>${SB_POSG.map(p=>`<option${sbQ.pos===p?' selected':''}>${p}</option>`).join('')}</select>
+      <select id="sbQrol"><option value="">Jede Rolle</option>${(sbQ.pos?SB_ROLES[sbQ.pos]:rolesAll).map(r=>`<option value="${r.k}"${sbQ.rol===r.k?' selected':''}>${svEsc(r.t)}</option>`).join('')}</select>
+      <select id="sbQsk"><option value="">Jeder Skill</option>${SB_SKILLS.map(s=>`<option value="${s.k}"${sbQ.sk===s.k?' selected':''}>${svEsc(s.t)}</option>`).join('')}</select>
+      <select id="sbQfoot"><option value="">Jeder Fuß</option>${['Rechts','Links','Beidfüßig'].map(f=>`<option${sbQ.foot===f?' selected':''}>${f}</option>`).join('')}</select>
+      <select id="sbQkreis"><option value="alle"${sbQ.kreis==='alle'?' selected':''}>Alle Spieler</option><option value="eigene"${sbQ.kreis==='eigene'?' selected':''}>Nur eigene</option><option value="extern"${sbQ.kreis==='extern'?' selected':''}>Nur externe</option></select>
+    </div>
+    <div class="sbres">${res.html}</div>
+    ${ed?`<div class="sbsub sbquick-h"><button type="button" id="sbQuickT" class="btn ghost sm">${SVI('updown')} Schnell-Erfassung: Fuß, Rolle &amp; Charakter für den ganzen Kader</button></div>${sbQuickOpen?sbQuick(sq):''}`:''}
+  </div>`;
+  el.querySelectorAll('[data-svp]').forEach(a=>a.onclick=()=>openModal(a.dataset.svp));
+  el.querySelectorAll('[data-gap]').forEach(b=>b.onclick=()=>{ const g=G[+b.dataset.gap]; sbQ={pos:'',rol:'',sk:'',foot:'',kreis:'extern',...g.q}; sbKaderRender(); document.getElementById('sbSearchAnchor').scrollIntoView({behavior:'smooth',block:'start'}); });
+  const on=(id,k)=>{ const s=document.getElementById(id); if(s)s.onchange=()=>{ sbQ[k]=s.value; if(k==='pos'&&sbQ.rol&&SB_ROLE[sbQ.rol]&&SB_ROLE[sbQ.rol].pos!==sbQ.pos)sbQ.rol=''; sbKaderRender(); }; };
+  on('sbQpos','pos'); on('sbQrol','rol'); on('sbQsk','sk'); on('sbQfoot','foot'); on('sbQkreis','kreis');
+  const qt=document.getElementById('sbQuickT'); if(qt)qt.onclick=()=>{ sbQuickOpen=!sbQuickOpen; sbKaderRender(); };
+  el.querySelectorAll('[data-qf]').forEach(s=>s.onchange=()=>{ const [pid,f]=s.dataset.qf.split('|'); const p=players.find(x=>x.id===pid); if(!p)return;
+    const u={};
+    if(f==='fu')u.fu=s.value||undefined;
+    else if(f==='wf')u.wf=s.value?+s.value:undefined;
+    else if(f==='rol')u.rol=s.value||undefined;
+    else { const b=sbOf(p); b.ch[f]=+s.value||0; const ch=SB_CHAR.map(c=>b.ch[c.k]||0).join(','); u.ch=/[1-5]/.test(ch)?ch:undefined; }
+    crmSet(pid,u); try{crmApply();}catch(e){} kToast('✓ '+p.name+' gespeichert'); });
+}
+function sbSearch(){
+  const q=sbQ, active=q.pos||q.rol||q.sk||q.foot;
+  if(!active)return {html:'<div class="note">Position, Rolle, Skill oder Fuß wählen – z.B. „IV + Linksfuß“ oder „ST + Kopfballstark“.</div>'};
+  let L=players.filter(p=>!p.isJugend&&(q.kreis==='eigene'?p.own:q.kreis==='extern'?!p.own:true));
+  if(q.pos)L=L.filter(p=>p.pos===q.pos||(p.pos2||[]).includes(q.pos));
+  if(q.foot)L=L.filter(p=>p.fuss===q.foot||(q.foot!=='Beidfüßig'&&p.fuss==='Beidfüßig'));
+  if(q.rol)L=L.filter(p=>sbOf(p).rol===q.rol);
+  if(q.sk)L=L.filter(p=>sbOf(p).sk.some(x=>x.k===q.sk));
+  L=L.map(p=>({p,s:scores(p).total})).sort((a,b)=>b.s-a.s);
+  const unknownFoot=q.foot&&!L.length?players.filter(p=>!p.isJugend&&(!q.pos||p.pos===q.pos)&&!p.fuss&&(q.kreis==='eigene'?p.own:q.kreis==='extern'?!p.own:true)).length:0;
+  if(!L.length)return {html:`<div class="note">Kein Spieler mit diesem Profil erfasst.${unknownFoot?' Bei '+unknownFoot+' passenden Spielern ist der Fuß noch unbekannt – Spielerbögen für Kandidaten anlegen, dann tauchen sie hier auf.':' Rollen und Skills gibt es nur für Spieler mit Spielerbogen.'}</div>`};
+  return {html:`<div class="sbresl">${L.slice(0,40).map(({p,s})=>{ const b=sbOf(p), R=SB_ROLE[b.rol]; return `<div class="sbri" data-svp="${svEsc(p.id)}">${avaHtml(p)}<div class="sbri-n"><b>${svEsc(p.name)}</b><span>${svEsc(p.club||'')} · ${svEsc(p.pos||'–')}${R?' · '+svEsc(R.t):''}</span></div>${sbFootChip(p)}<span class="sbri-sk">${b.sk.slice(0,3).map(x=>sbHex(x.k,x.plus,'xs')).join('')}</span><span class="sbri-s" style="color:${tierColor(s)}">${Math.round(s)}</span></div>`; }).join('')}</div>${L.length>40?`<div class="note">… und ${L.length-40} weitere</div>`:''}`};
+}
+function sbQuick(sq){
+  const L=sq.slice().sort((a,b)=>SB_POSG.indexOf(a.pos)-SB_POSG.indexOf(b.pos)||a.name.localeCompare(b.name,'de'));
+  const opt=(arr,cur)=>arr.map(([v,t])=>`<option value="${svEsc(v)}"${String(cur)===String(v)?' selected':''}>${svEsc(t)}</option>`).join('');
+  return `<div class="sbquick"><div class="note" style="margin-bottom:8px">Jede Änderung wird sofort für alle gespeichert. Details (Skills, Tags, Bemerkungen) im Spielerprofil unter „Spielerbogen“.</div><div class="sbqt">
+    <div class="sbqr sbqhead"><span>Spieler</span><span>Fuß</span><span>Schw. Fuß</span><span>Rolle</span><span>Fleiß</span><span>Laufst.</span><span>Teamg.</span></div>
+    ${L.map(p=>{ const b=sbOf(p), roles=SB_ROLES[p.pos]||[]; const r15=[['','–'],[1,'1'],[2,'2'],[3,'3'],[4,'4'],[5,'5']];
+      return `<div class="sbqr"><span class="sbqn" data-svp="${svEsc(p.id)}"><b>${svEsc(p.name)}</b><em>${svEsc(p.pos||'–')}</em></span>
+        <select data-qf="${svEsc(p.id)}|fu" aria-label="Fuß">${opt([['','?'],['Rechts','Rechts'],['Links','Links'],['Beidfüßig','Beidf.']],p.fuss||'')}</select>
+        <select data-qf="${svEsc(p.id)}|wf" aria-label="Schwacher Fuß">${opt([['','–'],[1,'★'],[2,'★★'],[3,'★★★'],[4,'★★★★'],[5,'★★★★★']],b.wf||'')}</select>
+        <select data-qf="${svEsc(p.id)}|rol" aria-label="Rolle">${opt([['','–'],...roles.map(r=>[r.k,r.t])],b.rol)}</select>
+        <select data-qf="${svEsc(p.id)}|fleiss" aria-label="Trainingsfleiß">${opt(r15,b.ch.fleiss||'')}</select>
+        <select data-qf="${svEsc(p.id)}|lauf" aria-label="Laufstärke">${opt(r15,b.ch.lauf||'')}</select>
+        <select data-qf="${svEsc(p.id)}|team" aria-label="Teamgeist">${opt(r15,b.ch.team||'')}</select></div>`; }).join('')}</div></div>`;
+}
+{ const _rkp=renderKaderplan; renderKaderplan=function(){ const r=_rkp.apply(this,arguments); try{ if(!crmIsTyping())sbKaderRender(); }catch(e){ console.warn('Kader-Profil',e); } return r; }; }
 
 /* ================= INIT ================= */
 renderWeights();
