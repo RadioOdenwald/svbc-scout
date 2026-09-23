@@ -2100,7 +2100,7 @@ function openSlotPicker(i,depth){
 }
 
 /* ===== App-Modus: installierbar, offline-fest, aktualisiert sich selbst ===== */
-const APP_BUILD='r10-202609231740', OUTBOX_KEY='svbcOutbox', APP_HIDE_KEY='svbcInstallHide';
+const APP_BUILD='r11-202609231904', OUTBOX_KEY='svbcOutbox', APP_HIDE_KEY='svbcInstallHide';
 let _appPrompt=null, _appNew=null, _obT=null;
 function appStandalone(){ try{ return !!(window.matchMedia&&matchMedia('(display-mode: standalone)').matches)||navigator.standalone===true; }catch(e){ return false; } }
 function appPlatform(){
@@ -3617,7 +3617,8 @@ const TRS=(function(){
   }
   function totals(row,ms){ // row: Vereinsstatistik; ms: matchStats seit Stand
     const sp=(row?row.spiele:0)+(ms?ms.sp:0), tore=(row?row.tore:0)+(ms?ms.tore:0), vor=(row?row.assists:0)+(ms?ms.vor:0), siege=(row?row.siege:0)+(ms?ms.s:0);
-    return {sp,tore,vor,siege,quote:sp?Math.round(siege/sp*100):null};
+    const spq=(row?row.spiele:0)+(ms?(ms.spQ!=null?ms.spQ:ms.sp):0); // Quote nur über Spiele mit bekanntem Ergebnis
+    return {sp,tore,vor,siege,quote:spq?Math.round(siege/spq*100):null};
   }
   function nextMilestones(tot){
     const out=[]; const nx=(L,v,lab)=>{ const m=L.find(x=>x>v); if(m!=null)out.push({lab,ziel:m,rest:m-v}); };
@@ -3955,6 +3956,7 @@ function trSessionEditor(datum,sid,typ0){
     g:s0?s0.g||'':'',h:s0?s0.h:null,tw:s0&&s0.tw!=null?s0.tw:'',tg:s0&&s0.tg!=null?s0.tg:'',
     rows:{}, orig:new Set(), open:null, extra:[]};
   (s0&&s0.a||[]).forEach(a=>{ st.rows[a[0]]={status:a[1],grund:a[2],motivation:a[3],fitness:a[4],notiz:a[5]||'',tore:a[6]||0,vorlagen:a[7]||0}; st.orig.add(a[0]); if(!trSquad().some(p=>p.id===a[0]))st.extra.push(a[0]); });
+  if(TR.prefill&&TR.prefill.datum===st.datum){ Object.entries(TR.prefill.rows||{}).forEach(([id,r])=>{ if(!trP(id))return; const cur=st.rows[id]; if(cur&&cur.status)return; st.rows[id]=Object.assign({},cur||{},r); if(!trSquad().some(p=>p.id===id)&&!st.extra.includes(id))st.extra.push(id); }); TR.prefill=null; }
   const M=svModal(`<div class="mhead"><div class="rm-ic" style="width:46px;height:46px">${SVI('activity')}</div><div><h2 style="margin:0">${s0?(s0.t==='spiel'?'Spiel bearbeiten':'Einheit bearbeiten'):(typ0==='spiel'?'Spiel erfassen':'Training erfassen')}</h2><div class="msub">${typ0==='spiel'||(s0&&s0.t==='spiel')?'Ergebnis, Aufstellung, Tore & Vorlagen – zählt für Allzeit-Statistik und Moneyball-Auswertung':'Anwesenheit, Gründe, Eindruck – für alle gespeichert'}</div></div></div><div id="trEd"></div>`);
   const draw=()=>{
     const E=document.getElementById('trEd'); if(!E)return;
@@ -4520,7 +4522,7 @@ function vrViewAllTime(B){
       ${rows.slice(0,VR.atShow).map((x,i)=>{ const b=TRS.badges(x.tot,rk.get(x.r.key)); return `<tr ${x.pid?`data-svp="${svEsc(x.pid)}"`:''}><td>${i+1}</td><td><b>${svEsc(vrAtName(x))}</b> ${status(x)}</td><td>${x.tot.sp}${x.tot.sp>x.r.spiele?` <small>+${x.tot.sp-x.r.spiele}</small>`:''}</td><td>${x.tot.tore}</td><td>${x.tot.vor}</td><td>${x.tot.siege}</td><td>${x.tot.quote==null?'–':x.tot.quote+' %'}</td>
         <td>${b.map(y=>`<i class="vrbadge b-${y.k}" title="${svEsc(y.d)}">${svEsc(y.t)}</i>`).join('')}</td></tr>`; }).join('')}</tbody></table></div>
       ${rows.length>VR.atShow?`<button class="btn ghost sm" id="vrAtMore" style="margin-top:8px">Alle ${rows.length} zeigen</button>`:''}
-      <div class="note">Quelle: Spielerstatistiken der Vereinsseite (Stand ${stand?TRC.fmt(stand)+stand.slice(0,4):'–'}). „+“ = in der App erfasste Pflichtspiele seitdem – dafür nach jedem Spiel „Spiel erfassen“ nutzen oder dem Co-Trainer das Ergebnis sagen.</div></div>`;
+      <div class="note">Quelle: Spielerstatistiken der Vereinsseite (Stand ${stand?TRC.fmt(stand)+stand.slice(0,4):'–'}). „+“ = Pflichtspiele seitdem – kommen automatisch aus den Spielberichten auf FUSSBALL.DE (inkl. Pokal) oder aus „Spiel erfassen“.</div></div>`;
   B.querySelectorAll('[data-as]').forEach(b=>b.onclick=()=>{ VR.atSort=b.dataset.as; vrViewAllTime(B); });
   B.querySelectorAll('[data-svp]').forEach(x=>x.onclick=()=>openModal(x.dataset.svp));
   const qi=document.getElementById('vrAtQ'); let t=null; qi.oninput=()=>{ clearTimeout(t); t=setTimeout(()=>{ VR.atQ=qi.value; const pos=qi.selectionStart; vrViewAllTime(B); const n=document.getElementById('vrAtQ'); n.focus(); try{n.setSelectionRange(pos,pos);}catch(e){} },250); };
@@ -5500,6 +5502,482 @@ async function spBackupCard(P){
     try{ localStorage.setItem('svbc-backup-at',new Date().toISOString()); }catch(e){} kToast('✓ Sicherung heruntergeladen'); el.remove(); spBackupCard(P); }catch(e){ kToast('⚠️ '+(e.message||e)); } };
 }
 { const _ar3=svAdminRender; svAdminRender=async function(){ const r=await _ar3.apply(this,arguments); try{ await spBackupCard(document.getElementById('panel-admin')); }catch(e){} return r; }; }
+
+/* =====================================================================
+   SV/BSC Scout · Runde 11: Saison-Statistik automatisch aus den Spielberichten (FUSSBALL.DE)
+   - Einsätze, Startelf, Minuten und Tore aller Pflichtspiele der Ersten (Meisterschaft + Pokal)
+   - fließt in die ewige Liste, Meilensteine, Abzeichen und Vereinstreue ein – niemand muss etwas eintragen
+   ===================================================================== */
+const FB={m:[],pl:new Map(),loaded:false,loading:false,map:null,mapK:'',busy:false};
+async function fbLoad(force){
+  if(FB.loading||(FB.loaded&&!force))return; FB.loading=true;
+  try{
+    const [m,p]=await Promise.all([SVB.sb.from('fde_matches').select('id,team,saison,datum,zeit,wettbewerb,code,heim,gast,wir_heim,apps,bericht').order('datum',{ascending:false}).limit(400),
+      SVB.sb.from('fde_players').select('key,name').limit(3000)]);
+    FB.m=(m.data||[]).map(x=>Object.assign(x,{apps:Array.isArray(x.apps)?x.apps:[]})); FB.pl=new Map((p.data||[]).map(r=>[r.key,r.name])); FB.loaded=true; FB.map=null;
+  }catch(e){ console.warn('Spielberichte',e); FB.loaded=true; }
+  FB.loading=false; fbAfter();
+}
+function fbAfter(){ try{ fbSyncRows(); }catch(e){} VR._idx=null; VR._rk=null; try{ if(document.querySelector('#panel-verein.active'))vrRender(); }catch(e){} try{ vrHomeCard(); }catch(e){} }
+
+/* Zuordnung Spielbericht-Spieler → Spieler im Datenbestand: zuerst über den FUSSBALL.DE-Link, dann über den Namen */
+function fbMap(){
+  const k=FB.pl.size+':'+players.length+':'+FB.m.length; if(FB.map&&FB.mapK===k)return FB.map;
+  const M=new Map(), byUrl=new Map(), N=s=>TRC.N(s||'').replace(/[^a-z]/g,''), loose=s=>N(s).replace(/ss|ae|oe|ue/g,'');
+  players.forEach(p=>{ const m=String(p.fdeUrl||'').match(/(player-id|userid)\/([0-9A-Z]{20,40})/); if(m)byUrl.set((m[1]==='userid'?'u:':'p:')+m[2],p.id); });
+  const own=players.filter(p=>p.own), byN=new Map(), byL=new Map();
+  const put=(mp,k,id)=>{ if(!k)return; mp.set(k,mp.has(k)&&mp.get(k)!==id?null:id); };
+  own.forEach(p=>{ put(byN,N(p.name),p.id); put(byL,loose(p.name),p.id); });
+  const keys=new Set(); FB.m.forEach(g=>g.apps.forEach(a=>keys.add(a.p)));
+  const usedP=new Set(); keys.forEach(k=>{ const id=byUrl.get(k); if(id){ M.set(k,id); usedP.add(id); } });
+  keys.forEach(k=>{ if(M.has(k))return; const nm=FB.pl.get(k), id=nm&&(byN.get(N(nm))||byL.get(loose(nm))); if(id&&!usedP.has(id)){ M.set(k,id); usedP.add(id); } });
+  FB.map=M; FB.mapK=k; return M;
+}
+function fbSeasonStart(){ return VR_SEASON_START; }
+/* Pflichtspiele der Ersten seit einem Stichtag für einen Spieler */
+function fbStats(pid,since,team){
+  const M=fbMap(), o={sp:0,start:0,joker:0,tore:0,min:0,pokal:0,spiele:[]};
+  for(const g of FB.m){ if(g.team!==(team||'A')||!g.bericht||(since&&g.datum<=since))continue;
+    const a=g.apps.find(x=>M.get(x.p)===pid); if(!a)continue;
+    o.sp++; if(a.s)o.start++; else o.joker++; o.tore+=a.t||0; o.min+=a.m||0; if(g.code==='PO')o.pokal++; o.spiele.push({g,a}); }
+  return o;
+}
+/* Spieler ohne Eintrag auf der Vereinsseite (Neuzugänge) bekommen eine eigene Zeile in der ewigen Liste */
+function fbSyncRows(){
+  if(!FB.loaded||!VR.atLoaded)return;
+  VR.at=VR.at.filter(r=>!r._fb);
+  const M=fbMap(), have=new Set(), pids=new Set();
+  const idx=TRS.allTimeIndex(VR.at,[...players.filter(p=>p.own),...players.filter(p=>!p.own)],CRM||{}); idx.byPlayer.forEach((r,pid)=>have.add(pid));
+  FB.m.forEach(g=>{ if(g.team==='A'&&g.bericht&&g.datum>fbSeasonStart())g.apps.forEach(a=>{ const pid=M.get(a.p); if(pid)pids.add(pid); }); });
+  pids.forEach(pid=>{ if(have.has(pid))return; const p=trP(pid); if(!p)return; VR.at.push({key:'fb:'+pid,name:p.name,tore:0,assists:0,spiele:0,siege:0,quote:null,stand:null,_fb:pid}); });
+  VR._idx=null; VR._rk=null;
+}
+{ const _vi=vrIdx; vrIdx=function(){ const I=_vi.apply(this,arguments); try{ VR.at.forEach(r=>{ if(r._fb&&!I.byPlayer.has(r._fb)){ I.byPlayer.set(r._fb,r); I.used.set(r.key,r._fb); } }); }catch(e){} return I; }; }
+{ const _vt=vrTotals; vrTotals=function(pid){ const r=_vt.apply(this,arguments);
+  try{ if(FB.loaded){ const since=r.row&&r.row.stand?r.row.stand:fbSeasonStart(), f=fbStats(pid,since);
+    if(f.sp){ const ms=Object.assign({sp:0,start:0,joker:0,tore:0,vor:0,s:0,u:0,n:0,zuNull:0},r.ms||{}); ms.spQ=ms.sp;
+      if(f.sp>ms.sp){ ms.sp=f.sp; ms.start=f.start; ms.joker=f.joker; } ms.tore=Math.max(ms.tore,f.tore);
+      r.ms=ms; r.tot=TRS.totals(r.row,ms); r.fb=f; } } }catch(e){ console.warn(e); }
+  return r; }; }
+{ const _la=vrLoadAllTime; vrLoadAllTime=async function(){ const r=await _la.apply(this,arguments); try{ fbSyncRows(); if(document.querySelector('#panel-verein.active'))vrRender(); }catch(e){} return r; }; }
+
+/* ---------- Karte „Saison 26/27“ über der ewigen Liste ---------- */
+function fbSeasonLabel(){ const y=+VR_SEASON_START.slice(2,4); return y+'/'+(y+1); }
+function fbSeasonCard(){
+  const G=FB.m.filter(g=>g.team==='A'&&g.datum>fbSeasonStart()), done=G.filter(g=>g.bericht), M=fbMap();
+  const agg=new Map(); done.forEach(g=>{ const seen=new Set(); g.apps.forEach(a=>{ const pid=M.get(a.p)||null, k=pid||a.p; if(seen.has(k))return; seen.add(k); const o=agg.get(k)||{pid,k,name:pid?trP(pid).name:(FB.pl.get(a.p)||'Unbekannt'),sp:0,start:0,tore:0,min:0}; o.sp++; if(a.s)o.start++; o.tore+=a.t||0; o.min+=a.m||0; agg.set(k,o); }); });
+  const L=[...agg.values()].sort((a,b)=>b.sp-a.sp||b.start-a.start||b.tore-a.tore), T=[...agg.values()].filter(x=>x.tore).sort((a,b)=>b.tore-a.tore||a.sp-b.sp);
+  const po=done.filter(g=>g.code==='PO').length, open=G.length-done.length, unmapped=L.filter(x=>!x.pid).length;
+  const btn=canTraining()?`<button class="btn ghost sm" id="fbRun">${SVI('refresh')} Jetzt abrufen</button>`:'';
+  if(!G.length)return `<div class="card fbcard"><div class="vrat-h"><h3 class="trh" style="margin:0">${SVI('ball')} Saison ${fbSeasonLabel()} – automatisch</h3>${btn}</div><div class="note">Die Spielberichte der Pflichtspiele werden nach jedem Daten-Update von FUSSBALL.DE geholt (Mo, Do und So-Abend). Noch keine Daten.</div></div>`;
+  return `<div class="card fbcard"><div class="vrat-h"><h3 class="trh" style="margin:0">${SVI('ball')} Saison ${fbSeasonLabel()} – 1. Mannschaft</h3>${btn}</div>
+    <div class="fbstats"><span><b>${done.length}</b> Pflichtspiele${po?` <small>davon ${po} Pokal</small>`:''}</span><span><b>${L.length}</b> eingesetzte Spieler</span><span><b>${T.reduce((a,x)=>a+x.tore,0)}</b> Tore</span></div>
+    <div class="fbgrid"><div><h4>Einsätze</h4>${L.slice(0,10).map((x,i)=>`<div class="fbrow" ${x.pid?`data-svp="${svEsc(x.pid)}"`:''}><em>${i+1}</em><b>${svEsc(x.name)}</b><span>${x.sp}<small> · ${x.start}× Startelf</small></span></div>`).join('')}</div>
+      <div><h4>Torschützen</h4>${T.slice(0,10).map((x,i)=>`<div class="fbrow" ${x.pid?`data-svp="${svEsc(x.pid)}"`:''}><em>${i+1}</em><b>${svEsc(x.name)}</b><span>${x.tore}<small> in ${x.sp} Sp.</small></span></div>`).join('')||'<div class="note">Noch keine Tore.</div>'}</div></div>
+    <div class="note">Automatisch aus den öffentlichen Spielberichten auf FUSSBALL.DE (Meisterschaft <b>und Pokal</b>) – zählt direkt in die ewige Liste unten. ${open?open+' Spiel'+(open>1?'e':'')+' noch ohne Bericht (wird nachgeholt). ':''}${unmapped?unmapped+' Spieler noch nicht im Datenbestand zugeordnet.':''}</div></div>`;
+}
+async function fbRun(btn){
+  if(FB.busy)return; FB.busy=true; if(btn){ btn.disabled=true; btn.textContent='Holt Spielberichte …'; }
+  try{ const {data:j,error}=await SVB.sb.functions.invoke('spielberichte',{body:{}});
+    if(error){ let t=error.message; try{ const x=await error.context.json(); if(x&&x.error)t=x.error; }catch(_){} throw new Error(t); } if(!j||!j.ok)throw new Error((j&&j.error)||'Fehler');
+    await fbLoad(true); kToast(`✓ Spielberichte aktualisiert – ${j.spiele_abgerufen||0} Spiele geprüft`);
+  }catch(e){ kToast('⚠️ '+e.message); }
+  FB.busy=false; if(btn){ btn.disabled=false; btn.innerHTML=SVI('refresh')+' Jetzt abrufen'; }
+}
+{ const _va=vrViewAllTime; vrViewAllTime=function(B){ const r=_va.apply(this,arguments);
+  try{ if(!FB.loaded){ fbLoad(); } else if(VR.at.length){ const h=document.createElement('div'); h.innerHTML=fbSeasonCard(); const c=h.firstElementChild; const tgt=B.querySelector('.vrgrid'); if(tgt)tgt.before(c); else B.prepend(c);
+    c.querySelectorAll('[data-svp]').forEach(x=>x.onclick=()=>openModal(x.dataset.svp)); const b=c.querySelector('#fbRun'); if(b)b.onclick=()=>fbRun(b); } }catch(e){ console.warn('Saisonkarte',e); }
+  return r; }; }
+{ const _si5=svInit; svInit=function(){ const r=_si5.apply(this,arguments); setTimeout(()=>fbLoad(),900); return r; }; }
+
+/* =====================================================================
+   SV/BSC Scout · Runde 11: „Kabine“
+   - Abstimmungen: Trainer legt an → Link in die WhatsApp-Gruppe → Spieler tippen ihren Namen und sagen zu/ab (ohne Anmeldung)
+     Die App weiß, wer im Kader ist, und zeigt, wer noch fehlt – mit fertigem Erinnerungstext zum Nachhaken
+   - Mannschaftskasse: Strafenkatalog, Strafen, Beiträge, Ein-/Ausgaben, Kassenstand – für alle Spieler transparent über denselben Link,
+     bezahlen per PayPal.me (kostenlos), Kassenwart bestätigt
+   ===================================================================== */
+SV_PAGES.kabine=['Kabine','Abstimmungen per WhatsApp-Link und Mannschaftskasse'];
+SV_TBL.kabine=['users','Kabine'];
+{ const _ta6=svTabAllowed; svTabAllowed=function(t){ if(t==='kabine')return canTraining(); return _ta6.apply(this,arguments); }; }
+
+const KB={loaded:false,loading:false,view:'abst',polls:[],votes:[],cfg:{},kat:[],buch:[],link:null,showOld:false,kf:'offen'};
+const KB_ART={training:'Training',spiel:'Spiel',event:'Event',sonstiges:'Sonstiges'};
+const KB_ANS={zu:['Dabei','ok'],vllt:['Vielleicht','mid'],ab:['Kann nicht','bad']};
+const kbEur=v=>(Math.round((+v||0)*100)/100).toLocaleString('de-DE',{style:'currency',currency:'EUR'});
+const kbWd=d=>{ try{ return new Date(d+'T12:00:00').toLocaleDateString('de-DE',{weekday:'short',day:'2-digit',month:'2-digit'}); }catch(e){ return d; } };
+const kbIgnKey='svbc_kb_ign';
+function kbIgnored(){ try{ return new Set(JSON.parse(localStorage.getItem(kbIgnKey)||'[]')); }catch(e){ return new Set(); } }
+function kbIgnore(ref){ try{ const s=kbIgnored(); s.add(ref); localStorage.setItem(kbIgnKey,JSON.stringify([...s].slice(-800))); }catch(e){} }
+
+/* ---------- Laden ---------- */
+async function kbLoad(force){
+  if(KB.loading||(KB.loaded&&!force)||!canTraining())return; KB.loading=true;
+  try{
+    const since=TRC.addDays(trToday(),-120);
+    const [p,c,k,b]=await Promise.all([SVB.sb.from('polls').select('*').gte('datum',since).order('datum',{ascending:false}).limit(120),
+      SVB.sb.from('kasse_cfg').select('*').eq('id',1).maybeSingle(), SVB.sb.from('kasse_katalog').select('*').order('sort').order('titel').limit(200),
+      SVB.sb.from('kasse_buchungen').select('*').order('datum',{ascending:false}).order('created_at',{ascending:false}).limit(3000)]);
+    KB.polls=p.data||[]; KB.cfg=c.data||{}; KB.kat=k.data||[]; KB.buch=b.data||[];
+    try{ const r=await SVB.sb.rpc('kabine_bot_get'); KB.bot=r.data||null; }catch(e){ KB.bot=null; }
+    const ids=KB.polls.map(x=>x.id); KB.votes=[];
+    if(ids.length){ const v=await SVB.sb.from('poll_votes').select('*').in('poll_id',ids).limit(5000); KB.votes=v.data||[]; }
+    KB.loaded=true;
+  }catch(e){ console.warn('Kabine',e); KB.loaded=true; }
+  KB.loading=false; kbAfter();
+}
+function kbAfter(){ try{ if(document.querySelector('#panel-kabine.active'))kbRender(); }catch(e){ console.warn(e); } try{ kbHomeCard(); }catch(e){} }
+async function kbLink(renew){ const {data,error}=await SVB.sb.rpc('team_link',{p_new:!!renew}); if(error)throw new Error(error.message); KB.link=data; return data; }
+function kbBase(){ return location.origin+location.pathname.replace(/[^/]*$/,''); }
+function kbUrl(poll){ return kbBase()+'team.html#k='+encodeURIComponent(KB.link||'')+(poll?'&a='+poll:''); }
+function kbWa(text){ window.open('https://wa.me/?text='+encodeURIComponent(text),'_blank','noopener'); }
+async function kbCopy(t){ try{ await navigator.clipboard.writeText(t); kToast('✓ Kopiert'); }catch(e){ prompt('Zum Kopieren:',t); } }
+
+/* ---------- Abstimmungen: Auswertung ---------- */
+function kbVotes(poll){ return KB.votes.filter(v=>v.poll_id===poll.id); }
+function kbStat(poll){
+  const V=new Map(kbVotes(poll).map(v=>[v.player_id,v])), T=(poll.teilnehmer||[]);
+  const o={zu:[],ab:[],vllt:[],offen:[]}; T.forEach(t=>{ const v=V.get(t.id); (v?o[v.antwort]:o.offen).push(Object.assign({},t,{v})); });
+  return o;
+}
+function kbPollTitle(p){ return `${p.titel} · ${kbWd(p.datum)}${p.zeit?' '+p.zeit:''}`; }
+function kbInviteText(p){ return `⚽ *${p.titel}* – ${kbWd(p.datum)}${p.zeit?' um '+p.zeit:''}${p.ort?' ('+p.ort+')':''}\nBitte kurz zu- oder absagen – ein Klick, ohne Anmeldung:\n${kbUrl(p.id)}${p.frist?'\nBis '+new Date(p.frist).toLocaleString('de-DE',{weekday:'short',hour:'2-digit',minute:'2-digit'})+' Uhr':''}`; }
+function kbNudgeText(p){ const s=kbStat(p); return `⏰ *${p.titel}* (${kbWd(p.datum)}): Von euch fehlt noch die Antwort – ${s.offen.map(x=>x.name.split(' ')[0]+' '+x.name.split(' ').slice(1).join(' ').slice(0,1)+'.').join(', ')}.\nBitte kurz abstimmen, dauert 5 Sekunden:\n${kbUrl(p.id)}`; }
+/* Wer im Kader ist, aber nicht auf der Liste steht (vergessen?) */
+function kbForgotten(p){ const ids=new Set((p.teilnehmer||[]).map(t=>t.id)); return vrKader(false).filter(x=>!ids.has(x.id)&&!trInjury(x.id)); }
+
+/* ---------- Seite ---------- */
+function kbRender(){
+  const P=document.getElementById('panel-kabine'); if(!P)return;
+  if(!canTraining()){ P.innerHTML='<div class="card"><div class="empty">Die Kabine sehen Trainer, Kaderplanung und Vorstand.</div></div>'; return; }
+  if(!KB.loaded){ P.innerHTML='<div class="card"><div class="empty">Lade Kabine …</div></div>'; kbLoad(); return; }
+  const tabs=[['abst','Abstimmungen'],['kasse','Mannschaftskasse'],['link','Automatik']];
+  const act=KB.view==='abst'?`<button class="btn" data-kb-new>${SVI('plus')} Abstimmung</button>`:KB.view==='kasse'?`<button class="btn" data-kb-strafe>${SVI('plus')} Strafe</button><button class="btn ghost" data-kb-buch>${SVI('plus')} Ein-/Ausgabe</button>`:'';
+  P.innerHTML=`<div class="trtop"><div class="trtabs">${tabs.map(([k,t])=>`<button class="${KB.view===k?'on':''}" data-kbv="${k}">${t}</button>`).join('')}</div><div class="tract">${act}</div></div><div id="kbBody"></div>`;
+  P.querySelectorAll('[data-kbv]').forEach(b=>b.onclick=()=>{ KB.view=b.dataset.kbv; kbRender(); });
+  const nb=P.querySelector('[data-kb-new]'); if(nb)nb.onclick=()=>kbPollEditor(null);
+  const sb=P.querySelector('[data-kb-strafe]'); if(sb)sb.onclick=()=>kbStrafeEditor();
+  const bb=P.querySelector('[data-kb-buch]'); if(bb)bb.onclick=()=>kbBuchEditor();
+  const B=document.getElementById('kbBody');
+  ({abst:kbViewPolls,kasse:kbViewKasse,link:kbViewLink})[KB.view](B);
+}
+
+/* ----- Abstimmungen ----- */
+function kbSuggest(){
+  const out=[], today=trToday();
+  try{ if(typeof spNext==='function'&&SP.loaded){ const f=spNext('A')[0]; if(f&&TRC.diffDays(f.datum,today)<=10&&!KB.polls.some(p=>p.datum===f.datum&&p.art==='spiel'))
+    out.push({titel:`Spiel ${f.heim_key===SP_OWN.A?'gegen '+f.gast:'bei '+f.heim}`,art:'spiel',datum:f.datum,zeit:f.zeit||'',ort:f.heim_key===SP_OWN.A?'Heim':'Auswärts'}); } }catch(e){}
+  // nächste zwei Trainingstage aus den letzten Einheiten ableiten (häufigste Wochentage)
+  try{ const wd={}; TR.st.sessions.filter(s=>s.t==='training').slice(0,24).forEach(s=>{ const d=new Date(s.d+'T12:00:00').getDay(); wd[d]=(wd[d]||0)+1; });
+    let days=Object.entries(wd).sort((a,b)=>b[1]-a[1]).slice(0,2).map(x=>+x[0]); if(!days.length)days=[2,4];
+    for(let i=1;i<=9&&out.filter(x=>x.art==='training').length<2;i++){ const d=TRC.addDays(today,i); if(days.includes(new Date(d+'T12:00:00').getDay())&&!KB.polls.some(p=>p.datum===d&&p.art==='training'))out.push({titel:'Training',art:'training',datum:d,zeit:'19:00',ort:''}); } }catch(e){}
+  return out.sort((a,b)=>a.datum<b.datum?-1:1).slice(0,3);
+}
+function kbViewPolls(B){
+  const today=trToday(), open=KB.polls.filter(p=>p.datum>=today&&!p.geschlossen).sort((a,b)=>a.datum<b.datum?-1:1), old=KB.polls.filter(p=>!open.includes(p));
+  const sug=kbSuggest();
+  const card=p=>{ const s=kbStat(p), n=(p.teilnehmer||[]).length, pc=x=>n?Math.round(x/n*100):0, fg=kbForgotten(p).length;
+    return `<div class="card kbpoll" data-poll="${p.id}"><div class="kbp-h"><div><span class="trpill">${svEsc(KB_ART[p.art]||p.art)}</span> <b>${svEsc(p.titel)}</b><small>${kbWd(p.datum)}${p.zeit?' · '+svEsc(p.zeit):''}${p.ort?' · '+svEsc(p.ort):''}${p.auto?' · 🤖 automatisch':''}${p.gesendet_at?' · ✓ Link verschickt':''}${p.erinnert_at?' · ✓ nachgehakt':''}</small></div>
+        <div class="kbnum"><b class="ok">${s.zu.length}</b><b class="mid">${s.vllt.length}</b><b class="bad">${s.ab.length}</b><b>${s.offen.length}</b></div></div>
+      <div class="kbbar"><i class="ok" style="width:${pc(s.zu.length)}%"></i><i class="mid" style="width:${pc(s.vllt.length)}%"></i><i class="bad" style="width:${pc(s.ab.length)}%"></i></div>
+      <div class="kblegend"><span class="ok">${s.zu.length} dabei</span><span class="mid">${s.vllt.length} vielleicht</span><span class="bad">${s.ab.length} können nicht</span><span>${s.offen.length} ohne Antwort</span></div>
+      ${s.offen.length&&s.offen.length<n?`<div class="kbmiss"><b>Noch offen:</b> ${s.offen.map(x=>svEsc(x.name)).join(', ')}</div>`:''}
+      ${fg?`<div class="kbmiss warn">⚠️ ${fg} ${fg>1?'Spieler aus dem Kader stehen':'Spieler aus dem Kader steht'} nicht auf der Liste – vergessen? <button class="lnk" data-kb-fg="${p.id}">Ansehen</button></div>`:''}
+      <div class="btnrow"><button class="btn sm" data-kb-share="${p.id}">${SVI('share')} In WhatsApp teilen</button>${s.offen.length?`<button class="btn ghost sm" data-kb-nudge="${p.id}">${SVI('bell')} Nachhaken (${s.offen.length})</button>`:''}<button class="btn ghost sm" data-kb-det="${p.id}">Details</button></div></div>`; };
+  B.innerHTML=`${!open.length?`<div class="card kbempty"><h3 class="trh">${SVI('users')} Wer ist dabei?</h3><p>Leg eine Abstimmung an, teile den Link in der WhatsApp-Gruppe – die Spieler tippen ihren Namen und sagen mit einem Klick zu oder ab. Kein Login, keine App nötig. Du siehst sofort, wer fehlt, und kannst gezielt nachhaken.</p></div>`:''}
+    ${sug.length?`<div class="kbsug"><span>Schnell anlegen:</span>${sug.map((x,i)=>`<button class="pchip" data-kb-sug="${i}">${svEsc(x.titel)} · ${kbWd(x.datum)}</button>`).join('')}</div>`:''}
+    ${open.map(card).join('')}
+    ${old.length?`<button class="btn ghost sm" id="kbOld">${KB.showOld?'Vergangene ausblenden':`Vergangene Abstimmungen (${old.length})`}</button>${KB.showOld?`<div class="kbold">${old.map(p=>{ const s=kbStat(p); return `<div class="kbo" data-kb-det="${p.id}"><b>${svEsc(p.titel)}</b><small>${kbWd(p.datum)}</small><span class="ok">${s.zu.length}</span><span class="bad">${s.ab.length}</span><span>${s.offen.length} offen</span></div>`; }).join('')}</div>`:''}`:''}`;
+  B.querySelectorAll('[data-kb-sug]').forEach(b=>b.onclick=()=>kbPollEditor(null,sug[+b.dataset.kbSug]));
+  B.querySelectorAll('[data-kb-share]').forEach(b=>b.onclick=async()=>{ const p=KB.polls.find(x=>x.id===b.dataset.kbShare); try{ await kbLink(); kbWa(kbInviteText(p)); if(!p.gesendet_at){ p.gesendet_at=new Date().toISOString(); SVB.sb.from('polls').update({gesendet_at:p.gesendet_at}).eq('id',p.id).then(()=>{}); } }catch(e){ kToast('⚠️ '+e.message); } });
+  B.querySelectorAll('[data-kb-nudge]').forEach(b=>b.onclick=async()=>{ const p=KB.polls.find(x=>x.id===b.dataset.kbNudge); try{ await kbLink(); kbWa(kbNudgeText(p)); }catch(e){ kToast('⚠️ '+e.message); } });
+  B.querySelectorAll('[data-kb-det]').forEach(b=>b.onclick=()=>kbPollDetail(b.dataset.kbDet));
+  B.querySelectorAll('[data-kb-fg]').forEach(b=>b.onclick=()=>kbPollDetail(b.dataset.kbFg));
+  const ob=document.getElementById('kbOld'); if(ob)ob.onclick=()=>{ KB.showOld=!KB.showOld; kbViewPolls(B); };
+}
+function kbSquadAll(){ return players.filter(p=>p.own&&!p.isJugend&&!p.verzicht&&(p.kader===1||p.kader===2)).sort((a,b)=>(a.kader||1)-(b.kader||1)||a.name.localeCompare(b.name,'de')); }
+function kbPollEditor(id,pre){
+  const p0=id?KB.polls.find(x=>x.id===id):null, pr=pre||{};
+  const st={titel:p0?p0.titel:(pr.titel||'Training'),art:p0?p0.art:(pr.art||'training'),datum:p0?p0.datum:(pr.datum||TRC.addDays(trToday(),1)),zeit:p0?p0.zeit||'':(pr.zeit||'19:00'),ort:p0?p0.ort||'':(pr.ort||''),notiz:p0?p0.notiz||'':'',
+    frist:p0&&p0.frist?p0.frist.slice(0,16):'', sel:new Set(p0?(p0.teilnehmer||[]).map(t=>t.id):vrKader(false).map(x=>x.id))};
+  svModal(`<div class="mhead"><div class="rm-ic" style="width:46px;height:46px">${SVI('users')}</div><div><h2 style="margin:0">${p0?'Abstimmung bearbeiten':'Neue Abstimmung'}</h2><div class="msub">Danach „In WhatsApp teilen“ – die Spieler stimmen über den Link ab</div></div></div><div id="kbEd"></div>`);
+  const draw=()=>{ const E=document.getElementById('kbEd'); if(!E)return; const all=kbSquadAll();
+    E.innerHTML=`<div class="kbform"><div class="field"><label>Titel</label><input id="kbT" maxlength="120" value="${svEsc(st.titel)}"></div>
+      <div class="field"><label>Art</label><select id="kbA">${Object.entries(KB_ART).map(([k,t])=>`<option value="${k}"${st.art===k?' selected':''}>${t}</option>`).join('')}</select></div>
+      <div class="field"><label>Datum</label><input id="kbD" type="date" value="${svEsc(st.datum)}"></div><div class="field"><label>Uhrzeit</label><input id="kbZ" maxlength="10" value="${svEsc(st.zeit)}" placeholder="19:00"></div>
+      <div class="field"><label>Ort / Treffpunkt</label><input id="kbO" maxlength="120" value="${svEsc(st.ort)}" placeholder="z.B. Sportplatz, 45 Min. vorher"></div>
+      <div class="field"><label>Antworten bis (optional)</label><input id="kbF" type="datetime-local" value="${svEsc(st.frist)}"></div>
+      <div class="field kbwide"><label>Hinweis (optional)</label><input id="kbN" maxlength="500" value="${svEsc(st.notiz)}" placeholder="z.B. Bitte Laufschuhe mitbringen"></div></div>
+      <div class="sbsec"><h4>Wer soll abstimmen? <small>${st.sel.size} ausgewählt</small></h4>
+        <div class="btnrow" style="margin-bottom:8px"><button type="button" class="btn ghost sm" data-g="1">1. Mannschaft</button><button type="button" class="btn ghost sm" data-g="12">Erste + Zweite</button><button type="button" class="btn ghost sm" data-g="0">Keiner</button></div>
+        <div class="chips kbchips">${all.map(x=>`<button type="button" class="pchip${st.sel.has(x.id)?' on':''}" data-pl="${svEsc(x.id)}">${svEsc(x.name)}${x.kader===2?' <small>II</small>':''}${trInjury(x.id)?' 🩹':''}</button>`).join('')}</div></div>
+      <div class="btnrow sbact"><button class="btn" id="kbSave">${p0?'Speichern':'Anlegen'}</button><button class="btn ghost" id="kbCancel">Abbrechen</button>${p0?`<button class="btn ghost" id="kbDel" style="margin-left:auto;color:#fca5a5">Löschen</button>`:''}</div>`;
+    const keep=()=>{ st.titel=document.getElementById('kbT').value; st.art=document.getElementById('kbA').value; st.datum=document.getElementById('kbD').value; st.zeit=document.getElementById('kbZ').value; st.ort=document.getElementById('kbO').value; st.frist=document.getElementById('kbF').value; st.notiz=document.getElementById('kbN').value; };
+    document.getElementById('kbA').onchange=()=>{ keep(); if(!p0&&/^(Training|Spiel|Event|Sonstiges)$/.test(st.titel))st.titel=KB_ART[st.art]; draw(); };
+    E.querySelectorAll('[data-pl]').forEach(b=>b.onclick=()=>{ keep(); const k=b.dataset.pl; if(st.sel.has(k))st.sel.delete(k); else st.sel.add(k); draw(); });
+    E.querySelectorAll('[data-g]').forEach(b=>b.onclick=()=>{ keep(); const g=b.dataset.g; st.sel=new Set(g==='0'?[]:all.filter(x=>g==='12'||x.kader===1).map(x=>x.id)); draw(); });
+    document.getElementById('kbCancel').onclick=()=>closeOverlay();
+    const del=document.getElementById('kbDel'); if(del)del.onclick=async()=>{ if(!confirm('Abstimmung samt Antworten löschen?'))return; const {error}=await SVB.sb.from('polls').delete().eq('id',p0.id); if(error)return kToast('⚠️ '+error.message); closeOverlay(); await kbLoad(true); kToast('Abstimmung gelöscht'); };
+    document.getElementById('kbSave').onclick=async()=>{ keep();
+      if(!st.titel.trim())return kToast('Bitte einen Titel angeben'); if(!st.datum)return kToast('Bitte ein Datum angeben'); if(!st.sel.size)return kToast('Bitte mindestens einen Spieler auswählen');
+      if(st.sel.size>80)return kToast('Höchstens 80 Spieler');
+      const tn=[...st.sel].map(id=>({id,name:(trP(id)||{}).name||id}));
+      const row={titel:st.titel.trim().slice(0,120),art:st.art,datum:st.datum,zeit:st.zeit.trim()||null,ort:st.ort.trim()||null,notiz:st.notiz.trim()||null,frist:st.frist?new Date(st.frist).toISOString():null,teilnehmer:tn};
+      const b=document.getElementById('kbSave'); b.disabled=true;
+      const q=p0?SVB.sb.from('polls').update(row).eq('id',p0.id).select().single():SVB.sb.from('polls').insert(row).select().single();
+      const {data,error}=await q; if(error){ b.disabled=false; return kToast('⚠️ '+error.message); }
+      closeOverlay(); await kbLoad(true); kToast(p0?'✓ Gespeichert':'✓ Abstimmung angelegt – jetzt in WhatsApp teilen');
+      if(!p0&&data){ try{ await kbLink(); if(confirm('Direkt in WhatsApp teilen?'))kbWa(kbInviteText(data)); }catch(e){} } };
+  };
+  draw();
+}
+function kbPollDetail(id){
+  const p=KB.polls.find(x=>x.id===id); if(!p)return;
+  svModal(`<div class="mhead"><div class="rm-ic" style="width:46px;height:46px">${SVI('users')}</div><div><h2 style="margin:0">${svEsc(p.titel)}</h2><div class="msub">${kbWd(p.datum)}${p.zeit?' · '+svEsc(p.zeit):''}${p.ort?' · '+svEsc(p.ort):''}</div></div></div><div id="kbDet"></div>`);
+  const draw=()=>{ const E=document.getElementById('kbDet'); if(!E)return; const s=kbStat(p), fg=kbForgotten(p);
+    const row=x=>{ const v=x.v; return `<div class="kbr"><b>${svEsc(x.name)}</b>${v&&v.grund?`<small>${svEsc(TRC.REASONS[v.grund]||v.grund)}</small>`:''}${v&&v.notiz?`<small>„${svEsc(v.notiz)}“</small>`:''}${v?`<em>${v.via==='link'?'über Link':'vom Trainer'} · ${new Date(v.at).toLocaleString('de-DE',{weekday:'short',hour:'2-digit',minute:'2-digit'})}</em>`:''}
+      <div class="trseg">${['zu','vllt','ab'].map(a=>`<button type="button" data-set="${svEsc(x.id)}:${a}" class="${v&&v.antwort===a?'on':''}">${KB_ANS[a][0]}</button>`).join('')}</div></div>`; };
+    E.innerHTML=`${[['zu','Dabei'],['vllt','Vielleicht'],['ab','Können nicht'],['offen','Ohne Antwort']].map(([k,t])=>s[k].length?`<div class="sbsec"><h4>${t} <small>${s[k].length}</small></h4>${s[k].map(row).join('')}</div>`:'').join('')}
+      ${fg.length?`<div class="sbsec"><h4>Im Kader, aber nicht auf der Liste <small>${fg.length}</small></h4><div class="chips">${fg.map(x=>`<button type="button" class="pchip" data-add="${svEsc(x.id)}">+ ${svEsc(x.name)}</button>`).join('')}</div></div>`:''}
+      <div class="btnrow sbact"><button class="btn" id="kbTr">${SVI('activity')} ${p.art==='spiel'?'Spiel':'Anwesenheit'} vorbereiten</button><button class="btn ghost" id="kbCp">${SVI('copy')} Link kopieren</button><button class="btn ghost" id="kbEdit">Bearbeiten</button>
+        <button class="btn ghost" id="kbClose">${p.geschlossen?'Wieder öffnen':'Abstimmung schließen'}</button></div>
+      <div class="note">„Vorbereiten“ übernimmt die Antworten ins Training bzw. Spiel: Zusagen als da, Absagen mit Grund. Danach nur noch korrigieren, wer wirklich gefehlt hat.</div>`;
+    E.querySelectorAll('[data-set]').forEach(b=>b.onclick=async()=>{ const [pid,a]=b.dataset.set.split(':'); const cur=kbVotes(p).find(v=>v.player_id===pid);
+      const q=cur&&cur.antwort===a?SVB.sb.from('poll_votes').delete().eq('poll_id',p.id).eq('player_id',pid):SVB.sb.from('poll_votes').upsert({poll_id:p.id,player_id:pid,antwort:a,grund:a==='ab'?(cur&&cur.grund)||null:null,via:'app',at:new Date().toISOString()});
+      const {error}=await q; if(error)return kToast('⚠️ '+error.message); await kbLoad(true); draw(); });
+    E.querySelectorAll('[data-add]').forEach(b=>b.onclick=async()=>{ const x=trP(b.dataset.add); const tn=[...(p.teilnehmer||[]),{id:x.id,name:x.name}];
+      const {error}=await SVB.sb.from('polls').update({teilnehmer:tn}).eq('id',p.id); if(error)return kToast('⚠️ '+error.message); p.teilnehmer=tn; await kbLoad(true); draw(); kToast('✓ '+x.name+' hinzugefügt'); });
+    document.getElementById('kbTr').onclick=()=>{ const rows={}; kbVotes(p).forEach(v=>{ if(v.antwort==='zu')rows[v.player_id]={status:'da'}; else if(v.antwort==='ab')rows[v.player_id]={status:'weg',grund:v.grund||'privat',notiz:v.notiz||''}; });
+      TR.prefill={datum:p.datum,rows}; closeOverlay(); goTab('training'); setTimeout(()=>trSessionEditor(p.datum,null,p.art==='spiel'?'spiel':'training'),60); };
+    document.getElementById('kbCp').onclick=async()=>{ try{ await kbLink(); kbCopy(kbUrl(p.id)); }catch(e){ kToast('⚠️ '+e.message); } };
+    document.getElementById('kbEdit').onclick=()=>{ closeOverlay(); kbPollEditor(p.id); };
+    document.getElementById('kbClose').onclick=async()=>{ const {error}=await SVB.sb.from('polls').update({geschlossen:!p.geschlossen}).eq('id',p.id); if(error)return kToast('⚠️ '+error.message); p.geschlossen=!p.geschlossen; await kbLoad(true); draw(); };
+  };
+  draw();
+}
+
+/* ----- Mannschaftskasse ----- */
+const KB_DEFAULT_KAT=[['Zu spät zum Training',5,'Training'],['Zu spät zum Spiel / Treffpunkt',10,'Spiel'],['Training unentschuldigt gefehlt',10,'Training'],['Spiel unentschuldigt gefehlt',25,'Spiel'],
+  ['Keine Rückmeldung bei Abstimmung',2,'Abstimmung'],['Gelbe Karte wegen Meckern',10,'Karten'],['Gelb-Rote Karte',15,'Karten'],['Rote Karte',25,'Karten'],['Handy in der Kabine',5,'Kabine'],['Ausrüstung vergessen',5,'Kabine'],['Monatsbeitrag Mannschaftskasse',5,'Beitrag']];
+function kbSaldo(){
+  const bez=KB.buch.filter(b=>b.status==='bezahlt'), plus=bez.filter(b=>b.art!=='ausgabe').reduce((a,b)=>a+ +b.betrag,0), minus=bez.filter(b=>b.art==='ausgabe').reduce((a,b)=>a+ +b.betrag,0);
+  const offen=KB.buch.filter(b=>b.status==='offen'||b.status==='gemeldet').reduce((a,b)=>a+ +b.betrag,0);
+  return {stand:(+KB.cfg.anfang||0)+plus-minus,offen,plus,minus,gemeldet:KB.buch.filter(b=>b.status==='gemeldet')};
+}
+function kbByPlayer(){
+  const M=new Map(); KB.buch.filter(b=>b.player_id&&(b.art==='strafe'||b.art==='beitrag')).forEach(b=>{ const o=M.get(b.player_id)||{pid:b.player_id,name:(trP(b.player_id)||{}).name||b.name||b.player_id,offen:0,bez:0,n:0}; o.n++;
+    if(b.status==='offen'||b.status==='gemeldet')o.offen+= +b.betrag; else if(b.status==='bezahlt')o.bez+= +b.betrag; M.set(b.player_id,o); });
+  return [...M.values()].sort((a,b)=>b.offen-a.offen||b.bez-a.bez);
+}
+function kbKatFind(rx,fb){ return KB.kat.find(k=>k.aktiv&&rx.test(TRC.N(k.titel)))||{titel:fb[0],betrag:fb[1]}; }
+/* Vorschläge: aus Anwesenheit (zu spät / unentschuldigt) und Abstimmungen ohne Antwort nach Fristende */
+function kbVorschlaege(){
+  const out=[], refs=new Set(KB.buch.map(b=>b.ref).filter(Boolean)), ign=kbIgnored(), since=TRC.addDays(trToday(),-45);
+  try{ TR.st.sessions.filter(s=>s.d>=since).forEach(s=>(s.a||[]).forEach(a=>{ const pid=a[0];
+    if(a[1]==='spaet'){ const k=kbKatFind(s.t==='spiel'?/spaet.*spiel|spiel.*spaet|treffpunkt/:/spaet.*training|training.*spaet|^zu spaet/,[s.t==='spiel'?'Zu spät zum Spiel':'Zu spät zum Training',s.t==='spiel'?10:5]);
+      out.push({ref:`att:${s.id}:${pid}`,pid,titel:k.titel,betrag:+k.betrag,datum:s.d,why:`${s.t==='spiel'?'Spiel':'Training'} ${TRC.fmt(s.d)}: zu spät`}); }
+    if(a[1]==='weg'&&a[2]==='ohne'){ const k=kbKatFind(s.t==='spiel'?/spiel.*(unentschuldigt|gefehlt)/:/training.*(unentschuldigt|gefehlt)|unentschuldigt/,[s.t==='spiel'?'Spiel unentschuldigt gefehlt':'Training unentschuldigt gefehlt',s.t==='spiel'?25:10]);
+      out.push({ref:`att:${s.id}:${pid}`,pid,titel:k.titel,betrag:+k.betrag,datum:s.d,why:`${s.t==='spiel'?'Spiel':'Training'} ${TRC.fmt(s.d)}: ohne Grund gefehlt`}); } })); }catch(e){}
+  try{ const now=new Date().toISOString(); KB.polls.filter(p=>p.frist&&p.frist<now&&p.datum>=since).forEach(p=>{ const s=kbStat(p); const k=kbKatFind(/rueckmeldung|abstimmung|abgestimmt/,['Keine Rückmeldung bei Abstimmung',2]);
+    s.offen.forEach(x=>out.push({ref:`poll:${p.id}:${x.id}`,pid:x.id,titel:k.titel,betrag:+k.betrag,datum:p.datum,why:`Keine Antwort bei „${p.titel}“ (${kbWd(p.datum)})`})); }); }catch(e){}
+  return out.filter(v=>!refs.has(v.ref)&&!ign.has(v.ref)&&v.betrag>0&&trP(v.pid));
+}
+function kbViewKasse(B){
+  const S=kbSaldo(), BP=kbByPlayer(), V=kbVorschlaege(), cfg=KB.cfg||{};
+  const stat=b=>({offen:['offen','mid'],gemeldet:['gemeldet','mid'],bezahlt:['bezahlt','ok'],erlassen:['erlassen','']}[b.status]);
+  const list=KB.buch.filter(b=>KB.kf==='alle'||(KB.kf==='offen'?(b.status==='offen'||b.status==='gemeldet'):KB.kf==='bewegung'?(b.art==='einzahlung'||b.art==='ausgabe'):true)).slice(0,120);
+  B.innerHTML=`<div class="kbstats"><div class="kbst"><span>Kassenstand</span><b class="${S.stand<0?'bad':''}">${kbEur(S.stand)}</b></div><div class="kbst"><span>Noch offen</span><b class="mid">${kbEur(S.offen)}</b></div>
+      <div class="kbst"><span>Eingenommen</span><b>${kbEur(S.plus)}</b></div><div class="kbst"><span>Ausgegeben</span><b>${kbEur(S.minus)}</b></div></div>
+    ${!cfg.paypal?`<div class="card kbhint">${SVI('info')} <div><b>PayPal.me hinterlegen</b><span>Dann können die Spieler ihre Strafen direkt über den Team-Link bezahlen – mit „Freunde &amp; Familie“ kostenlos.</span></div><button class="btn sm" id="kbCfg1">Einrichten</button></div>`:''}
+    ${S.gemeldet.length?`<div class="card"><h3 class="trh">${SVI('check')} Als bezahlt gemeldet – bitte prüfen <small>${S.gemeldet.length}</small></h3>${S.gemeldet.map(b=>`<div class="kbb"><b>${svEsc((trP(b.player_id)||{}).name||b.name||'')}</b><span>${svEsc(b.titel)}</span><em>${kbEur(b.betrag)}</em><div class="btnrow"><button class="btn sm" data-ok="${b.id}">Eingang bestätigt</button><button class="btn ghost sm" data-back="${b.id}">Noch nicht da</button></div></div>`).join('')}</div>`:''}
+    ${V.length?`<div class="card"><h3 class="trh">${SVI('bell')} Vorschläge <small>${V.length}</small></h3><div class="note" style="margin-top:0">Aus Anwesenheit und Abstimmungen – nichts wird automatisch gebucht.</div>${V.slice(0,15).map((v,i)=>`<div class="kbb"><b>${svEsc(trP(v.pid).name)}</b><span>${svEsc(v.titel)} <small>${svEsc(v.why)}</small></span><em>${kbEur(v.betrag)}</em><div class="btnrow"><button class="btn sm" data-vb="${i}">Buchen</button><button class="btn ghost sm" data-vi="${i}">Ignorieren</button></div></div>`).join('')}
+      ${V.length>1?`<button class="btn ghost sm" id="kbAllV">Alle ${Math.min(V.length,15)} buchen</button>`:''}</div>`:''}
+    <div class="vrgrid"><div class="card"><h3 class="trh">${SVI('users')} Spieler</h3>${BP.length?BP.map(x=>`<div class="kbpl" data-kbp="${svEsc(x.pid)}"><b>${svEsc(x.name)}</b><span>${x.offen?`<i class="mid">${kbEur(x.offen)} offen</i>`:'<i class="ok">alles bezahlt</i>'}</span><small>${kbEur(x.bez)} bezahlt</small></div>`).join(''):'<div class="note">Noch keine Strafen oder Beiträge gebucht.</div>'}</div>
+      <div class="card"><div class="vrat-h"><h3 class="trh" style="margin:0">${SVI('book')} Strafenkatalog</h3><button class="btn ghost sm" id="kbKat">Bearbeiten</button></div>${KB.kat.filter(k=>k.aktiv).length?`<div class="kbkat">${KB.kat.filter(k=>k.aktiv).map(k=>`<div><span>${svEsc(k.titel)}</span><b>${kbEur(k.betrag)}</b></div>`).join('')}</div>`:`<div class="note">Noch kein Katalog. <button class="lnk" id="kbKatDef">Standard-Katalog laden</button> (11 übliche Strafen, alles änderbar)</div>`}
+        <div class="btnrow" style="margin-top:10px"><button class="btn ghost sm" id="kbCfg">${SVI('sliders')} Kasse einstellen</button></div></div></div>
+    <div class="card"><div class="vrat-h"><h3 class="trh" style="margin:0">${SVI('clock')} Buchungen</h3><div class="trtabs sm">${[['offen','Offen'],['bewegung','Ein-/Ausgaben'],['alle','Alle']].map(([k,t])=>`<button class="${KB.kf===k?'on':''}" data-kf="${k}">${t}</button>`).join('')}</div></div>
+      ${list.length?list.map(b=>{ const s=stat(b); return `<div class="kbb" data-bu="${b.id}"><b>${b.art==='einzahlung'?'➕ ':b.art==='ausgabe'?'➖ ':''}${svEsc(b.player_id?((trP(b.player_id)||{}).name||b.name||''):(b.art==='ausgabe'?'Ausgabe':'Einzahlung'))}</b><span>${svEsc(b.titel)} <small>${TRC.fmt(b.datum)}</small></span><em class="${b.art==='ausgabe'?'bad':''}">${b.art==='ausgabe'?'−':''}${kbEur(b.betrag)}</em><span class="trpill ${s[1]}">${s[0]}</span></div>`; }).join(''):'<div class="note">Keine Buchungen in dieser Ansicht.</div>'}
+      <div class="note">Alle Spieler sehen Kassenstand, Katalog und alle Strafen über den Team-Link – volle Transparenz. Antippen ändert eine Buchung.</div></div>`;
+  const upd=async(id,patch)=>{ const {error}=await SVB.sb.from('kasse_buchungen').update(patch).eq('id',id); if(error)return kToast('⚠️ '+error.message); await kbLoad(true); };
+  B.querySelectorAll('[data-ok]').forEach(b=>b.onclick=()=>upd(b.dataset.ok,{status:'bezahlt',bezahlt_am:trToday()}));
+  B.querySelectorAll('[data-back]').forEach(b=>b.onclick=()=>upd(b.dataset.back,{status:'offen',gemeldet_at:null}));
+  const book=async L=>{ const rows=L.map(v=>({art:'strafe',player_id:v.pid,name:trP(v.pid).name,titel:v.titel,betrag:v.betrag,datum:v.datum,quelle:v.ref.split(':')[0]==='poll'?'abstimmung':'anwesenheit',ref:v.ref,notiz:v.why}));
+    const {error}=await SVB.sb.from('kasse_buchungen').insert(rows); if(error)return kToast('⚠️ '+error.message); await kbLoad(true); kToast(`✓ ${rows.length} Strafe${rows.length>1?'n':''} gebucht`); };
+  B.querySelectorAll('[data-vb]').forEach(b=>b.onclick=()=>book([V[+b.dataset.vb]]));
+  B.querySelectorAll('[data-vi]').forEach(b=>b.onclick=()=>{ kbIgnore(V[+b.dataset.vi].ref); kbViewKasse(B); });
+  const av=document.getElementById('kbAllV'); if(av)av.onclick=()=>{ if(confirm(`${Math.min(V.length,15)} Strafen buchen?`))book(V.slice(0,15)); };
+  B.querySelectorAll('[data-kbp]').forEach(b=>b.onclick=()=>kbPlayerDetail(b.dataset.kbp));
+  B.querySelectorAll('[data-kf]').forEach(b=>b.onclick=()=>{ KB.kf=b.dataset.kf; kbViewKasse(B); });
+  B.querySelectorAll('[data-bu]').forEach(b=>b.onclick=()=>kbBuchEdit(b.dataset.bu));
+  const kc=document.getElementById('kbCfg'), kc1=document.getElementById('kbCfg1'); if(kc)kc.onclick=kbCfgEditor; if(kc1)kc1.onclick=kbCfgEditor;
+  const kk=document.getElementById('kbKat'); if(kk)kk.onclick=kbKatEditor;
+  const kd=document.getElementById('kbKatDef'); if(kd)kd.onclick=async()=>{ const {error}=await SVB.sb.from('kasse_katalog').insert(KB_DEFAULT_KAT.map(([t,b,k],i)=>({titel:t,betrag:b,kategorie:k,sort:i}))); if(error)return kToast('⚠️ '+error.message); await kbLoad(true); kToast('✓ Standard-Katalog geladen – alles änderbar'); };
+}
+function kbPlayerDetail(pid){
+  const p=trP(pid), L=KB.buch.filter(b=>b.player_id===pid);
+  svModal(`<div class="mhead"><div class="rm-ic" style="width:46px;height:46px">${SVI('user')}</div><div><h2 style="margin:0">${svEsc(p?p.name:pid)}</h2><div class="msub">Mannschaftskasse</div></div></div><div id="kbPd"></div>`);
+  const draw=()=>{ const E=document.getElementById('kbPd'); if(!E)return; const L=KB.buch.filter(b=>b.player_id===pid), off=L.filter(b=>b.status==='offen'||b.status==='gemeldet');
+    E.innerHTML=`${L.map(b=>`<div class="kbb" data-bu="${b.id}"><b>${svEsc(b.titel)}</b><span>${TRC.fmt(b.datum)}${b.notiz?' · '+svEsc(b.notiz):''}</span><em>${kbEur(b.betrag)}</em><span class="trpill ${b.status==='bezahlt'?'ok':b.status==='erlassen'?'':'mid'}">${b.status}</span></div>`).join('')||'<div class="note">Keine Buchungen.</div>'}
+      <div class="btnrow sbact">${off.length?`<button class="btn" id="kbPaid">Alles bezahlt (${kbEur(off.reduce((a,b)=>a+ +b.betrag,0))})</button>`:''}<button class="btn ghost" id="kbNew">${SVI('plus')} Strafe</button></div>`;
+    E.querySelectorAll('[data-bu]').forEach(b=>b.onclick=()=>kbBuchEdit(b.dataset.bu,()=>kbPlayerDetail(pid)));
+    const pd=document.getElementById('kbPaid'); if(pd)pd.onclick=async()=>{ const {error}=await SVB.sb.from('kasse_buchungen').update({status:'bezahlt',bezahlt_am:trToday()}).in('id',off.map(b=>b.id)); if(error)return kToast('⚠️ '+error.message); await kbLoad(true); draw(); kToast('✓ Als bezahlt verbucht'); };
+    document.getElementById('kbNew').onclick=()=>{ closeOverlay(); kbStrafeEditor([pid]); };
+  };
+  draw();
+}
+function kbStrafeEditor(pre){
+  const st={sel:new Set(pre||[]),kat:null,titel:'',betrag:'',datum:trToday(),notiz:'',art:'strafe'};
+  svModal(`<div class="mhead"><div class="rm-ic" style="width:46px;height:46px">${SVI('plus')}</div><div><h2 style="margin:0">Strafe / Beitrag buchen</h2><div class="msub">Mehrere Spieler auf einmal möglich</div></div></div><div id="kbSe"></div>`);
+  const draw=()=>{ const E=document.getElementById('kbSe'); if(!E)return; const all=kbSquadAll(), kat=KB.kat.filter(k=>k.aktiv);
+    E.innerHTML=`${kat.length?`<div class="sbsec"><h4>Aus dem Katalog</h4><div class="chips">${kat.map(k=>`<button type="button" class="pchip${st.kat===k.id?' on':''}" data-k="${k.id}">${svEsc(k.titel)} · ${kbEur(k.betrag)}</button>`).join('')}</div></div>`:''}
+      <div class="kbform"><div class="field"><label>Art</label><select id="kbArt"><option value="strafe"${st.art==='strafe'?' selected':''}>Strafe</option><option value="beitrag"${st.art==='beitrag'?' selected':''}>Beitrag</option></select></div>
+        <div class="field"><label>Bezeichnung</label><input id="kbTi" maxlength="120" value="${svEsc(st.titel)}"></div><div class="field"><label>Betrag (€)</label><input id="kbBe" type="number" min="0.5" max="500" step="0.5" inputmode="decimal" value="${svEsc(String(st.betrag))}"></div>
+        <div class="field"><label>Datum</label><input id="kbDa" type="date" value="${svEsc(st.datum)}"></div><div class="field kbwide"><label>Notiz</label><input id="kbNo" maxlength="300" value="${svEsc(st.notiz)}"></div></div>
+      <div class="sbsec"><h4>Spieler <small>${st.sel.size} ausgewählt</small></h4><div class="chips kbchips">${all.map(x=>`<button type="button" class="pchip${st.sel.has(x.id)?' on':''}" data-pl="${svEsc(x.id)}">${svEsc(x.name)}</button>`).join('')}</div></div>
+      <div class="btnrow sbact"><button class="btn" id="kbSv">Buchen</button><button class="btn ghost" id="kbCa">Abbrechen</button></div>`;
+    const keep=()=>{ st.art=document.getElementById('kbArt').value; st.titel=document.getElementById('kbTi').value; st.betrag=document.getElementById('kbBe').value; st.datum=document.getElementById('kbDa').value; st.notiz=document.getElementById('kbNo').value; };
+    E.querySelectorAll('[data-k]').forEach(b=>b.onclick=()=>{ keep(); const k=KB.kat.find(x=>x.id===b.dataset.k); st.kat=k.id; st.titel=k.titel; st.betrag=+k.betrag; if(/beitrag/i.test(k.kategorie||''))st.art='beitrag'; draw(); });
+    E.querySelectorAll('[data-pl]').forEach(b=>b.onclick=()=>{ keep(); const k=b.dataset.pl; if(st.sel.has(k))st.sel.delete(k); else st.sel.add(k); draw(); });
+    document.getElementById('kbCa').onclick=()=>closeOverlay();
+    document.getElementById('kbSv').onclick=async()=>{ keep(); const be=Math.round(parseFloat(String(st.betrag).replace(',','.'))*100)/100;
+      if(!st.titel.trim())return kToast('Bitte eine Bezeichnung angeben'); if(!(be>0&&be<=500))return kToast('Betrag zwischen 0,50 und 500 €'); if(!st.sel.size)return kToast('Bitte Spieler auswählen');
+      const rows=[...st.sel].map(pid=>({art:st.art,player_id:pid,name:(trP(pid)||{}).name||null,titel:st.titel.trim(),betrag:be,datum:st.datum||trToday(),notiz:st.notiz.trim()||null,quelle:'hand'}));
+      const {error}=await SVB.sb.from('kasse_buchungen').insert(rows); if(error)return kToast('⚠️ '+error.message); closeOverlay(); await kbLoad(true); kToast(`✓ ${rows.length}× gebucht`); };
+  };
+  draw();
+}
+function kbBuchEditor(){
+  svModal(`<div class="mhead"><div class="rm-ic" style="width:46px;height:46px">${SVI('plus')}</div><div><h2 style="margin:0">Einnahme oder Ausgabe</h2><div class="msub">z.B. Spende, Kasten für die Kabine, Mannschaftsabend</div></div></div>
+    <div class="kbform"><div class="field"><label>Art</label><select id="kbA2"><option value="ausgabe">Ausgabe</option><option value="einzahlung">Einnahme</option></select></div>
+      <div class="field"><label>Wofür</label><input id="kbT2" maxlength="120" placeholder="z.B. Kasten Wasser"></div><div class="field"><label>Betrag (€)</label><input id="kbB2" type="number" min="0.5" max="5000" step="0.5" inputmode="decimal"></div>
+      <div class="field"><label>Datum</label><input id="kbD2" type="date" value="${trToday()}"></div></div>
+    <div class="btnrow sbact"><button class="btn" id="kbS2">Buchen</button><button class="btn ghost" id="kbC2">Abbrechen</button></div>`);
+  document.getElementById('kbC2').onclick=()=>closeOverlay();
+  document.getElementById('kbS2').onclick=async()=>{ const t=document.getElementById('kbT2').value.trim(), be=Math.round(parseFloat(String(document.getElementById('kbB2').value).replace(',','.'))*100)/100;
+    if(!t)return kToast('Bitte angeben, wofür'); if(!(be>0&&be<=5000))return kToast('Betrag zwischen 0,50 und 5.000 €');
+    const {error}=await SVB.sb.from('kasse_buchungen').insert({art:document.getElementById('kbA2').value,titel:t,betrag:be,datum:document.getElementById('kbD2').value||trToday(),status:'bezahlt',bezahlt_am:trToday(),quelle:'hand'});
+    if(error)return kToast('⚠️ '+error.message); closeOverlay(); await kbLoad(true); kToast('✓ Gebucht'); };
+}
+function kbBuchEdit(id,back){
+  const b=KB.buch.find(x=>x.id===id); if(!b)return;
+  const who=b.player_id?((trP(b.player_id)||{}).name||b.name):(b.art==='ausgabe'?'Ausgabe':'Einnahme');
+  svModal(`<div class="mhead"><div><h2 style="margin:0">${svEsc(b.titel)}</h2><div class="msub">${svEsc(who||'')} · ${TRC.fmt(b.datum)} · ${kbEur(b.betrag)}</div></div></div>
+    <div class="btnrow sbact">${b.player_id?['offen','bezahlt','erlassen'].map(s=>`<button class="btn ${b.status===s?'':'ghost'}" data-st="${s}">${s==='offen'?'Offen':s==='bezahlt'?'Bezahlt':'Erlassen'}</button>`).join(''):''}
+      <button class="btn ghost" id="kbDelB" style="margin-left:auto;color:#fca5a5">Löschen</button></div>`);
+  const fin=async()=>{ await kbLoad(true); if(back)back(); else closeOverlay(); };
+  document.querySelectorAll('#modal [data-st]').forEach(x=>x.onclick=async()=>{ const s=x.dataset.st; const {error}=await SVB.sb.from('kasse_buchungen').update({status:s,bezahlt_am:s==='bezahlt'?trToday():null,gemeldet_at:null}).eq('id',id); if(error)return kToast('⚠️ '+error.message); fin(); });
+  document.getElementById('kbDelB').onclick=async()=>{ if(!confirm('Buchung löschen?'))return; const {error}=await SVB.sb.from('kasse_buchungen').delete().eq('id',id); if(error)return kToast('⚠️ '+error.message); fin(); };
+}
+function kbKatEditor(){
+  svModal(`<div class="mhead"><div class="rm-ic" style="width:46px;height:46px">${SVI('book')}</div><div><h2 style="margin:0">Strafenkatalog</h2><div class="msub">Für alle Spieler sichtbar – am besten gemeinsam in der Mannschaft beschließen</div></div></div><div id="kbKe"></div>`);
+  const draw=()=>{ const E=document.getElementById('kbKe'); if(!E)return;
+    E.innerHTML=`${KB.kat.map(k=>`<div class="kbkrow" data-id="${k.id}"><input value="${svEsc(k.titel)}" maxlength="80" data-f="titel"><input type="number" min="0" max="500" step="0.5" value="${+k.betrag}" data-f="betrag"><label class="kbchk"><input type="checkbox" data-f="aktiv"${k.aktiv?' checked':''}> aktiv</label><button class="lnk" data-del="${k.id}">✕</button></div>`).join('')}
+      <div class="kbkrow"><input id="kbNt" maxlength="80" placeholder="Neue Strafe, z.B. „Torwarthandschuhe vergessen“"><input id="kbNb" type="number" min="0" max="500" step="0.5" placeholder="€"><button class="btn sm" id="kbAdd">${SVI('plus')}</button></div>
+      <div class="btnrow sbact"><button class="btn" id="kbKs">Speichern</button><button class="btn ghost" id="kbKc">Schließen</button></div>`;
+    E.querySelectorAll('[data-del]').forEach(b=>b.onclick=async()=>{ const {error}=await SVB.sb.from('kasse_katalog').delete().eq('id',b.dataset.del); if(error)return kToast('⚠️ '+error.message); await kbLoad(true); draw(); });
+    document.getElementById('kbAdd').onclick=async()=>{ const t=document.getElementById('kbNt').value.trim(), be=parseFloat(document.getElementById('kbNb').value); if(!t||!(be>=0))return kToast('Bitte Bezeichnung und Betrag');
+      const {error}=await SVB.sb.from('kasse_katalog').insert({titel:t,betrag:Math.min(500,be),sort:KB.kat.length}); if(error)return kToast('⚠️ '+error.message); await kbLoad(true); draw(); };
+    document.getElementById('kbKc').onclick=()=>closeOverlay();
+    document.getElementById('kbKs').onclick=async()=>{ for(const r of E.querySelectorAll('.kbkrow[data-id]')){ const id=r.dataset.id, k=KB.kat.find(x=>x.id===id);
+        const t=r.querySelector('[data-f=titel]').value.trim(), be=parseFloat(r.querySelector('[data-f=betrag]').value), ak=r.querySelector('[data-f=aktiv]').checked;
+        if(t&&be>=0&&(t!==k.titel||be!==+k.betrag||ak!==k.aktiv)){ const {error}=await SVB.sb.from('kasse_katalog').update({titel:t,betrag:Math.min(500,be),aktiv:ak}).eq('id',id); if(error)return kToast('⚠️ '+error.message); } }
+      await kbLoad(true); closeOverlay(); kToast('✓ Katalog gespeichert'); };
+  };
+  draw();
+}
+function kbCfgEditor(){
+  const c=KB.cfg||{};
+  svModal(`<div class="mhead"><div class="rm-ic" style="width:46px;height:46px">${SVI('sliders')}</div><div><h2 style="margin:0">Kasse einstellen</h2><div class="msub">Bezahlen per PayPal.me – kostenlos, ohne Händlerkonto</div></div></div>
+    <div class="kbform"><div class="field"><label>PayPal.me-Name des Kassenwarts</label><input id="kcP" maxlength="40" value="${svEsc(c.paypal||'')}" placeholder="z.B. MaxMustermann (aus paypal.me/MaxMustermann)"></div>
+      <div class="field"><label>Kassenwart</label><input id="kcK" maxlength="60" value="${svEsc(c.kassenwart||'')}" placeholder="Name"></div>
+      <div class="field"><label>Anfangsbestand (€)</label><input id="kcA" type="number" step="0.5" value="${+c.anfang||0}"></div>
+      <div class="field kbwide"><label>Hinweis für die Spieler (optional)</label><input id="kcH" maxlength="300" value="${svEsc(c.hinweis||'')}" placeholder="z.B. Bar geht auch – beim Kassenwart nach dem Training"></div></div>
+    <div class="note">Die Spieler sehen einen „Mit PayPal bezahlen“-Knopf mit dem offenen Betrag und melden danach „Habe bezahlt“. Du bestätigst den Eingang – so bleibt alles nachvollziehbar. Stripe bräuchte ein Händlerkonto mit Gebühren je Zahlung und lohnt sich für eine Mannschaftskasse nicht.</div>
+    <div class="btnrow sbact"><button class="btn" id="kcS">Speichern</button><button class="btn ghost" id="kcC">Abbrechen</button></div>`);
+  document.getElementById('kcC').onclick=()=>closeOverlay();
+  document.getElementById('kcS').onclick=async()=>{ let pp=document.getElementById('kcP').value.trim().replace(/^https?:\/\/(www\.)?paypal\.me\//i,'').replace(/\/.*$/,'');
+    if(pp&&!/^[A-Za-z0-9._-]{2,40}$/.test(pp))return kToast('PayPal.me-Name: nur Buchstaben, Ziffern, Punkt, Minus');
+    const {error}=await SVB.sb.from('kasse_cfg').update({paypal:pp||null,kassenwart:document.getElementById('kcK').value.trim()||null,anfang:+document.getElementById('kcA').value||0,hinweis:document.getElementById('kcH').value.trim()||null}).eq('id',1);
+    if(error)return kToast('⚠️ '+error.message); closeOverlay(); await kbLoad(true); kToast('✓ Gespeichert'); };
+}
+
+/* ----- Team-Link ----- */
+async function kbViewLink(B){
+  B.innerHTML='<div class="card"><div class="empty">Lade Link …</div></div>';
+  try{ await kbLink(); }catch(e){ B.innerHTML=`<div class="card"><div class="empty">${svEsc(e.message)}</div></div>`; return; }
+  const u=kbUrl();
+  B.innerHTML=`<div class="card kblink"><h3 class="trh">${SVI('link')} Kabinen-Link für die Mannschaft</h3>
+      <p>Ein Link für alles: Abstimmungen und Mannschaftskasse. Einmal in die WhatsApp-Gruppe posten – jeder Spieler tippt einmal seinen Namen an, danach reicht ein Klick. Kein Login, keine App-Installation.</p>
+      <div class="kburl"><code>${svEsc(u)}</code></div>
+      <div class="btnrow"><button class="btn" id="klWa">${SVI('share')} In WhatsApp teilen</button><button class="btn ghost" id="klCp">${SVI('copy')} Kopieren</button><button class="btn ghost" id="klOpen">${SVI('eye')} Ansehen wie ein Spieler</button></div></div>
+    <div class="card"><h3 class="trh">${SVI('shield')} Sicherheit</h3><div class="note" style="margin-top:0">Wer den Link hat, sieht die Abstimmungen und die Kasse der Mannschaft (Namen, Strafen, Kassenstand) – aber nichts vom Scouting, keine Notizen, keine Kontakte. Nur in der Mannschaftsgruppe teilen.
+      Wenn der Link in falsche Hände gerät: erneuern – der alte funktioniert dann sofort nicht mehr.</div>
+      <button class="btn ghost sm" id="klNew" style="margin-top:10px;color:#fca5a5">${SVI('refresh')} Link erneuern</button></div>`;
+  const bc=document.createElement('div'); bc.innerHTML=kbBotCard(); B.prepend(bc.firstElementChild); kbBotWire(B);
+  document.getElementById('klWa').onclick=()=>kbWa(`⚽ Unsere Kabine: Abstimmungen fürs Training & Spiel und die Mannschaftskasse – ein Klick, kein Login.\nEinmal Namen antippen, fertig:\n${u}`);
+  document.getElementById('klCp').onclick=()=>kbCopy(u);
+  document.getElementById('klOpen').onclick=()=>window.open(u,'_blank','noopener');
+  document.getElementById('klNew').onclick=async()=>{ if(!confirm('Neuen Link erzeugen? Der alte Link funktioniert danach nicht mehr – ihr müsst den neuen in die Gruppe posten.'))return; try{ await kbLink(true); kToast('✓ Neuer Link erzeugt'); kbViewLink(B); }catch(e){ kToast('⚠️ '+e.message); } };
+}
+
+/* ---------- Home: nächste Abstimmung ---------- */
+function kbHomeCard(){
+  const host=document.getElementById('svAct'); if(!host)return; let el=document.getElementById('kbHome');
+  if(!canTraining()||!KB.loaded){ if(el)el.remove(); return; }
+  const today=trToday(), p=KB.polls.filter(x=>x.datum>=today&&!x.geschlossen).sort((a,b)=>a.datum<b.datum?-1:1)[0];
+  if(!p){ if(el)el.remove(); return; }
+  if(!el){ el=document.createElement('div'); el.id='kbHome'; host.before(el); }
+  const s=kbStat(p);
+  el.innerHTML=`<div class="card kbhome" data-kbh><div><span class="trpill">${SVI('users')} Abstimmung</span><b>${svEsc(kbPollTitle(p))}</b></div><div class="kbnum"><b class="ok">${s.zu.length}</b><b class="mid">${s.vllt.length}</b><b class="bad">${s.ab.length}</b><b>${s.offen.length}</b></div></div>`;
+  el.querySelector('[data-kbh]').onclick=()=>{ KB.view='abst'; goTab('kabine'); };
+}
+{ const _si6=svInsights; svInsights=function(){ const base=_si6.apply(this,arguments), add=[];
+  try{ if(KB.loaded&&canTraining()){ const today=trToday(); KB.polls.filter(p=>p.datum>=today&&!p.geschlossen&&TRC.diffDays(p.datum,today)<=3).forEach(p=>{ const s=kbStat(p);
+      if(s.offen.length)add.push({prio:svRole()==='trainer'?0.3:3,lvl:TRC.diffDays(p.datum,today)<=1?'hoch':'mittel',t:`${s.offen.length} ohne Antwort: ${p.titel} (${kbWd(p.datum)})`,d:s.offen.slice(0,5).map(x=>x.name.split(' ')[0]).join(', ')+(s.offen.length>5?' …':'')+' – jetzt nachhaken',go:()=>{ KB.view='abst'; goTab('kabine'); }}); });
+    const g=KB.buch.filter(b=>b.status==='gemeldet').length; if(g)add.push({prio:4,lvl:'info',t:`Kasse: ${g} Zahlung${g>1?'en':''} gemeldet`,d:'Eingang prüfen und bestätigen',go:()=>{ KB.view='kasse'; goTab('kabine'); }}); } }catch(e){}
+  return add.concat(base).sort((a,b)=>a.prio-b.prio).slice(0,6); }; }
+SV_ACTIONS.trainer.splice(2,0,['users','Abstimmung',()=>{ KB.view='abst'; goTab('kabine'); setTimeout(()=>kbPollEditor(null,kbSuggest()[0]),80); }]); SV_ACTIONS.trainer.length=4;
+{ const _gt6=goTab; goTab=function(tab){ const r=_gt6.apply(this,arguments); try{ if(tab==='kabine')kbRender(); }catch(e){ console.warn(e); } return r; }; }
+{ const _si7=svInit; svInit=function(){ const r=_si7.apply(this,arguments); setTimeout(()=>kbLoad(),1100); return r; }; }
+SV_TABBAR.trainer=['home','training','kabine','elf'];
+
+/* ---------- Automatik: Trainings-Abstimmungen selbst anlegen + Link per WhatsApp an die Trainer ---------- */
+const KB_WD=[[1,'Mo'],[2,'Di'],[3,'Mi'],[4,'Do'],[5,'Fr'],[6,'Sa'],[0,'So']];
+function kbBotCard(){
+  const c=KB.bot; if(!c)return '<div class="card"><div class="note">Automatik nicht verfügbar.</div></div>';
+  const emp=(c.empfaenger||[]).concat([{name:'',tel:''},{name:'',tel:''}]).slice(0,Math.max(2,(c.empfaenger||[]).length+1)).slice(0,5);
+  const ready=c.schluessel&&c.sc_channel&&c.sc_template&&(c.empfaenger||[]).length;
+  return `<div class="card kbbot"><div class="vrat-h"><h3 class="trh" style="margin:0">${SVI('clock')} Automatik fürs Training</h3><label class="kbsw"><input type="checkbox" id="kbA_on"${c.aktiv?' checked':''}><span></span>${c.aktiv?'an':'aus'}</label></div>
+    <p class="note" style="margin-top:6px">Die App legt die Abstimmung für jedes Training selbst an${ready?' und schickt den Link per WhatsApp an die Trainer – die leiten ihn nur noch in die Gruppe weiter':''}. Am Trainingstag kommt eine Liste, wer noch nicht geantwortet hat. Spieler können ihre Antwort bis zum Training jederzeit ändern.</p>
+    <div class="kbform"><div class="field kbwide"><label>Trainingstage</label><div class="chips">${KB_WD.map(([n,t])=>`<button type="button" class="pchip${(c.tage||[]).includes(n)?' on':''}" data-wd="${n}">${t}</button>`).join('')}</div></div>
+      <div class="field"><label>Uhrzeit Training</label><input id="kbA_z" value="${svEsc(c.zeit||'19:00')}" maxlength="5"></div><div class="field"><label>Ort (optional)</label><input id="kbA_o" value="${svEsc(c.ort||'')}" maxlength="120"></div>
+      <div class="field"><label>Abstimmung verschicken</label><select id="kbA_v">${[0,1,2,3].map(n=>`<option value="${n}"${+c.vorlauf===n?' selected':''}>${n===0?'am Trainingstag':n===1?'1 Tag vorher':n+' Tage vorher'}</option>`).join('')}</select></div>
+      <div class="field"><label>um</label><select id="kbA_s">${[7,8,9,10,11,12,14,16,18,20].map(n=>`<option value="${n}"${+c.stunde===n?' selected':''}>${n}:00 Uhr</option>`).join('')}</select></div>
+      <div class="field"><label>Am Trainingstag nachhaken</label><select id="kbA_e"><option value="">nein</option>${[10,12,14,15,16,17].map(n=>`<option value="${n}"${c.erinnerung&&+c.erinnerung_stunde===n?' selected':''}>ja, um ${n}:00 Uhr</option>`).join('')}</select></div></div>
+    <div class="sbsec"><h4>WhatsApp an die Trainer <small>über Superchat${ready?' · eingerichtet ✓':''}</small></h4>
+      ${emp.map((e,i)=>`<div class="kbemp"><input data-en="${i}" placeholder="Name, z.B. Nico" value="${svEsc(e.name||'')}" maxlength="40"><input data-et="${i}" placeholder="Handy, z.B. 0171 1234567" value="${svEsc(e.tel||'')}" inputmode="tel" maxlength="20"></div>`).join('')}
+      <div class="kbform"><div class="field"><label>Superchat Kanal-ID</label><input id="kbA_ch" value="${svEsc(c.sc_channel||'')}" placeholder="mc_…" maxlength="60"></div><div class="field"><label>Vorlagen-ID (WhatsApp-Vorlage mit 1 Text-Variable)</label><input id="kbA_tp" value="${svEsc(c.sc_template||'')}" placeholder="tn_…" maxlength="60"></div>
+        ${c.darf_schluessel?`<div class="field kbwide"><label>Superchat API-Schlüssel ${c.schluessel?'<small>– hinterlegt ✓ (wird nie angezeigt)</small>':''}</label><input id="kbA_k" type="password" autocomplete="off" placeholder="${c.schluessel?'leer lassen = behalten':'Schlüssel aus Superchat → Einstellungen → API'}"></div>`:`<div class="field kbwide"><div class="note" style="margin:0">Den Superchat-Schlüssel hinterlegt der Admin. ${c.schluessel?'Ist hinterlegt ✓':'Noch nicht hinterlegt.'}</div></div>`}</div>
+      <div class="note">Nachrichten außerhalb eines offenen Chats brauchen bei WhatsApp eine genehmigte Vorlage, z.B. „SV/BSC Kabine: {{1}}“ (Kategorie „Utility“). Die App setzt den Text mit Link in die Variable ein.</div></div>
+    <div class="btnrow sbact"><button class="btn" id="kbA_save">Speichern</button>${ready?`<button class="btn ghost" id="kbA_test">${SVI('chat')} Testnachricht</button>`:''}<button class="btn ghost" id="kbA_run">${SVI('refresh')} Jetzt prüfen</button></div></div>`;
+}
+function kbBotWire(B){
+  const c=KB.bot; if(!c)return; const tage=new Set(c.tage||[]);
+  B.querySelectorAll('[data-wd]').forEach(b=>b.onclick=()=>{ const n=+b.dataset.wd; if(tage.has(n))tage.delete(n); else tage.add(n); b.classList.toggle('on',tage.has(n)); });
+  const sw=document.getElementById('kbA_on'); if(sw)sw.onchange=()=>{ sw.parentElement.lastChild.textContent=sw.checked?'an':'aus'; };
+  const save=async(quiet)=>{ const emp=[]; B.querySelectorAll('[data-et]').forEach(i=>{ const t=i.value.trim(), n=B.querySelector(`[data-en="${i.dataset.et}"]`).value.trim(); if(t)emp.push({name:n||'Trainer',tel:t}); });
+    const e=document.getElementById('kbA_e').value;
+    const p={aktiv:document.getElementById('kbA_on').checked,tage:[...tage],zeit:document.getElementById('kbA_z').value.trim(),ort:document.getElementById('kbA_o').value,vorlauf:+document.getElementById('kbA_v').value,stunde:+document.getElementById('kbA_s').value,
+      erinnerung:!!e,erinnerung_stunde:e?+e:(+c.erinnerung_stunde||12),empfaenger:emp,sc_channel:document.getElementById('kbA_ch').value.trim(),sc_template:document.getElementById('kbA_tp').value.trim(),app_url:kbBase()};
+    const k=document.getElementById('kbA_k'); if(k&&k.value.trim())p.sc_key=k.value.trim();
+    if(p.aktiv&&!p.tage.length){ kToast('Bitte mindestens einen Trainingstag wählen'); return false; }
+    const {error}=await SVB.sb.rpc('kabine_bot_set',{p}); if(error){ kToast('⚠️ '+error.message); return false; }
+    const r=await SVB.sb.rpc('kabine_bot_get'); KB.bot=r.data; if(!quiet)kToast('✓ Automatik gespeichert'); kbViewLink(B); return true; };
+  document.getElementById('kbA_save').onclick=()=>save();
+  const call=async(body,btn)=>{ btn.disabled=true; try{ const {data,error}=await SVB.sb.functions.invoke('kabine-bot',{body}); if(error){ let t=error.message; try{ const x=await error.context.json(); if(x&&x.error)t=x.error; }catch(_){} throw new Error(t); } return data; }finally{ btn.disabled=false; } };
+  const tb=document.getElementById('kbA_test'); if(tb)tb.onclick=async()=>{ try{ const d=await call({mode:'test'},tb); if(!d.ok&&d.error)throw new Error(d.error); kToast((d.ergebnis||[]).map(x=>x.name+(x.ok?' ✓':' ✗ '+(x.fehler||''))).join(' · ')||'Gesendet'); }catch(e){ kToast('⚠️ '+e.message); } };
+  document.getElementById('kbA_run').onclick=async e=>{ const bt=e.currentTarget; if(!(await save(true)))return; try{ const d=await call({},document.getElementById('kbA_run')||bt); await kbLoad(true); kToast(d.aktiv===false?'Automatik ist aus':(d.log&&d.log.length?d.log.join(' · '):'Alles aktuell – nichts zu tun')); }catch(err){ kToast('⚠️ '+err.message); } };
+}
 
 /* ================= INIT ================= */
 renderWeights();
