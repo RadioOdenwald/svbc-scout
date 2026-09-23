@@ -2100,7 +2100,7 @@ function openSlotPicker(i,depth){
 }
 
 /* ===== App-Modus: installierbar, offline-fest, aktualisiert sich selbst ===== */
-const APP_BUILD='20260923-1650-r7b', OUTBOX_KEY='svbcOutbox', APP_HIDE_KEY='svbcInstallHide';
+const APP_BUILD='20260923-1740-r8', OUTBOX_KEY='svbcOutbox', APP_HIDE_KEY='svbcInstallHide';
 let _appPrompt=null, _appNew=null, _obT=null;
 function appStandalone(){ try{ return !!(window.matchMedia&&matchMedia('(display-mode: standalone)').matches)||navigator.standalone===true; }catch(e){ return false; } }
 function appPlatform(){
@@ -3481,7 +3481,229 @@ const TRC=(function(){
     if(/beteiligung|wie viele|anwesenheit/.test(t)){ const T=teamStats(st,today,squad.map(p=>p.id)); return `Trainingsbeteiligung: letzte 3 Wochen ${pct(T.r21.rate)} (${T.r21.sessions} Einheiten), davor ${pct(T.prev.rate)}. Saison: ${pct(T.season.rate)}.`; }
     return null;
   }
-  return {REASONS,FOKUS,ART,EXCUSE_NEUTRAL,iso,addDays,diffDays,fmt,rows,playerStats,teamStats,alerts,parse,answer,activeInjury,pct,N};
+  return {REASONS,FOKUS,ART,EXCUSE_NEUTRAL,iso,addDays,diffDays,fmt,rows,playerStats,teamStats,alerts,parse,answer,activeInjury,pct,N,nameIndex,findPlayers,parseDate,ambiguous};
+})();
+
+/* ---------- Scores, Veranstaltungen, Spiele, Allzeit & Meilensteine (rein rechnerisch, ohne DOM) ---------- */
+const TRS=(function(){
+  const T=TRC;
+  const ROLES={aufbau:'Aufbau',abbau:'Abbau',theke:'Theke/Bedienen',kasse:'Kasse',grill:'Grill',kuechen:'Küche/Kuchen',orga:'Organisation',fahrdienst:'Fahrdienst',teilnahme:'Teilnahme',sonstiges:'Sonstiges'};
+  const EART={kerwe:'Kerwe',heimspiel:'Heimspiel-Dienst',weihnachten:'Weihnachtsmarkt/-feier',arbeitseinsatz:'Arbeitseinsatz',turnier:'Turnier/Hallencup',saisonfeier:'Saisonauftakt/-abschluss',mannschaft:'Mannschaftsabend/-fahrt',jugend:'Jugend-Event',sonstiges:'Sonstiges'};
+  const HSTAT={geholfen:'geholfen',zugesagt:'zugesagt',abgesagt:'abgesagt',nicht_erschienen:'nicht erschienen'};
+  const CREDIT={arbeit:0.7,uni:0.7,urlaub:0.7,familie:0.7,privat:0.4,ohne:0};
+  const NUMW={ein:1,eine:1,einen:1,einmal:1,zwei:2,zweimal:2,doppelt:2,doppelpack:2,drei:3,dreimal:3,hattrick:3,dreierpack:3,vier:4,viermal:4,fuenf:5,sechs:6,sieben:7,acht:8,neun:9,zehn:10,zwoelf:12};
+  const wHalf=(today,d,hl)=>Math.pow(0.5,Math.max(0,T.diffDays(today,d))/hl);
+  const avg=a=>a.length?a.reduce((x,y)=>x+y,0)/a.length:null;
+  const key=s=>T.N(s).replace(/[^a-z0-9]/g,'');
+
+  /* ===== Trainings-Score (0–100) =====
+     da = 1 · zu spät = 0,75 · entschuldigt (Arbeit, Uni, Urlaub, Familie) = 0,7 · privat = 0,4 · ohne Grund = 0
+     verletzt, „in der Zweiten“ und längere Krankheit (≥ 2 Einheiten am Stück oder als Verletzung/Krankheit erfasst) zählen NICHT
+     kurzfristig krank (einzelne Einheit) = 0,5 – gehäuft (≥ 3 in 90 Tagen) nur noch 0,2
+     jüngere Einheiten zählen mehr (Halbwertszeit 45 Tage), Fenster 180 Tage; Motivation fließt zu 25 % ein */
+  function trainingScore(st,pid,today){
+    const R=T.rows(st,pid).filter(r=>{ const dd=T.diffDays(today,r.d); return dd>=0&&dd<=180; });
+    const inj=(st&&st.injuries||[]).filter(i=>i.p===pid);
+    const epi=new Map(); let cur=[];
+    const flush=()=>{ if(cur.length){ const long=cur.length>=2||cur.some(r=>inj.some(i=>i.b<=r.d&&(!i.z||i.z>=r.d))); cur.forEach(r=>epi.set(r.d,long)); cur=[]; } };
+    for(const r of [...R].reverse()){ if(r.st==='weg'&&r.g==='krank')cur.push(r); else if(r.st==='weg'&&r.g==='verletzt')continue; else flush(); }
+    flush();
+    const short90=R.filter(r=>r.st==='weg'&&r.g==='krank'&&!epi.get(r.d)&&T.diffDays(today,r.d)<=90).length;
+    let sw=0, sa=0, n=0; const ex={verletzt:0,krank:0,zweite:0}, cnt={da:0,spaet:0,ohne:0,kurz:0,entsch:0};
+    for(const r of R){
+      let c;
+      if(r.st==='da'){ c=1; cnt.da++; }
+      else if(r.st==='spaet'){ c=0.75; cnt.spaet++; }
+      else if(r.g==='verletzt'){ ex.verletzt++; continue; }
+      else if(r.g==='zweite'){ ex.zweite++; continue; }
+      else if(r.g==='krank'){ if(epi.get(r.d)){ ex.krank++; continue; } c=short90>=3?0.2:0.5; cnt.kurz++; }
+      else { c=CREDIT[r.g]!=null?CREDIT[r.g]:0.5; if(r.g==='ohne')cnt.ohne++; else cnt.entsch++; }
+      const w=wHalf(today,r.d,45); sw+=w; sa+=w*c; n++;
+    }
+    const mots=R.filter(r=>r.mot); let mw=0, ms=0; mots.forEach(r=>{ const w=wHalf(today,r.d,45); mw+=w; ms+=w*(r.mot-1)/4; });
+    const att=sw?sa/sw:null, mot=mots.length>=2&&mw?ms/mw:null;
+    const score=n>=4?Math.round(100*(mot==null?att:0.75*att+0.25*mot)):null;
+    const why=[];
+    if(n)why.push(`${cnt.da}× da${cnt.spaet?`, ${cnt.spaet}× zu spät`:''} – ${n} gewertete Einheiten (180 Tage)`);
+    if(cnt.ohne)why.push(`${cnt.ohne}× ohne Grund gefehlt – zählt voll`);
+    if(cnt.kurz)why.push(`${cnt.kurz}× kurzfristig krank${short90>=3?' – gehäuft, zählt deshalb stärker':' – zählt halb'}`);
+    if(cnt.entsch)why.push(`${cnt.entsch}× entschuldigt (Arbeit, Uni, Urlaub, Familie) – zählt leicht`);
+    if(ex.verletzt||ex.krank)why.push(`${ex.verletzt+ex.krank}× verletzt oder länger krank – zählt nicht`);
+    if(ex.zweite)why.push(`${ex.zweite}× in der Zweiten – zählt nicht`);
+    if(mot!=null)why.push(`Motivation Ø ${(1+mot*4).toFixed(1)} von 5 (25 % Gewicht)`);
+    if(n<4)why.push('Noch zu wenig Einheiten für einen Score (mind. 4)');
+    return {score,att,mot,n,cnt,ex,shortSick:short90,why};
+  }
+
+  /* ===== Spiele (aus den Einheiten vom Typ „Spiel“) ===== */
+  const games=st=>(st&&st.sessions||[]).filter(s=>s.t==='spiel');
+  function matchStats(st,pid,since){
+    const o={sp:0,start:0,joker:0,tore:0,vor:0,s:0,u:0,n:0,zuNull:0};
+    for(const g of games(st)){ if(since&&g.d<=since)continue; const a=(g.a||[]).find(x=>x[0]===pid); if(!a||a[1]==='weg')continue;
+      o.sp++; if(a[1]==='da')o.start++; else o.joker++; o.tore+=a[6]||0; o.vor+=a[7]||0;
+      if(g.tw!=null&&g.tg!=null){ if(g.tw>g.tg)o.s++; else if(g.tw===g.tg)o.u++; else o.n++; if(g.tg===0)o.zuNull++; } }
+    return o;
+  }
+  function teamForm(st){
+    const G=games(st).filter(g=>g.tw!=null&&g.tg!=null).sort((a,b)=>a.d<b.d?1:-1);
+    const res=G.map(g=>g.tw>g.tg?'S':g.tw===g.tg?'U':'N');
+    let unbeaten=0; for(const r of res){ if(r==='N')break; unbeaten++; }
+    let wins=0; for(const r of res){ if(r!=='S')break; wins++; }
+    let clean=0; for(const g of G){ if(g.tg!==0)break; clean++; }
+    let winless=0; for(const r of res){ if(r==='S')break; winless++; }
+    const pts=res.reduce((a,r)=>a+(r==='S'?3:r==='U'?1:0),0);
+    return {n:G.length,res,unbeaten,wins,clean,winless,ppg:G.length?pts/G.length:null,tf:G.reduce((a,g)=>a+g.tw,0),ta:G.reduce((a,g)=>a+g.tg,0),last:G[0]||null};
+  }
+  /* Moneyball „Mit/Ohne“: Punkte pro Spiel und Gegentore mit dem Spieler in der Startelf vs. ohne ihn */
+  function withWithout(st,pid){
+    const W={n:0,p:0,ga:0}, O={n:0,p:0,ga:0};
+    for(const g of games(st)){ if(g.tw==null||g.tg==null)continue; const a=(g.a||[]).find(x=>x[0]===pid); const B=a&&a[1]==='da'?W:O;
+      B.n++; B.p+=g.tw>g.tg?3:g.tw===g.tg?1:0; B.ga+=g.tg; }
+    const f=x=>x.n?{n:x.n,ppg:x.p/x.n,ga:x.ga/x.n}:{n:0,ppg:null,ga:null};
+    const w=f(W), o=f(O);
+    return {with:w,without:o,delta:w.n>=3&&o.n>=3?w.ppg-o.ppg:null};
+  }
+
+  /* ===== Loyalität (0–100) =====
+     55 % Helfereinsätze (Aufbau, Theke, Kasse … – Stunden zählen mit, jüngere mehr; „nicht erschienen“ zieht ab)
+     30 % Vereinstreue (Pflichtspiele seit 2013/14 laut Vereinsstatistik + diese Saison; 200 Spiele = voll)
+     15 % Teamgeist (Mannschaftsabende, -fahrten, Feiern) */
+  function loyaltyScore(pid,events,allTime,gamesSince,today){
+    let pts=0, soc=0, n=0, hours=0, noShow=0, last=null; const arts={};
+    for(const e of events||[]){
+      const dd=T.diffDays(today,e.d); if(dd<0||dd>730)continue;
+      const h=(e.h||[]).find(x=>x[0]===pid); if(!h)continue;
+      const w=Math.pow(0.5,dd/365), st=h[3]||'geholfen', hrs=h[2]!=null&&h[2]!==''?+h[2]:null, rollen=h[1]||[];
+      if(e.a==='mannschaft'||(rollen.length===1&&rollen[0]==='teilnahme')){ if(st==='geholfen')soc+=w; if(st==='nicht_erschienen')noShow++; continue; }
+      if(st==='geholfen'){ pts+=w*(2+Math.min(hrs==null?3:hrs,10)*0.5); n++; hours+=hrs||0; arts[e.a]=(arts[e.a]||0)+1; if(!last||e.d>last)last=e.d; }
+      else if(st==='nicht_erschienen'){ pts-=w*2; noShow++; }
+    }
+    const help=pts<=0?0:1-Math.exp(-pts/10), social=1-Math.exp(-soc/3);
+    const spiele=(allTime?allTime.spiele||0:0)+(gamesSince||0), ten=Math.min(1,spiele/200);
+    const score=Math.round(100*(0.55*help+0.30*ten+0.15*social));
+    const why=[];
+    why.push(n?`${n} Helfereinsätze in 24 Monaten${hours?` · ${hours} Std.`:''}`:'Noch keine Helfereinsätze erfasst');
+    if(Object.keys(arts).length)why.push('Bei: '+Object.entries(arts).map(([k,c])=>`${EART[k]||k}${c>1?' ('+c+'×)':''}`).join(', '));
+    if(noShow)why.push(`${noShow}× trotz Zusage nicht erschienen – zieht ab`);
+    why.push(spiele?`${spiele} Pflichtspiele für den Verein${allTime&&allTime.stand?' (Statistik seit 2013/14 + diese Saison)':''}`:'Keine Pflichtspiele in der Vereinsstatistik');
+    if(soc)why.push('Dabei bei Mannschaftsabenden/-fahrten');
+    return {score,help,ten,social,n,hours,noShow,spiele,arts,last,why};
+  }
+
+  /* ===== Bindungsrisiko: Frühwarnung, wenn mehrere Signale zusammenkommen ===== */
+  function retention(ts,ls,ps,eventsKnown){
+    let r=0; const why=[];
+    if(ps.rate28!=null&&ps.ratePrev!=null&&ps.ratePrev-ps.rate28>=0.25){ r+=2; why.push('Trainingsbeteiligung stark gesunken'); }
+    if(ts&&ts.score!=null&&ts.score<55){ r++; why.push('niedriger Trainings-Score'); }
+    if(ps.ohne28>=2){ r++; why.push('fehlt ohne Grund'); }
+    const m3=ps.mot.slice(0,3).map(x=>x.v); if(m3.length>=2&&avg(m3)<=2.5){ r++; why.push('wirkt lustlos'); }
+    if(eventsKnown&&ls&&ls.n===0&&ls.spiele<60){ r++; why.push('kaum im Vereinsleben verankert'); }
+    return {risk:r,lvl:r>=4?'hoch':r>=3?'mittel':null,why};
+  }
+
+  /* ===== Allzeit-Statistik, Meilensteine, Abzeichen ===== */
+  const MS_SP=[50,100,150,200,250,300,350,400,500], MS_T=[25,50,75,100,150,200], MS_A=[25,50,75,100];
+  function allTimeIndex(rows,players,crm){
+    const byKey=new Map(rows.map(r=>[r.key,r])), byPlayer=new Map(), used=new Map();
+    for(const p of players){ const o=crm&&crm[p.id]&&crm[p.id].at, r=o&&byKey.get(o); if(r&&!used.has(r.key)){ byPlayer.set(p.id,r); used.set(r.key,p.id); } }
+    for(const p of players){ if(byPlayer.has(p.id))continue; const r=byKey.get(key(p.name)); if(r&&!used.has(r.key)){ byPlayer.set(p.id,r); used.set(r.key,p.id); } }
+    // Unschärfe: Umlaute auf der Vereinsseite teils als Leerzeichen („Pfl ger“), zweite Vornamen („Florian Kai Seltenreich“)
+    const loose=s=>T.N(s).replace(/ss|ae|oe|ue/g,'').replace(/[^a-z]/g,'');
+    const fl=s=>{ const w=T.N(s).replace(/[^a-z ]/g,' ').split(/\s+/).filter(Boolean); return w.length>1?loose(w[0])+'|'+loose(w[w.length-1]):null; };
+    const uniq=f=>{ const m=new Map(); rows.forEach(r=>{ const k=f(r.name); if(!k)return; m.set(k,m.has(k)?null:r); }); return m; };
+    const L1=uniq(loose), L2=uniq(fl);
+    for(const [f,M] of [[loose,L1],[fl,L2]])for(const p of players){ if(byPlayer.has(p.id)||!p.own)continue; const k=f(p.name), r=k&&M.get(k); if(r&&!used.has(r.key)){ byPlayer.set(p.id,r); used.set(r.key,p.id); } }
+    return {byKey,byPlayer,used};
+  }
+  function totals(row,ms){ // row: Vereinsstatistik; ms: matchStats seit Stand
+    const sp=(row?row.spiele:0)+(ms?ms.sp:0), tore=(row?row.tore:0)+(ms?ms.tore:0), vor=(row?row.assists:0)+(ms?ms.vor:0), siege=(row?row.siege:0)+(ms?ms.s:0);
+    return {sp,tore,vor,siege,quote:sp?Math.round(siege/sp*100):null};
+  }
+  function nextMilestones(tot){
+    const out=[]; const nx=(L,v,lab)=>{ const m=L.find(x=>x>v); if(m!=null)out.push({lab,ziel:m,rest:m-v}); };
+    nx(MS_SP,tot.sp,'Spiele'); nx(MS_T,tot.tore,'Tore'); nx(MS_A,tot.vor,'Vorlagen');
+    return out.sort((a,b)=>a.rest-b.rest);
+  }
+  function badges(tot,rk){
+    const b=[];
+    if(tot.sp>=200||tot.tore>=75)b.push({k:'legende',t:'Vereinslegende',d:tot.sp>=200?`${tot.sp} Spiele`:`${tot.tore} Tore`});
+    const cl=[500,400,300,250,200,150,100,50].find(x=>tot.sp>=x); if(cl)b.push({k:'club',t:cl+'er-Club',d:`${tot.sp} Pflichtspiele`});
+    const tc=[200,150,100,75,50,25].find(x=>tot.tore>=x); if(tc)b.push({k:'tore',t:tc+' Tore',d:`${tot.tore} Tore insgesamt`});
+    if(tot.vor>=25)b.push({k:'vorlagen',t:'Vorlagengeber',d:`${tot.vor} Vorlagen`});
+    if(tot.sp>=50&&tot.quote>=55)b.push({k:'sieger',t:'Siegertyp',d:`${tot.quote} % Siege`});
+    if(rk&&rk.sp&&rk.sp<=10)b.push({k:'top',t:`Top ${rk.sp<=3?3:10} Einsätze`,d:`Platz ${rk.sp} ewige Einsatzliste`});
+    if(rk&&rk.tore&&rk.tore<=10)b.push({k:'top',t:`Top ${rk.tore<=3?3:10} Torschützen`,d:`Platz ${rk.tore} ewige Torjägerliste`});
+    return b;
+  }
+
+  /* ===== Freitext: Veranstaltungen & Helfer ===== */
+  const EV_RX=[['kerwe',/kerwe|kirchweih/],['weihnachten',/weihnachtsmarkt|weihnachtsfeier(?! der mannschaft)|weihnacht/],['turnier',/turnier|hallencup|papurex|\bcup\b/],
+    ['heimspiel',/heimspiel|spieltagsdienst|bewirtung|kiosk|sportheimdienst|heimspieltag/],['arbeitseinsatz',/arbeitseinsatz|arbeitsdienst|platzpflege|renovier|aufraeum|streichaktion/],
+    ['saisonfeier',/saisonabschluss|saisonauftakt|sommerfest|jubilaeum|jahrfeier|vereinsfest/],['mannschaft',/mannschaftsabend|teamabend|grillabend|mannschaftsfahrt|abschlussfahrt|teamevent|ausflug/],
+    ['jugend',/jugendturnier|fussballcamp|feriencamp|jugendtag/]];
+  const ROLE_RX=[['aufbau',/aufbau|aufgebaut|aufbauen/],['abbau',/abbau|abgebaut|abbauen/],['theke',/theke|ausschank|bedien|getraenk|\bbar\b|zapf/],['kasse',/kasse|eintritt|kassiert/],
+    ['grill',/grill/],['kuechen',/kueche|kuchen|essen|salat|pommes|kochen|waffel/],['orga',/orga|organis|planung|geplant/],['fahrdienst',/fahrdienst|gefahren|transport/]];
+  const HELP=/geholfen|mitgeholfen|helfer|dienst|aufbau|abbau|aufgebaut|abgebaut|theke|bedien|kasse|grill|kueche|kuchen|orga|dabei|mitgemacht|einsatz|ausschank|stunden|teilgenommen|zugesagt|abgesagt|nicht erschienen|gearbeitet/;
+  const hoursOf=c=>{ const m=c.match(/(\d+(?:[.,]\d)?)\s*(stunden|std|h)\b/); if(m)return +m[1].replace(',','.');
+    const m2=c.match(/\b(ein|eine|zwei|drei|vier|fuenf|sechs|sieben|acht|neun|zehn|zwoelf)\s*(stunden|std)\b/); if(m2)return NUMW[m2[1]];
+    if(/ganzen tag|ganztags/.test(c))return 8; if(/halben tag/.test(c))return 4; return null; };
+  function parseEvent(text,people,today){
+    const t0=T.N(text); let art=null; for(const [k,rx] of EV_RX){ if(rx.test(t0)){ art=k; break; } }
+    if(!art||!HELP.test(t0))return null;
+    const idx=T.nameIndex(people), datum=T.parseDate(t0,today);
+    const segs=t0.split(/[.;!\n]+|,|\bund dann\b/).map(s=>s.trim()).filter(Boolean);
+    const H={}; let pend=[], pendRoles=[];
+    const je=(t0.match(/\bje(?:weils)?\s+(\d+(?:[.,]\d)?)\s*(?:stunden|std|h)\b/)||[])[1];
+    const put=(ps,roles,hrs,status)=>ps.forEach(p=>{ const o=H[p.id]=H[p.id]||{person:p.id,rollen:[],stunden:null,status:'geholfen'}; roles.forEach(r=>{ if(!o.rollen.includes(r))o.rollen.push(r); }); if(hrs!=null)o.stunden=hrs; if(status)o.status=status; });
+    for(const c of segs){
+      const ps=T.findPlayers(c,idx), roles=ROLE_RX.filter(([,rx])=>rx.test(c)).map(([k])=>k), hrs=/\bje/.test(c)?null:hoursOf(c);
+      const status=/nicht erschienen|nicht gekommen|trotz zusage|nicht aufgetaucht|ist nicht aufgetaucht/.test(c)?'nicht_erschienen':/abgesagt/.test(c)?'abgesagt':(/zugesagt|eingeteilt|wird helfen|kommt zum/.test(c)&&!/geholfen/.test(c))?'zugesagt':null;
+      if(ps.length&&!roles.length&&!status&&hrs==null&&!pendRoles.length){ pend.push(...ps); continue; }
+      if(!ps.length&&roles.length){ pendRoles=roles; if(pend.length){ put(pend,roles,null,null); pend=[]; pendRoles=[]; } continue; }
+      if(ps.length){ put([...pend,...ps],roles.length?roles:pendRoles,hrs,status); pend=[]; pendRoles=[]; }
+      else if(hrs!=null&&Object.keys(H).length){ Object.values(H).forEach(o=>{ if(o.stunden==null)o.stunden=hrs; }); }
+    }
+    if(pend.length)put(pend,[],null,null);
+    if(je!=null)Object.values(H).forEach(o=>{ if(o.stunden==null)o.stunden=+String(je).replace(',','.'); });
+    if(art==='mannschaft')Object.values(H).forEach(o=>{ if(!o.rollen.length)o.rollen=['teilnahme']; });
+    const helfer=Object.values(H);
+    const nm=(text.match(/(?:beim|bei der|beim|auf der|am)\s+([A-ZÄÖÜ][\wäöüß-]+(?:\s[A-ZÄÖÜ0-9][\wäöüß-]+)?)/)||[])[1];
+    const titel=nm&&EV_RX.some(([k,rx])=>k===art&&rx.test(T.N(nm)))?nm:EART[art];
+    return {action:{type:'veranstaltung',input:{datum,titel,art,helfer}},ambig:T.ambiguous(text,idx,helfer.map(h=>h.person))};
+  }
+
+  function eventArt(t){ const n=T.N(t); for(const [k,rx] of EV_RX){ if(rx.test(n))return k; } return 'sonstiges'; }
+  function roleOf(t){ const n=T.N(t); return ROLE_RX.filter(([,rx])=>rx.test(n)).map(([k])=>k); }
+
+  /* ===== Freitext: Spiel mit Ergebnis, Toren und Vorlagen ===== */
+  function parseMatch(text,squad,today){
+    const t0=T.N(text); const m=t0.match(/\b(\d{1,2})\s*[:\-]\s*(\d{1,2})\b/);
+    if(!m||!/gegen|spiel|gewonnen|verloren|unentschieden|remis|\bsieg|niederlage|auswaerts|heimspiel/.test(t0))return null;
+    let a=+m[1], b=+m[2];
+    if(/verloren|niederlage/.test(t0)&&a>b)[a,b]=[b,a];
+    if(/gewonnen|\bsieg\b|gesiegt/.test(t0)&&a<b)[a,b]=[b,a];
+    const gm=text.match(/gegen\s+(?:den |die |das |die zweite von |)([A-Za-zÄÖÜäöüß0-9./ -]{2,40}?)(?=\s*(?:\d|,|\.|!|;|\(|$|\s(?:mit|zu|und|gewonnen|verloren|unentschieden|gespielt|remis)\b))/i);
+    const heim=/zuhause|zu hause|daheim|heimspiel|\bheim\b/.test(t0)?true:/auswaerts/.test(t0)?false:null;
+    const idx=T.nameIndex(squad), sp={};
+    const add=(p,k,v)=>{ const o=sp[p.id]=sp[p.id]||{player_id:p.id,status:'da'}; o[k]=(o[k]||0)+v; };
+    const cnt=s=>{ const d=s.match(/\b(\d{1,2})\s*(?:x|mal|tore|treffer|buden)?\b/); if(d)return +d[1]; for(const k in NUMW){ if(new RegExp('\\b'+k+'\\b').test(s))return NUMW[k]; } return 1; };
+    const clauses=t0.replace(m[0],' ').split(/[.;!\n]+/).map(s=>s.trim()).filter(Boolean);
+    for(const c of clauses){
+      let mode=/vorlage|assist|aufgelegt|vorbereitet/.test(c)&&!/tor|treffer|getroffen|traf/.test(c)?'vorlagen':/\btor|tore|treffer|getroffen|\btraf|trifft|doppelpack|hattrick|genetzt|buden/.test(c)?'tore':null;
+      if(!mode)continue;
+      for(const it of c.split(/,|\bund\b|\bsowie\b/)){
+        if(/vorlage|assist|aufgelegt|vorbereitet/.test(it))mode='vorlagen'; else if(/\btor|tore|treffer|getroffen|\btraf|doppelpack|hattrick/.test(it))mode=mode==='vorlagen'&&!/tor|treffer|getroffen|traf|doppelpack|hattrick/.test(it)?'vorlagen':'tore';
+        const ps=T.findPlayers(it,idx); if(!ps.length)continue;
+        const n=ps.length===1?cnt(it.replace(/\b(19|20)\d\d\b/g,'')):1;
+        ps.forEach(p=>add(p,mode,n));
+      }
+    }
+    const spieler=Object.values(sp);
+    const tt=spieler.reduce((x,s)=>x+(s.tore||0),0);
+    return {action:{type:'spiel',input:{datum:T.parseDate(t0,today),gegner:gm?gm[1].trim():null,heim,tore_wir:a,tore_gegner:b,spieler}},warn:tt>a?`Mehr Torschützen (${tt}) als eigene Tore (${a}) – bitte prüfen.`:null,ambig:T.ambiguous(text,idx,spieler.map(s=>s.player_id))};
+  }
+
+  return {ROLES,EART,HSTAT,key,trainingScore,matchStats,teamForm,withWithout,loyaltyScore,retention,allTimeIndex,totals,nextMilestones,badges,parseEvent,parseMatch,eventArt,roleOf,hoursOf,MS_SP,MS_T};
 })();
 
 /* =====================================================================
@@ -3571,11 +3793,12 @@ function trRender(){
   const V=TR.view, tabs=[['home','Übersicht'],['sessions','Einheiten'],['players','Spieler'],['injuries','Verletzungen']];
   P.innerHTML=`<div class="trtop">
       <div class="trtabs">${tabs.map(([k,t])=>`<button class="${V===k?'on':''}" data-trv="${k}">${t}</button>`).join('')}</div>
-      <div class="tract"><button class="btn" data-tr-new>${SVI('plus')} Training erfassen</button><button class="btn ghost" data-tr-inj>${SVI('plus')} Verletzung</button><button class="btn ghost" data-tr-chat>${SVI('chat')} Co-Trainer</button></div></div>
+      <div class="tract"><button class="btn" data-tr-new>${SVI('plus')} Training erfassen</button><button class="btn ghost" data-tr-game>${SVI('plus')} Spiel</button><button class="btn ghost" data-tr-inj>${SVI('plus')} Verletzung</button><button class="btn ghost" data-tr-chat>${SVI('chat')} Co-Trainer</button></div></div>
     <div id="trBody"></div>`;
   P.querySelectorAll('[data-trv]').forEach(b=>b.onclick=()=>{ TR.view=b.dataset.trv; trRender(); });
   P.querySelector('[data-tr-new]').onclick=()=>trSessionEditor(trToday());
   P.querySelector('[data-tr-inj]').onclick=()=>trInjuryEditor(null);
+  P.querySelector('[data-tr-game]').onclick=()=>trSessionEditor(trToday(),null,'spiel');
   P.querySelector('[data-tr-chat]').onclick=()=>trChatOpen();
   const B=document.getElementById('trBody');
   ({home:trViewHome,sessions:trViewSessions,players:trViewPlayers,injuries:trViewInjuries})[V](B);
@@ -3651,7 +3874,7 @@ function trViewSessions(B){
   const S=TR.st.sessions;
   B.innerHTML=`<div class="card">${S.length?`<div class="trsl">${S.slice(0,120).map(s=>{ const da=(s.a||[]).filter(a=>a[1]!=='weg').length, weg=(s.a||[]).filter(a=>a[1]==='weg');
     return `<button class="trs" data-edit-s="${s.id}"><div class="trs-d"><b>${new Date(s.d+'T12:00:00').toLocaleDateString('de-DE',{weekday:'short'})}</b><span>${TRC.fmt(s.d)}${s.d.slice(0,4)!==trToday().slice(0,4)?s.d.slice(2,4):''}</span></div>
-      <div class="trs-b"><div class="trs-f">${s.t!=='training'?`<i class="typ">${svEsc(s.t)}</i>`:''}${(s.f||[]).map(f=>`<i>${svEsc(TRC.FOKUS[f]||f)}</i>`).join('')}${s.i?`<i class="int">Intensität ${s.i}/5</i>`:''}${s.s?`<i class="st s${s.s}">Eindruck ${s.s}/5</i>`:''}</div>
+      <div class="trs-b"><div class="trs-f">${s.t!=='training'?`<i class="typ">${svEsc(s.t)}</i>`:''}${s.t==='spiel'&&s.tw!=null?`<i class="res ${s.tw>s.tg?'w':s.tw===s.tg?'d':'l'}">${s.tw}:${s.tg}${s.g?' '+svEsc(s.g):''}</i>`:s.g?`<i>${svEsc(s.g)}</i>`:''}${(s.f||[]).map(f=>`<i>${svEsc(TRC.FOKUS[f]||f)}</i>`).join('')}${s.i?`<i class="int">Intensität ${s.i}/5</i>`:''}${s.s?`<i class="st s${s.s}">Eindruck ${s.s}/5</i>`:''}</div>
       <span>${weg.length?'Fehlend: '+svEsc(weg.slice(0,6).map(a=>trShort(a[0])+(a[2]==='ohne'?' (!)':'')).join(', '))+(weg.length>6?' …':''):'Alle da'}${s.n?' · '+svEsc(s.n.slice(0,80)):''}</span></div>
       <div class="trs-n"><b>${da}</b><span>da</span></div></button>`; }).join('')}</div>`:'<div class="empty">Noch keine Einheiten erfasst.</div>'}</div>`;
   B.querySelectorAll('[data-edit-s]').forEach(b=>b.onclick=()=>trSessionEditor(null,b.dataset.editS));
@@ -3685,35 +3908,49 @@ function trViewInjuries(B){
 }
 
 /* ---------- Einheit bearbeiten ---------- */
-function trSessionEditor(datum,sid){
-  const s0=sid?TR.st.sessions.find(s=>s.id===sid):trSessionOn(datum||trToday());
-  const st={id:s0&&s0.id,datum:s0?s0.d:(datum||trToday()),typ:s0?s0.t:'training',fokus:new Set(s0?s0.f||[]:[]),i:s0?s0.i:null,s:s0?s0.s:null,n:s0?s0.n||'':'',
+function trSessionEditor(datum,sid,typ0){
+  const s0=sid?TR.st.sessions.find(s=>s.id===sid):trSessionOn(datum||trToday(),typ0||'training');
+  const st={id:s0&&s0.id,datum:s0?s0.d:(datum||trToday()),typ:s0?s0.t:(typ0||'training'),fokus:new Set(s0?s0.f||[]:[]),i:s0?s0.i:null,s:s0?s0.s:null,n:s0?s0.n||'':'',
+    g:s0?s0.g||'':'',h:s0?s0.h:null,tw:s0&&s0.tw!=null?s0.tw:'',tg:s0&&s0.tg!=null?s0.tg:'',
     rows:{}, orig:new Set(), open:null, extra:[]};
-  (s0&&s0.a||[]).forEach(a=>{ st.rows[a[0]]={status:a[1],grund:a[2],motivation:a[3],fitness:a[4],notiz:a[5]||''}; st.orig.add(a[0]); if(!trSquad().some(p=>p.id===a[0]))st.extra.push(a[0]); });
-  const M=svModal(`<div class="mhead"><div class="rm-ic" style="width:46px;height:46px">${SVI('activity')}</div><div><h2 style="margin:0">${s0?'Einheit bearbeiten':'Training erfassen'}</h2><div class="msub">Anwesenheit, Gründe, Eindruck – für alle gespeichert</div></div></div><div id="trEd"></div>`);
+  (s0&&s0.a||[]).forEach(a=>{ st.rows[a[0]]={status:a[1],grund:a[2],motivation:a[3],fitness:a[4],notiz:a[5]||'',tore:a[6]||0,vorlagen:a[7]||0}; st.orig.add(a[0]); if(!trSquad().some(p=>p.id===a[0]))st.extra.push(a[0]); });
+  const M=svModal(`<div class="mhead"><div class="rm-ic" style="width:46px;height:46px">${SVI('activity')}</div><div><h2 style="margin:0">${s0?(s0.t==='spiel'?'Spiel bearbeiten':'Einheit bearbeiten'):(typ0==='spiel'?'Spiel erfassen':'Training erfassen')}</h2><div class="msub">${typ0==='spiel'||(s0&&s0.t==='spiel')?'Ergebnis, Aufstellung, Tore & Vorlagen – zählt für Allzeit-Statistik und Moneyball-Auswertung':'Anwesenheit, Gründe, Eindruck – für alle gespeichert'}</div></div></div><div id="trEd"></div>`);
   const draw=()=>{
     const E=document.getElementById('trEd'); if(!E)return;
     const list=[...trSquad(),...st.extra.map(trP).filter(Boolean).filter(p=>!trSquad().includes(p))];
     const cnt={da:0,spaet:0,weg:0,offen:0}; list.forEach(p=>{ const r=st.rows[p.id]; if(r&&r.status)cnt[r.status]++; else cnt.offen++; });
+    const G=st.typ==='spiel', L=G?['Startelf','Joker','Fehlt']:['Da','Spät','Fehlt'];
+    const step=(id,k,v)=>`<span class="trstep"><em>${k==='tore'?'⚽ Tore':'🅰️ Vorl.'}</em><button type="button" data-step="${svEsc(id)}:${k}:-1">−</button><b>${v||0}</b><button type="button" data-step="${svEsc(id)}:${k}:1">+</button></span>`;
+    const sumT=Object.values(st.rows).reduce((a,r)=>a+(r.status&&r.status!=='weg'?(r.tore||0):0),0);
     E.innerHTML=`<div class="tred-top">
         <div class="field"><label>Datum</label><input type="date" id="trD" value="${svEsc(st.datum)}" max="${TRC.addDays(trToday(),14)}"></div>
         <div class="field"><label>Art</label><select id="trT">${[['training','Training'],['spiel','Spiel'],['test','Testspiel'],['sonstiges','Sonstiges']].map(([k,t])=>`<option value="${k}"${st.typ===k?' selected':''}>${t}</option>`).join('')}</select></div></div>
-      <div class="sbsec"><h4>Inhalt</h4><div class="chips">${Object.entries(TRC.FOKUS).map(([k,t])=>`<button type="button" class="pchip${st.fokus.has(k)?' on':''}" data-fk="${k}">${t}</button>`).join('')}</div>
+      ${G?`<div class="sbsec trmatch"><h4>Spiel</h4><div class="trm-row"><div class="field"><label>Gegner</label><input id="trG" maxlength="80" value="${svEsc(st.g)}" placeholder="z.B. VfR Fehlheim II"></div>
+          <div class="trseg trha"><button type="button" data-ha="1" class="${st.h===true?'on':''}">Heim</button><button type="button" data-ha="0" class="${st.h===false?'on':''}">Auswärts</button></div></div>
+        <div class="trres"><input id="trTW" type="number" min="0" max="40" inputmode="numeric" value="${svEsc(String(st.tw))}" aria-label="Tore wir"><span>:</span><input id="trTG" type="number" min="0" max="40" inputmode="numeric" value="${svEsc(String(st.tg))}" aria-label="Tore Gegner"><small>${st.tw!==''&&st.tg!==''?(+st.tw>+st.tg?'Sieg':+st.tw===+st.tg?'Unentschieden':'Niederlage'):'Ergebnis (wir : Gegner)'}${sumT&&st.tw!==''&&sumT>+st.tw?` · <b class="bad">${sumT} Torschützen > ${st.tw} Tore</b>`:''}</small></div></div>`:''}
+      <div class="sbsec"${G?' style="display:none"':''}><h4>Inhalt</h4><div class="chips">${Object.entries(TRC.FOKUS).map(([k,t])=>`<button type="button" class="pchip${st.fokus.has(k)?' on':''}" data-fk="${k}">${t}</button>`).join('')}</div>
         <div class="trscale"><span>Intensität</span>${[1,2,3,4,5].map(n=>`<button type="button" data-int="${n}" class="${st.i===n?'on':''}">${n}</button>`).join('')}<small>${['','sehr locker','locker','mittel','intensiv','sehr intensiv'][st.i||0]||''}</small></div>
         <div class="trscale"><span>Eindruck</span>${[1,2,3,4,5].map(n=>`<button type="button" data-st="${n}" class="${st.s===n?'on s'+n:''}">${n}</button>`).join('')}<small>${['','schwach','zäh','ok','gut','top'][st.s||0]||''}</small></div>
         <div class="field" style="margin-top:8px"><label>Notiz zur Einheit</label><input id="trN" maxlength="2000" value="${svEsc(st.n)}" placeholder="z.B. sehr laufintensiv, gute Stimmung, Standards geübt"></div></div>
-      <div class="sbsec"><h4>Anwesenheit <small>${cnt.da} da · ${cnt.spaet} spät · ${cnt.weg} fehlen${cnt.offen?' · '+cnt.offen+' offen':''}</small></h4>
-        <div class="btnrow" style="margin-bottom:8px"><button type="button" class="btn ghost sm" id="trAll">Alle offenen = da</button><button type="button" class="btn ghost sm" id="trAdd">${SVI('plus')} Spieler aus der Zweiten</button></div>
+      <div class="sbsec"><h4>${G?'Kader':'Anwesenheit'} <small>${cnt.da} ${G?'Startelf':'da'} · ${cnt.spaet} ${G?'Joker':'spät'} · ${cnt.weg} fehlen${cnt.offen?' · '+cnt.offen+' offen':''}</small></h4>
+        <div class="btnrow" style="margin-bottom:8px">${G?(typeof LINEUP!=='undefined'&&LINEUP.slots&&Object.values(LINEUP.slots).some(Boolean)?'<button type="button" class="btn ghost sm" id="trXI">Aktuelle Aufstellung übernehmen</button>':''):'<button type="button" class="btn ghost sm" id="trAll">Alle offenen = da</button>'}<button type="button" class="btn ghost sm" id="trAdd">${SVI('plus')} Spieler aus der Zweiten</button></div>
         <div class="tratt">${list.map(p=>{ const r=st.rows[p.id]||{}, o=st.open===p.id;
           return `<div class="trr${r.status?' s-'+r.status:''}"><div class="trr-h"><span class="trr-n" data-open-r="${svEsc(p.id)}"><b>${svEsc(p.name)}</b><em>${svEsc(p.pos||'')}${p.kader===2?' · II':''}${trInjury(p.id)?' · 🩹':''}${r.motivation?' · M'+r.motivation:''}${r.fitness?' · F'+r.fitness:''}</em></span>
-            <div class="trseg"><button type="button" data-set="${svEsc(p.id)}:da" class="${r.status==='da'?'on':''}">Da</button><button type="button" data-set="${svEsc(p.id)}:spaet" class="${r.status==='spaet'?'on':''}">Spät</button><button type="button" data-set="${svEsc(p.id)}:weg" class="${r.status==='weg'?'on':''}">Fehlt</button></div></div>
+            <div class="trseg"><button type="button" data-set="${svEsc(p.id)}:da" class="${r.status==='da'?'on':''}">${L[0]}</button><button type="button" data-set="${svEsc(p.id)}:spaet" class="${r.status==='spaet'?'on':''}">${L[1]}</button><button type="button" data-set="${svEsc(p.id)}:weg" class="${r.status==='weg'?'on':''}">${L[2]}</button></div></div>
+            ${G&&r.status&&r.status!=='weg'?`<div class="trsteps">${step(p.id,'tore',r.tore)}${step(p.id,'vorlagen',r.vorlagen)}</div>`:''}
             ${r.status==='weg'?`<div class="trg">${Object.entries(TRC.REASONS).map(([k,t])=>`<button type="button" data-gr="${svEsc(p.id)}:${k}" class="${r.grund===k?'on'+(k==='ohne'?' warn':''):''}">${t}</button>`).join('')}</div>`:''}
             ${o?`<div class="trx"><div class="trscale"><span>Motivation</span>${[1,2,3,4,5].map(n=>`<button type="button" data-mo="${svEsc(p.id)}:${n}" class="${r.motivation===n?'on s'+n:''}">${n}</button>`).join('')}</div>
               <div class="trscale"><span>Fitness/Frische</span>${[1,2,3,4,5].map(n=>`<button type="button" data-fi="${svEsc(p.id)}:${n}" class="${r.fitness===n?'on s'+n:''}">${n}</button>`).join('')}</div>
               <input data-no="${svEsc(p.id)}" maxlength="500" value="${svEsc(r.notiz||'')}" placeholder="Notiz, z.B. „sehr lustlos“, „stark im Abschlussspiel“"></div>`:`<button type="button" class="trr-more" data-open-r="${svEsc(p.id)}">+ Motivation, Fitness, Notiz</button>`}</div>`; }).join('')}</div></div>
       <div class="btnrow sbact"><button class="btn" type="button" id="trSave">Für alle speichern</button><button class="btn ghost" type="button" id="trCancel">Abbrechen</button>${st.id?`<button class="btn ghost" type="button" id="trDel" style="margin-left:auto;color:#fca5a5">Einheit löschen</button>`:''}</div>`;
     const keep=()=>{ const d=document.getElementById('trD'), t=document.getElementById('trT'), n=document.getElementById('trN'); if(d)st.datum=d.value||st.datum; if(t)st.typ=t.value; if(n)st.n=n.value;
+      const g=document.getElementById('trG'), tw=document.getElementById('trTW'), tg=document.getElementById('trTG'); if(g)st.g=g.value; if(tw)st.tw=tw.value; if(tg)st.tg=tg.value;
       E.querySelectorAll('[data-no]').forEach(i=>{ const r=st.rows[i.dataset.no]=st.rows[i.dataset.no]||{}; r.notiz=i.value; }); };
+    document.getElementById('trT').onchange=()=>{ keep(); draw(); };
+    ['trTW','trTG'].forEach(i=>{ const x=document.getElementById(i); if(x)x.oninput=()=>{ keep(); const sm=E.querySelector('.trres small'); if(sm)sm.textContent=st.tw!==''&&st.tg!==''?(+st.tw>+st.tg?'Sieg':+st.tw===+st.tg?'Unentschieden':'Niederlage'):'Ergebnis (wir : Gegner)'; }; });
+    E.querySelectorAll('[data-ha]').forEach(b=>b.onclick=()=>{ keep(); const v=b.dataset.ha==='1'; st.h=st.h===v?null:v; draw(); });
+    E.querySelectorAll('[data-step]').forEach(b=>b.onclick=()=>{ keep(); const [id,k,dv]=b.dataset.step.split(':'); const r=st.rows[id]=st.rows[id]||{}; r[k]=Math.max(0,Math.min(20,(r[k]||0)+(+dv))); draw(); });
+    if(document.getElementById('trXI'))document.getElementById('trXI').onclick=()=>{ keep(); const xi=new Set(Object.values(LINEUP.slots||{}).filter(Boolean)); list.forEach(p=>{ if(xi.has(p.id)){ const r=st.rows[p.id]=st.rows[p.id]||{}; r.status='da'; r.grund=null; } }); draw(); };
     E.querySelectorAll('[data-fk]').forEach(b=>b.onclick=()=>{ keep(); const k=b.dataset.fk; if(st.fokus.has(k))st.fokus.delete(k); else st.fokus.add(k); draw(); });
     E.querySelectorAll('[data-int]').forEach(b=>b.onclick=()=>{ keep(); const n=+b.dataset.int; st.i=st.i===n?null:n; draw(); });
     E.querySelectorAll('[data-st]').forEach(b=>b.onclick=()=>{ keep(); const n=+b.dataset.st; st.s=st.s===n?null:n; draw(); });
@@ -3722,7 +3959,7 @@ function trSessionEditor(datum,sid){
     E.querySelectorAll('[data-mo]').forEach(b=>b.onclick=()=>{ keep(); const [id,n]=b.dataset.mo.split(':'); const r=st.rows[id]=st.rows[id]||{}; r.motivation=r.motivation===+n?null:+n; if(!r.status)r.status='da'; draw(); });
     E.querySelectorAll('[data-fi]').forEach(b=>b.onclick=()=>{ keep(); const [id,n]=b.dataset.fi.split(':'); const r=st.rows[id]=st.rows[id]||{}; r.fitness=r.fitness===+n?null:+n; if(!r.status)r.status='da'; draw(); });
     E.querySelectorAll('[data-open-r]').forEach(b=>b.onclick=()=>{ keep(); st.open=st.open===b.dataset.openR?null:b.dataset.openR; draw(); });
-    document.getElementById('trAll').onclick=()=>{ keep(); list.forEach(p=>{ const r=st.rows[p.id]=st.rows[p.id]||{}; if(!r.status)r.status=trInjury(p.id)?'weg':'da'; if(r.status==='weg'&&!r.grund)r.grund='verletzt'; }); draw(); };
+    if(document.getElementById('trAll'))document.getElementById('trAll').onclick=()=>{ keep(); list.forEach(p=>{ const r=st.rows[p.id]=st.rows[p.id]||{}; if(!r.status)r.status=trInjury(p.id)?'weg':'da'; if(r.status==='weg'&&!r.grund)r.grund='verletzt'; }); draw(); };
     document.getElementById('trAdd').onclick=()=>{ keep(); const cand=players.filter(p=>p.own&&!p.isJugend&&p.kader===2&&!list.includes(p)).sort((a,b)=>a.name.localeCompare(b.name,'de'));
       const nm=prompt('Name des Spielers (2. Mannschaft/Gast):\n'+cand.slice(0,30).map(p=>p.name).join(', ')); if(!nm)return;
       const k=TRC.N(nm), hit=cand.find(p=>TRC.N(p.name)===k)||cand.find(p=>TRC.N(p.name).includes(k)); if(!hit)return kToast('Kein Spieler der Zweiten mit diesem Namen'); st.extra.push(hit.id); st.rows[hit.id]={status:'da'}; draw(); };
@@ -3730,11 +3967,13 @@ function trSessionEditor(datum,sid){
     if(document.getElementById('trDel'))document.getElementById('trDel').onclick=async()=>{ if(!confirm('Diese Einheit samt Anwesenheit löschen?'))return; try{ await trDeleteSession(st.id); closeOverlay(); kToast('Einheit gelöscht'); }catch(e){ kToast('⚠️ '+e.message); } };
     document.getElementById('trSave').onclick=async()=>{ keep();
       const miss=Object.entries(st.rows).filter(([,r])=>r.status==='weg'&&!r.grund); if(miss.length){ kToast('Bitte Grund angeben: '+miss.map(([id])=>trShort(id)).join(', ')); return; }
-      const sp=[]; Object.entries(st.rows).forEach(([id,r])=>{ if(r.status)sp.push({player_id:id,status:r.status,grund:r.status==='weg'?r.grund:null,motivation:r.motivation||null,fitness:r.fitness||null,notiz:(r.notiz||'').trim()||null}); else if(st.orig.has(id))sp.push({player_id:id,status:''}); });
+      const sp=[]; Object.entries(st.rows).forEach(([id,r])=>{ if(r.status)sp.push(Object.assign({player_id:id,status:r.status,grund:r.status==='weg'?r.grund:null,motivation:r.motivation||null,fitness:r.fitness||null,notiz:(r.notiz||'').trim()||null},st.typ==='spiel'?{tore:r.status!=='weg'&&r.tore||null,vorlagen:r.status!=='weg'&&r.vorlagen||null}:{})); else if(st.orig.has(id))sp.push({player_id:id,status:''}); });
+      if(st.typ==='spiel'&&((st.tw==='')!==(st.tg===''))){ kToast('Bitte beide Ergebnis-Felder ausfüllen (oder beide leer lassen)'); return; }
       if(s0&&(s0.d!==st.datum||s0.t!==st.typ)){ try{ await trDeleteSession(s0.id); }catch(e){} }
       const b=document.getElementById('trSave'); b.disabled=true; b.textContent='Speichert …';
-      try{ await trSaveSession({datum:st.datum,typ:st.typ,fokus:[...st.fokus],intensitaet:st.i,stimmung:st.s,notiz:st.n.trim()||null,spieler:sp});
-        closeOverlay(); kToast('✓ Einheit vom '+TRC.fmt(st.datum)+' gespeichert – '+sp.filter(x=>x.status==='weg').length+' fehlten'); }
+      try{ await trSaveSession(Object.assign({datum:st.datum,typ:st.typ,fokus:[...st.fokus],intensitaet:st.i,stimmung:st.s,notiz:st.n.trim()||null,spieler:sp},
+          st.typ==='spiel'?{gegner:st.g.trim()||null,heim:st.h,tore_wir:st.tw===''?null:+st.tw,tore_gegner:st.tg===''?null:+st.tg}:{}));
+        closeOverlay(); kToast(st.typ==='spiel'?'✓ Spiel vom '+TRC.fmt(st.datum)+' gespeichert':'✓ Einheit vom '+TRC.fmt(st.datum)+' gespeichert – '+sp.filter(x=>x.status==='weg').length+' fehlten'); }
       catch(e){ b.disabled=false; b.textContent='Für alle speichern'; kToast('⚠️ '+e.message); } };
   };
   draw();
@@ -3863,7 +4102,7 @@ function trChatOpen(){
 function trChatMode(){ const el=document.getElementById('trcMode'); if(!el)return; const ai=TR.ai&&TR.ai.ready;
   el.innerHTML=ai?'KI-Modus · versteht freie Sätze und Fragen':'Einfacher Modus · Anwesenheit, Gründe, Verletzungen'+(isAdmin()?' · <a href="#" id="trcKey">KI einschalten</a>':'');
   const k=document.getElementById('trcKey'); if(k)k.onclick=e=>{ e.preventDefault(); closeOverlay(); goTab('admin'); setTimeout(()=>{ const c=document.getElementById('trAi'); if(c)c.scrollIntoView({behavior:'smooth'}); },500); };
-  const sug=document.getElementById('trcSug'); if(sug){ const S=['Heute fehlten …','Wer ist aktuell verletzt?','Wie ist die Trainingsbeteiligung?'].concat(ai?['Wie siehst du die Elf fürs Wochenende?','Wer ist in den letzten Wochen auffällig?']:[]);
+  const sug=document.getElementById('trcSug'); if(sug){ const S=['Heute fehlten …','Spiel: 3:1 gegen …','Kerwe-Aufbau: …','Wer ist aktuell verletzt?','Wie ist die Trainingsbeteiligung?'].concat(ai?['Wie siehst du die Elf fürs Wochenende?','Wer ist in den letzten Wochen auffällig?']:[]);
     sug.innerHTML=S.map(s=>`<button type="button">${svEsc(s)}</button>`).join(''); sug.querySelectorAll('button').forEach(b=>b.onclick=()=>{ const ta=document.getElementById('trcTxt'); if(/…$/.test(b.textContent)){ ta.value=b.textContent.replace('…',''); ta.focus(); } else trChatSend(b.textContent); }); } }
 function trActSummary(a){
   const i=a.input||{};
@@ -3877,6 +4116,12 @@ function trActSummary(a){
       ${i.notiz?`<div>Notiz: ${svEsc(i.notiz)}</div>`:''}
       <label class="trc-rest"><input type="checkbox" data-rest ${i.rest_da?'checked':''}> Alle anderen Kaderspieler als anwesend eintragen</label>`;
   }
+  if(a.type==='spiel'){ const sp=i.spieler||[]; return `<b>⚽ Spiel ${TRC.fmt(i.datum)}${i.gegner?' gegen '+svEsc(i.gegner):''}${i.heim===true?' (Heim)':i.heim===false?' (Auswärts)':''}</b>
+      <div>Ergebnis: <b>${i.tore_wir!=null?i.tore_wir:'?'}:${i.tore_gegner!=null?i.tore_gegner:'?'}</b></div>
+      ${sp.some(x=>x.tore)?`<div>Tore: ${sp.filter(x=>x.tore).map(x=>svEsc(trShort(x.player_id))+(x.tore>1?' ('+x.tore+')':'')).join(', ')}</div>`:''}
+      ${sp.some(x=>x.vorlagen)?`<div>Vorlagen: ${sp.filter(x=>x.vorlagen).map(x=>svEsc(trShort(x.player_id))+(x.vorlagen>1?' ('+x.vorlagen+')':'')).join(', ')}</div>`:''}`; }
+  if(a.type==='veranstaltung'){ const h=i.helfer||[]; return `<b>🎪 ${svEsc(i.titel||TRS.EART[i.art]||'Veranstaltung')} · ${TRC.fmt(i.datum)}</b>
+      ${h.length?`<div>${h.map(x=>`${svEsc(vrPersonName(x.person))}${(x.rollen||[]).length?' <em>('+x.rollen.map(r=>svEsc(TRS.ROLES[r]||r)).join(', ')+')</em>':''}${x.stunden?' '+x.stunden+' Std.':''}${x.status&&x.status!=='geholfen'?` <em class="${x.status==='nicht_erschienen'?'bad':''}">${svEsc(TRS.HSTAT[x.status]||x.status)}</em>`:''}`).join(' · ')}</div>`:'<div>Noch keine Helfer erkannt</div>'}`; }
   if(a.type==='verletzung')return `<b>🩹 Verletzung: ${svEsc(trName(i.player_id))}</b><div>${svEsc(i.diagnose||'')}${i.koerperteil?' · '+svEsc(i.koerperteil):''} · seit ${TRC.fmt(i.beginn)}${i.prognose?' · voraussichtlich zurück '+TRC.fmt(i.prognose):''}</div>`;
   if(a.type==='verletzung_ende'){ const inj=TR.st.injuries.find(x=>x.id===i.injury_id); return `<b>✅ Wieder fit: ${svEsc(trName(inj?inj.p:i.player_id))}</b><div>${svEsc(inj?inj.dg:i.diagnose||'')} – zurück am ${TRC.fmt(i.zurueck)}</div>`; }
   return '';
@@ -3890,6 +4135,10 @@ async function trExec(a,rest){
     const p={datum:i.datum||trToday(),typ:'training',spieler:sp}; ['fokus','intensitaet','stimmung','notiz'].forEach(k=>{ if(i[k]!=null&&!(Array.isArray(i[k])&&!i[k].length))p[k]=i[k]; });
     await trSaveSession(p); return 'Training '+TRC.fmt(p.datum)+' eingetragen';
   }
+  if(a.type==='spiel'){ const sp=(i.spieler||[]).filter(x=>x.player_id).map(x=>Object.assign({player_id:x.player_id,status:x.status||'da'},x.tore?{tore:x.tore}:{},x.vorlagen?{vorlagen:x.vorlagen}:{}));
+    const p={datum:i.datum||trToday(),typ:'spiel',spieler:sp}; ['gegner','heim','tore_wir','tore_gegner'].forEach(k=>{ if(i[k]!=null&&i[k]!=='')p[k]=i[k]; });
+    await trSaveSession(p); return 'Spiel '+TRC.fmt(p.datum)+' eingetragen'; }
+  if(a.type==='veranstaltung'){ await vrSaveEvent(i); return (i.titel||'Veranstaltung')+' eingetragen'; }
   if(a.type==='verletzung'){ await trSaveInjury(i); return 'Verletzung von '+trShort(i.player_id)+' eingetragen'; }
   if(a.type==='verletzung_ende'){ await trCloseInjury(i.injury_id,i.zurueck||trToday()); return 'Verletzung abgeschlossen'; }
 }
@@ -3917,10 +4166,11 @@ async function trChatSend(text){
     }catch(e){ reply=null; }
   }
   if(!reply||reply.local){
-    const sq=trSquadLite(), P=TRC.parse(text,sq,trToday(),TR.st);
+    const sq=trSquadLite(), PM=TRS.parseMatch(text,sq,trToday()), PE=PM?null:TRS.parseEvent(text,vrPeople(),trToday());
+    const P=PM?{actions:[PM.action],ambig:PM.ambig,warn:PM.warn}:PE?{actions:[PE.action],ambig:PE.ambig}:TRC.parse(text,sq,trToday(),TR.st);
     let content, actions=P.actions;
     if(P.ambig&&P.ambig.length){ content=(reply?reply.content+'\n':'')+P.ambig.map(a=>`Welchen meinst du mit „${a.k.replace(/^\w/,c=>c.toUpperCase())}“: ${a.names.join(', ')}?`).join('\n')+(actions.length?'\n\nDen Rest habe ich schon vorbereitet:':' Schreib bitte den vollen Namen.'); }
-    else if(actions.length){ content=(reply?reply.content+'\n':'')+'Verstanden – so würde ich es eintragen:'; }
+    else if(actions.length){ content=(reply?reply.content+'\n':'')+'Verstanden – so würde ich es eintragen:'+(P.warn?'\n⚠️ '+P.warn:''); }
     else { const ans=TRC.answer(text,sq,TR.st,trToday()); content=(reply?reply.content+'\n':'')+(ans||'Das habe ich nicht verstanden. Im einfachen Modus verstehe ich Sätze wie „Max und Tim waren heute nicht da (Arbeit), Tom hat eine Zerrung, drei Wochen“ oder Fragen wie „Ist Tom wieder fit?“.'+(TR.ai&&TR.ai.ready?'':' Für freie Fragen und Aufstellungs-Tipps kann der Admin die KI einschalten.')); }
     reply={role:'assistant',content,actions,local:true};
   }
@@ -3982,6 +4232,485 @@ async function trAiCard(P){
       { const _rh3=renderHome; renderHome=function(){ const x=_rh3.apply(this,arguments); try{trHomeCard();}catch(e){} return x; }; }
       if((location.hash||'').slice(1)==='training')setTimeout(()=>goTab('training'),50);
     }
+    return r; }; }
+
+/* =====================================================================
+   SV/BSC Scout · Runde 8: Verein – Rankings (Training & Loyalität), Veranstaltungen & Helfer,
+   Allzeit-Statistik & Legenden, Import von Listen (Excel/CSV/Einfügen), Scouting-Radar
+   Rechte: Rankings, Helfer, Radar nur fürs Team (Admin, Vorstand, Kaderplaner, Trainer);
+           Allzeit-Statistik (öffentliche Vereinsseite) sehen alle Mitglieder.
+   ===================================================================== */
+SV_PAGES.verein=['Verein','Rankings, Helfer & Veranstaltungen, Allzeit-Statistik und Legenden'];
+SV_PAGES.radar=['Radar','Formkurven, Torserien und Moneyball-Chancen – bevor es andere merken'];
+function canScout(){ return canEdit(); }
+{ const _ta2=svTabAllowed; svTabAllowed=function(t){ if(t==='radar')return canScout(); if(t==='verein')return true; return _ta2.apply(this,arguments); }; }
+
+const VR={ev:[],evLoaded:false,at:[],atLoaded:false,radar:[],radarLoaded:false,view:null,atSort:'sp',atQ:'',rf:'alle',kader:'1',atShow:40};
+const VR_SEASON_START='2026-07-01';
+function vrPeople(){ return players.filter(p=>p.own&&!p.verzicht).map(p=>({id:p.id,name:p.name})); }
+function vrPersonName(person){ return String(person||'').startsWith('x:')?String(person).slice(2):trName(person); }
+function vrKader(all){ return players.filter(p=>p.own&&!p.isJugend&&!p.verzicht&&(p.kader===1||(all&&p.kader===2))).sort((a,b)=>a.name.localeCompare(b.name,'de')); }
+
+/* ---------- Laden ---------- */
+async function vrLoadEvents(){ if(!canTraining())return; try{ const {data,error}=await SVB.sb.rpc('events_state',{p_since:TRC.addDays(trToday(),-1100)}); if(error)throw error; VR.ev=(data||[]).map(e=>Object.assign(e,{id:String(e.id)})); VR.evLoaded=true; }catch(e){ console.warn('Veranstaltungen',e); } vrAfter(); }
+async function vrLoadAllTime(){ try{ const {data,error}=await SVB.sb.from('club_stats').select('key,name,tore,assists,spiele,siege,quote,stand').order('spiele',{ascending:false}).limit(2000); if(error)throw error; VR.at=data||[]; VR.atLoaded=true; VR._idx=null; }catch(e){ console.warn('Allzeit',e); VR.atLoaded=true; } vrAfter(); }
+async function vrLoadRadar(){ if(!canScout())return; try{ const {data,error}=await SVB.sb.from('radar').select('id,key,stand,typ,lvl,player_id,club_key,titel,detail,data,created_at').order('created_at',{ascending:false}).limit(400); if(error)throw error; VR.radar=data||[]; VR.radarLoaded=true; }catch(e){ console.warn('Radar',e); VR.radarLoaded=true; } vrAfter(); }
+function vrAfter(){ try{ if(document.querySelector('#panel-verein.active'))vrRender(); }catch(e){ console.warn(e); } try{ if(document.querySelector('#panel-radar.active'))rdRender(); }catch(e){ console.warn(e); } try{ vrHomeCard(); }catch(e){} vrBadge(); }
+async function vrSaveEvent(i){ const {data,error}=await SVB.sb.rpc('event_save',{p:i}); if(error)throw new Error(/check/.test(error.message)?'Ungültige Angabe (Art, Stunden oder Status)':error.message); await vrLoadEvents(); return data; }
+
+/* ---------- Allzeit: Zuordnung Spieler ↔ Vereinsstatistik ---------- */
+function vrIdx(){
+  const k=VR.at.length+':'+Object.keys(CRM||{}).length+':'+players.length;
+  if(VR._idx&&VR._idxK===k)return VR._idx;
+  const ordered=[...players.filter(p=>p.own),...players.filter(p=>!p.own)];
+  VR._idx=TRS.allTimeIndex(VR.at,ordered,CRM||{}); VR._idxK=k; return VR._idx;
+}
+function vrTotals(pid){ const row=vrIdx().byPlayer.get(pid)||null; const p=trP(pid); const ms=p&&p.own&&TR.loaded?TRS.matchStats(TR.st,pid,row&&row.stand?row.stand:VR_SEASON_START):null; return {row,ms,tot:TRS.totals(row,ms)}; }
+function vrRanks(){ // ewige Listen: Platz nach Spielen und Toren
+  if(VR._rk&&VR._rkK===VR._idxK)return VR._rk;
+  const idx=vrIdx(), L=VR.at.map(r=>{ const pid=idx.used.get(r.key); return {r,pid,tot:pid?vrTotals(pid).tot:TRS.totals(r,null)}; });
+  const bySp=[...L].sort((a,b)=>b.tot.sp-a.tot.sp), byT=[...L].sort((a,b)=>b.tot.tore-a.tot.tore);
+  const rk=new Map(); bySp.forEach((x,i)=>rk.set(x.r.key,{sp:i+1})); byT.forEach((x,i)=>{ rk.get(x.r.key).tore=i+1; });
+  VR._rk={L,rk}; VR._rkK=VR._idxK; return VR._rk;
+}
+function vrScores(p){
+  const today=trToday(), {row,ms}=vrTotals(p.id);
+  const ts=TR.loaded?TRS.trainingScore(TR.st,p.id,today):{score:null,why:['Trainingsdaten werden geladen …']};
+  const ls=TRS.loyaltyScore(p.id,VR.ev,row,ms?ms.sp:0,today);
+  const ps=TR.loaded?TRC.playerStats(TR.st,p.id,today):null;
+  const rt=ps?TRS.retention(ts,ls,ps,VR.ev.length>0):{risk:0,lvl:null,why:[]};
+  return {ts,ls,rt};
+}
+const vrCls=v=>v==null?'':v>=75?'ok':v>=55?'mid':'bad';
+
+/* ---------- Seite „Verein“ ---------- */
+function vrRender(){
+  const P=document.getElementById('panel-verein'); if(!P)return;
+  const team=canTraining();
+  if(!VR.view)VR.view=team?'rank':'allzeit';
+  if(!team&&VR.view!=='allzeit')VR.view='allzeit';
+  const tabs=(team?[['rank','Rankings'],['events','Helfer & Events']]:[]).concat([['allzeit','Allzeit & Legenden']]);
+  P.innerHTML=`<div class="trtop"><div class="trtabs">${tabs.map(([k,t])=>`<button class="${VR.view===k?'on':''}" data-vrv="${k}">${t}</button>`).join('')}</div>
+    ${team?`<div class="tract"><button class="btn" data-vr-ev>${SVI('plus')} Veranstaltung</button><button class="btn ghost" data-vr-imp>${SVI('upload')} Listen importieren</button></div>`:''}</div><div id="vrBody"></div>`;
+  P.querySelectorAll('[data-vrv]').forEach(b=>b.onclick=()=>{ VR.view=b.dataset.vrv; vrRender(); });
+  if(team){ P.querySelector('[data-vr-ev]').onclick=()=>vrEventEditor(null); P.querySelector('[data-vr-imp]').onclick=()=>vrImport(VR.view==='events'?'helfer':'training'); }
+  const B=document.getElementById('vrBody');
+  if(team&&(!TR.loaded||!VR.evLoaded)&&VR.view!=='allzeit'){ B.innerHTML='<div class="card"><div class="empty">Lade Daten …</div></div>'; if(!TR.loaded)trLoad(); if(!VR.evLoaded)vrLoadEvents(); return; }
+  ({rank:vrViewRank,events:vrViewEvents,allzeit:vrViewAllTime})[VR.view](B);
+}
+
+/* ----- Rankings ----- */
+function vrViewRank(B){
+  const list=vrKader(VR.kader==='2').map(p=>Object.assign({p},vrScores(p)));
+  const tr=list.filter(x=>x.ts.score!=null).sort((a,b)=>b.ts.score-a.ts.score);
+  const lo=[...list].sort((a,b)=>b.ls.score-a.ls.score);
+  const risk=list.filter(x=>x.rt.lvl).sort((a,b)=>b.rt.risk-a.rt.risk);
+  const podium=(L,k,unit)=>L.length?`<div class="vrpod">${[1,0,2].map(i=>L[i]?`<div class="vrpod-i p${i+1}" data-why="${svEsc(L[i].p.id)}">${avaHtml(L[i].p)}<b>${svEsc(trShort(L[i].p.id))}</b><span class="${vrCls(L[i][k].score)}">${L[i][k].score}</span><i>${i+1}</i></div>`:'<div></div>').join('')}</div>`:'';
+  const rows=(L,k)=>(VR.rkAll?L:L.slice(0,12)).map((x,i)=>`<div class="vrrow" data-why="${svEsc(x.p.id)}"><em>${i+1}</em>${avaHtml(x.p)}<div class="vrrow-b"><b>${svEsc(x.p.name)}${x.p.kader===2?' <small>II</small>':''}</b><div class="vrbar"><i class="${vrCls(x[k].score)}" style="width:${Math.max(3,x[k].score||0)}%"></i></div></div><span class="vrsc ${vrCls(x[k].score)}">${x[k].score==null?'–':x[k].score}</span></div>`).join('');
+  const noTr=list.filter(x=>x.ts.score==null).length;
+  B.innerHTML=`<div class="vrfilter"><div class="trtabs sm"><button class="${VR.kader==='1'?'on':''}" data-k="1">1. Mannschaft</button><button class="${VR.kader==='2'?'on':''}" data-k="2">+ Zweite</button></div>
+      <small>Antippen zeigt, wie der Score zustande kommt.</small></div>
+    <div class="vrgrid">
+      <div class="card"><h3 class="trh">${SVI('activity')} Trainings-Score</h3>${tr.length?podium(tr,'ts')+`<div class="vrlist">${rows(tr,'ts')}</div>`:'<div class="note">Ab 4 erfassten Einheiten je Spieler erscheint hier das Ranking. Tipp: Julians Trainingslisten über „Listen importieren“ einlesen.</div>'}
+        ${tr.length>12&&!VR.rkAll?'<button class="btn ghost sm" data-rkall>Alle '+tr.length+' zeigen</button>':''}${noTr&&tr.length?`<div class="note">${noTr} Spieler noch ohne Score (weniger als 4 Einheiten).</div>`:''}
+        <div class="note">Verletzt, länger krank und „in der Zweiten“ zählen <b>nicht</b> – kurzfristige Krankmeldungen zählen halb, gehäuft stärker; ohne Grund zählt voll.</div></div>
+      <div class="card"><h3 class="trh">${SVI('heart')} Loyalität &amp; Vereinsherz</h3>${podium(lo,'ls')}<div class="vrlist">${rows(lo,'ls')}</div>${lo.length>12&&!VR.rkAll?'<button class="btn ghost sm" data-rkall>Alle '+lo.length+' zeigen</button>':''}
+        <div class="note">Helfereinsätze (Aufbau, Theke, Kasse … inkl. Stunden) · Vereinstreue (Pflichtspiele seit 2013/14) · Teamgeist. ${VR.ev.length?'':'<b>Noch keine Veranstaltungen erfasst</b> – aktuell zählt nur die Vereinstreue.'}</div></div>
+    </div>
+    ${risk.length?`<div class="card"><h3 class="trh">${SVI('bell')} Bindungsrisiko – früh das Gespräch suchen</h3>${risk.map(x=>`<div class="tra l-${x.rt.lvl}"><span class="tra-av" data-svp="${svEsc(x.p.id)}">${avaHtml(x.p)}</span><div class="tra-b"><b data-svp="${svEsc(x.p.id)}">${svEsc(x.p.name)}</b><span>${svEsc(x.rt.why.join(' · '))}</span></div></div>`).join('')}</div>`:''}`;
+  B.querySelectorAll('[data-k]').forEach(b=>b.onclick=()=>{ VR.kader=b.dataset.k; vrViewRank(B); });
+  B.querySelectorAll('[data-rkall]').forEach(b=>b.onclick=()=>{ VR.rkAll=true; vrViewRank(B); });
+  B.querySelectorAll('[data-why]').forEach(x=>x.onclick=()=>vrWhy(x.dataset.why));
+  B.querySelectorAll('[data-svp]').forEach(x=>x.onclick=e=>{ e.stopPropagation(); openModal(x.dataset.svp); });
+}
+function vrWhy(pid){
+  const p=trP(pid); if(!p)return; const {ts,ls,rt}=vrScores(p);
+  svModal(`<div class="mhead">${avaHtml(p)}<div><h2 style="margin:0">${svEsc(p.name)}</h2><div class="msub">So entstehen die Scores</div></div></div>
+    <div class="vrwhy"><div class="vrwhy-s"><span>Trainings-Score</span><b class="${vrCls(ts.score)}">${ts.score==null?'–':ts.score}</b></div><ul>${ts.why.map(w=>`<li>${svEsc(w)}</li>`).join('')}</ul></div>
+    <div class="vrwhy"><div class="vrwhy-s"><span>Loyalität</span><b class="${vrCls(ls.score)}">${ls.score}</b></div><ul>${ls.why.map(w=>`<li>${svEsc(w)}</li>`).join('')}</ul></div>
+    ${rt.lvl?`<div class="vrwhy warn"><div class="vrwhy-s"><span>Bindungsrisiko</span><b class="bad">${rt.lvl}</b></div><ul>${rt.why.map(w=>`<li>${svEsc(w)}</li>`).join('')}</ul></div>`:''}
+    <div class="btnrow sbact"><button class="btn" id="vrOpen">Spielerprofil öffnen</button><button class="btn ghost" id="vrClose">Schließen</button></div>`);
+  document.getElementById('vrOpen').onclick=()=>openModal(pid);
+  document.getElementById('vrClose').onclick=()=>closeOverlay();
+}
+
+/* ----- Helfer & Veranstaltungen ----- */
+function vrHelpStats(since){
+  const m=new Map();
+  for(const e of VR.ev){ if(since&&e.d<since)continue; for(const h of e.h||[]){ if(h[3]!=='geholfen'||e.a==='mannschaft')continue; const o=m.get(h[0])||{n:0,std:0,last:null}; o.n++; o.std+=+(h[2]||0); if(!o.last||e.d>o.last)o.last=e.d; m.set(h[0],o); } }
+  return m;
+}
+function vrSuggest(n,exclude){
+  const hs=vrHelpStats(TRC.addDays(trToday(),-365)), ex=new Set(exclude||[]);
+  return vrKader(true).filter(p=>!ex.has(p.id)&&!(TR.loaded&&trInjury(p.id))).map(p=>({p,s:hs.get(p.id)||{n:0,std:0,last:null}}))
+    .sort((a,b)=>a.s.n-b.s.n||a.s.std-b.s.std||(a.s.last||'').localeCompare(b.s.last||'')||(a.p.kader||1)-(b.p.kader||1)).slice(0,n);
+}
+function vrViewEvents(B){
+  const hs=vrHelpStats(VR_SEASON_START), top=[...hs.entries()].sort((a,b)=>b[1].std-a[1].std||b[1].n-a[1].n).slice(0,8);
+  const season=VR.ev.filter(e=>e.d>=VR_SEASON_START), hours=season.reduce((a,e)=>a+(e.h||[]).filter(h=>h[3]==='geholfen').reduce((x,h)=>x+ +(h[2]||0),0),0);
+  const never=vrKader(false).filter(p=>!hs.has(p.id));
+  const sug=vrSuggest(6);
+  B.innerHTML=`<div class="tiles trtiles">
+      <div class="tile"><div class="v">${season.length}</div><div class="l">Veranstaltungen · Saison</div><div class="s">${VR.ev.length} insgesamt erfasst</div></div>
+      <div class="tile"><div class="v">${Math.round(hours)}</div><div class="l">Helferstunden · Saison</div><div class="s">${hs.size} verschiedene Helfer</div></div>
+      <div class="tile"><div class="v ${never.length?'mid':''}">${never.length}</div><div class="l">aus der Ersten noch nie geholfen</div><div class="s">diese Saison</div></div></div>
+    <div class="vrgrid">
+      <div class="card"><h3 class="trh">${SVI('plan')} Veranstaltungen</h3>${VR.ev.length?`<div class="trsl">${VR.ev.slice(0,80).map(e=>{ const hh=(e.h||[]).filter(h=>h[3]==='geholfen'), std=hh.reduce((a,h)=>a+ +(h[2]||0),0), ns=(e.h||[]).filter(h=>h[3]==='nicht_erschienen').length, zu=(e.h||[]).filter(h=>h[3]==='zugesagt').length;
+        return `<button class="trs" data-ev="${e.id}"><div class="trs-d"><b>${new Date(e.d+'T12:00:00').toLocaleDateString('de-DE',{weekday:'short'})}</b><span>${TRC.fmt(e.d)}${e.d.slice(2,4)}</span></div>
+          <div class="trs-b"><div class="trs-f"><i class="typ">${svEsc(TRS.EART[e.a]||e.a)}</i>${std?`<i>${std} Std.</i>`:''}${zu?`<i class="int">${zu} zugesagt</i>`:''}${ns?`<i class="st s1">${ns} nicht erschienen</i>`:''}</div><span><b>${svEsc(e.t)}</b> · ${hh.length?svEsc(hh.slice(0,6).map(h=>vrPersonName(h[0]).split(' ').pop()).join(', '))+(hh.length>6?' …':''):'noch keine Helfer'}</span></div>
+          <div class="trs-n"><b>${hh.length}</b><span>Helfer</span></div></button>`; }).join('')}</div>`:`<div class="empty">Noch keine Veranstaltung erfasst.<br><small>Kerwe, Heimspiel-Dienste, Weihnachtsmarkt, Arbeitseinsätze … – oder dem Co-Trainer sagen: „Kerwe-Aufbau: Fries, Seiler und Walter, je 4 Stunden“.</small></div>`}</div>
+      <div class="card"><h3 class="trh">${SVI('heart')} Fleißigste Helfer · Saison</h3>${top.length?`<div class="vrlist">${top.map(([pid,s],i)=>{ const p=trP(pid); return `<div class="vrrow" ${p?`data-svp="${svEsc(pid)}"`:''}><em>${i+1}</em>${avaHtml(p||{id:pid,name:vrPersonName(pid)})}<div class="vrrow-b"><b>${svEsc(vrPersonName(pid))}</b><small>${s.n}× geholfen</small></div><span class="vrsc ok">${s.std} h</span></div>`; }).join('')}</div>`:'<div class="note">Noch keine Helfereinsätze diese Saison.</div>'}
+        <h3 class="trh" style="margin-top:16px">${SVI('kand')} Wer ist als Nächstes dran?</h3>
+        <div class="note" style="margin-top:0">Fair verteilt: wer in den letzten 12 Monaten am wenigsten geholfen hat (ohne Verletzte).</div>
+        <div class="vrchips">${sug.map(x=>`<span data-svp="${svEsc(x.p.id)}">${svEsc(x.p.name)} <small>${x.s.n?x.s.n+'×':'noch nie'}</small></span>`).join('')}</div>
+        <button class="btn ghost sm" data-vr-plan style="margin-top:8px">${SVI('plus')} Nächsten Dienst mit diesen Helfern planen</button></div>
+    </div>`;
+  B.querySelectorAll('[data-ev]').forEach(b=>b.onclick=()=>vrEventEditor(b.dataset.ev));
+  B.querySelectorAll('[data-svp]').forEach(x=>x.onclick=()=>openModal(x.dataset.svp));
+  const pl=B.querySelector('[data-vr-plan]'); if(pl)pl.onclick=()=>vrEventEditor(null,{art:'heimspiel',titel:'Heimspiel-Dienst',datum:trToday(),helfer:sug.map(x=>({person:x.p.id,rollen:[],stunden:null,status:'zugesagt'}))});
+}
+function vrEventEditor(id,preset){
+  const e0=id?VR.ev.find(e=>e.id===id):null;
+  const st=e0?{id:e0.id,datum:e0.d,titel:e0.t,art:e0.a,notiz:e0.n||'',h:(e0.h||[]).map(h=>({person:h[0],rollen:[...(h[1]||[])],stunden:h[2]!=null?+h[2]:null,status:h[3]||'geholfen',notiz:h[4]||''}))}
+    :Object.assign({id:null,datum:trToday(),titel:'',art:'kerwe',notiz:'',h:[]},preset?{datum:preset.datum,titel:preset.titel,art:preset.art,h:preset.helfer.map(x=>Object.assign({notiz:''},x))}:{});
+  const people=vrPeople();
+  svModal(`<div class="mhead"><div class="rm-ic" style="width:46px;height:46px">${SVI('heart')}</div><div><h2 style="margin:0">${e0?'Veranstaltung bearbeiten':'Veranstaltung erfassen'}</h2><div class="msub">Helfereinsätze fließen in den Loyalitäts-Score</div></div></div><div id="vrEd"></div>`);
+  const draw=()=>{
+    const E=document.getElementById('vrEd'); if(!E)return;
+    const roleKeys=Object.keys(TRS.ROLES).filter(k=>k!=='sonstiges'&&(st.art==='mannschaft'?k==='teilnahme':k!=='teilnahme'));
+    E.innerHTML=`<div class="tred-top"><div class="field"><label>Datum</label><input type="date" id="veD" value="${svEsc(st.datum)}"></div>
+        <div class="field"><label>Art</label><select id="veA">${Object.entries(TRS.EART).map(([k,t])=>`<option value="${k}"${st.art===k?' selected':''}>${t}</option>`).join('')}</select></div></div>
+      <div class="field" style="margin-top:8px"><label>Titel</label><input id="veT" maxlength="120" value="${svEsc(st.titel)}" placeholder="${svEsc(TRS.EART[st.art]||'')}"></div>
+      <div class="sbsec"><h4>Helfer <small>${st.h.filter(h=>h.status==='geholfen').length} geholfen · ${st.h.reduce((a,h)=>a+(h.status==='geholfen'?+(h.stunden||0):0),0)} Std.</small></h4>
+        <div class="vradd"><input id="veAdd" list="veList" placeholder="Name eingeben – Spieler oder freier Helfer" autocomplete="off"><datalist id="veList">${people.map(p=>`<option value="${svEsc(p.name)}">`).join('')}</datalist><button type="button" class="btn sm" id="veAddB">${SVI('plus')}</button><button type="button" class="btn ghost sm" id="veSug">Vorschlag</button></div>
+        <div class="tratt">${st.h.map((h,i)=>`<div class="trr s-${h.status==='geholfen'?'da':h.status==='zugesagt'?'spaet':'weg'}"><div class="trr-h"><span class="trr-n"><b>${svEsc(vrPersonName(h.person))}</b><em>${h.person.startsWith('x:')?'Helfer ohne Spielerprofil':''}</em></span>
+            <select data-hs="${i}" class="vrsel">${Object.entries(TRS.HSTAT).map(([k,t])=>`<option value="${k}"${h.status===k?' selected':''}>${t}</option>`).join('')}</select>
+            <input data-hh="${i}" class="vrhrs" type="number" min="0" max="24" step="0.5" inputmode="decimal" value="${h.stunden==null?'':h.stunden}" placeholder="Std." aria-label="Stunden">
+            <button type="button" class="iconbtn" data-hx="${i}" title="Entfernen">${SVI('x')}</button></div>
+          <div class="trg">${roleKeys.map(k=>`<button type="button" data-hr="${i}:${k}" class="${h.rollen.includes(k)?'on':''}">${TRS.ROLES[k]}</button>`).join('')}</div></div>`).join('')||'<div class="note">Noch niemand eingetragen.</div>'}</div></div>
+      <div class="field"><label>Notiz</label><input id="veN" maxlength="2000" value="${svEsc(st.notiz)}" placeholder="z.B. Wetter, Umsatz, was gut lief"></div>
+      <div class="btnrow sbact"><button class="btn" id="veSave">Speichern</button><button class="btn ghost" id="veCancel">Abbrechen</button>${st.id?'<button class="btn ghost" id="veDel" style="margin-left:auto;color:#fca5a5">Löschen</button>':''}</div>`;
+    const $=x=>document.getElementById(x);
+    const keep=()=>{ st.datum=$('veD').value||st.datum; st.art=$('veA').value; st.titel=$('veT').value; st.notiz=$('veN').value;
+      E.querySelectorAll('[data-hh]').forEach(x=>{ const v=x.value.replace(',','.'); st.h[+x.dataset.hh].stunden=v===''?null:Math.max(0,Math.min(24,+v)); });
+      E.querySelectorAll('[data-hs]').forEach(x=>{ st.h[+x.dataset.hs].status=x.value; }); };
+    $('veA').onchange=()=>{ keep(); draw(); };
+    E.querySelectorAll('[data-hs]').forEach(x=>x.onchange=()=>{ keep(); draw(); });
+    E.querySelectorAll('[data-hr]').forEach(b=>b.onclick=()=>{ keep(); const [i,k]=b.dataset.hr.split(':'); const r=st.h[+i].rollen; const j=r.indexOf(k); if(j>=0)r.splice(j,1); else r.push(k); draw(); });
+    E.querySelectorAll('[data-hx]').forEach(b=>b.onclick=()=>{ keep(); st.h.splice(+b.dataset.hx,1); draw(); });
+    const add=()=>{ keep(); const v=$('veAdd').value.trim(); if(!v)return; const k=TRC.N(v), hit=people.find(p=>TRC.N(p.name)===k)||(people.filter(p=>TRC.N(p.name).includes(k)).length===1?people.find(p=>TRC.N(p.name).includes(k)):null);
+      const person=hit?hit.id:'x:'+v.slice(0,100); if(st.h.some(h=>h.person===person))return kToast('Schon eingetragen');
+      st.h.push({person,rollen:[],stunden:null,status:st.datum>trToday()?'zugesagt':'geholfen',notiz:''}); draw(); setTimeout(()=>{ const a=document.getElementById('veAdd'); if(a)a.focus(); },50); };
+    $('veAddB').onclick=add; $('veAdd').onkeydown=e=>{ if(e.key==='Enter'){ e.preventDefault(); add(); } };
+    $('veSug').onclick=()=>{ keep(); const s=vrSuggest(4,st.h.map(h=>h.person)); s.forEach(x=>st.h.push({person:x.p.id,rollen:[],stunden:null,status:'zugesagt',notiz:''})); draw(); kToast(s.length?'✓ '+s.length+' Helfer vorgeschlagen – wer am wenigsten dran war':'Keine weiteren Vorschläge'); };
+    $('veCancel').onclick=()=>closeOverlay();
+    if($('veDel'))$('veDel').onclick=async()=>{ if(!confirm('Veranstaltung samt Helfern löschen?'))return; const {error}=await SVB.sb.from('events').delete().eq('id',st.id); if(error)return kToast('⚠️ '+error.message); await vrLoadEvents(); closeOverlay(); kToast('Gelöscht'); };
+    $('veSave').onclick=async()=>{ keep(); const titel=st.titel.trim()||TRS.EART[st.art]; const b=$('veSave'); b.disabled=true;
+      try{ await vrSaveEvent({id:st.id,datum:st.datum,titel,art:st.art,notiz:st.notiz.trim()||null,ersetzen:true,helfer:st.h.map(h=>({person:h.person,rollen:h.rollen,stunden:h.stunden,status:h.status,notiz:h.notiz||null}))});
+        closeOverlay(); kToast('✓ '+titel+' gespeichert'); }catch(e){ b.disabled=false; kToast('⚠️ '+e.message); } };
+  };
+  draw();
+}
+
+/* ----- Allzeit & Legenden ----- */
+function vrAtName(x){ const p=x.pid&&trP(x.pid); return p?p.name:x.r.name; }
+function vrViewAllTime(B){
+  if(!VR.atLoaded){ B.innerHTML='<div class="card"><div class="empty">Lade Vereinsstatistik …</div></div>'; vrLoadAllTime(); return; }
+  if(!VR.at.length){ B.innerHTML=`<div class="card"><div class="empty">Die Vereinsstatistik ist noch nicht eingelesen.<br><small>Sie kommt automatisch mit dem nächsten Daten-Update von der Vereinsseite (Spielerstatistiken seit 2013/14).</small></div></div>`; return; }
+  const {L,rk}=vrRanks(), today=trToday();
+  const stand=VR.at.reduce((a,r)=>r.stand&&r.stand>a?r.stand:a,'');
+  const active=L.filter(x=>{ const p=x.pid&&trP(x.pid); return p&&p.own&&!p.verzicht&&!p.isJugend; });
+  const ms=active.map(x=>({x,p:trP(x.pid),m:TRS.nextMilestones(x.tot).filter(m=>(m.lab==='Spiele'&&m.rest<=10)||(m.lab==='Tore'&&m.rest<=5)||(m.lab==='Vorlagen'&&m.rest<=3))})).filter(o=>o.m.length).sort((a,b)=>a.m[0].rest-b.m[0].rest);
+  const back=L.filter(x=>{ const p=x.pid&&trP(x.pid); return p&&!p.own&&x.tot.sp>=25; }).sort((a,b)=>b.tot.sp-a.tot.sp).slice(0,12);
+  const legends=L.filter(x=>x.tot.sp>=200||x.tot.tore>=75).sort((a,b)=>b.tot.sp-a.tot.sp);
+  const q=TRC.N(VR.atQ||''), key={sp:x=>x.tot.sp,tore:x=>x.tot.tore,vor:x=>x.tot.vor,siege:x=>x.tot.siege,quote:x=>x.tot.sp>=30?x.tot.quote:-1}[VR.atSort];
+  const rows=L.filter(x=>!q||TRC.N(vrAtName(x)).includes(q)||TRC.N(x.r.name).includes(q)).sort((a,b)=>key(b)-key(a)||b.tot.sp-a.tot.sp);
+  const status=x=>{ const p=x.pid&&trP(x.pid); if(p&&p.own)return `<span class="trpill ok">aktiv${p.kader===2?' · II':''}</span>`; if(p)return `<span class="trpill mid" title="laut Datenbestand">jetzt ${svEsc(p.club||'')}</span>`; return ''; };
+  const th=(k,t)=>`<th><button data-as="${k}" class="${VR.atSort===k?'on':''}">${t}</button></th>`;
+  B.innerHTML=`<div class="vrgrid">
+      <div class="card"><h3 class="trh">${SVI('trophy')} Meilensteine in Sicht</h3>${ms.length?ms.slice(0,8).map(o=>`<div class="tra l-mittel"><span class="tra-av" data-svp="${svEsc(o.p.id)}">${avaHtml(o.p)}</span><div class="tra-b"><b data-svp="${svEsc(o.p.id)}">${svEsc(o.p.name)}</b><span>${o.m.map(m=>`noch ${m.rest} bis ${m.ziel} ${m.lab}`).join(' · ')}</span></div></div>`).join('')+'<div class="note">Rechtzeitig Ehrung vorbereiten: Stadionsprecher, Social-Media-Post, Erinnerungstrikot – so etwas bindet.</div>':'<div class="note">Gerade niemand kurz vor einem runden Jubiläum.</div>'}</div>
+      <div class="card"><h3 class="trh">${SVI('star')} Vereinslegenden <small>(200+ Spiele oder 75+ Tore)</small></h3><div class="vrchips">${legends.map(x=>`<span ${x.pid?`data-svp="${svEsc(x.pid)}"`:''}>${svEsc(vrAtName(x))} <small>${x.tot.sp} Sp. · ${x.tot.tore} T.</small></span>`).join('')||'<span class="note">–</span>'}</div>
+        ${back.length?`<h3 class="trh" style="margin-top:14px">${SVI('refresh')} Rückkehrer-Radar</h3><div class="note" style="margin-top:0">Ehemalige mit vielen Spielen für uns, die laut Datenbestand jetzt woanders spielen.</div><div class="vrchips">${back.map(x=>{ const p=trP(x.pid); return `<span data-svp="${svEsc(x.pid)}">${svEsc(vrAtName(x))} <small>${x.tot.sp} Sp. · jetzt ${svEsc(p.club||'?')}${p.cur&&p.cur.tore?' · '+p.cur.tore+' Tore 26/27':''}</small></span>`; }).join('')}</div>`:''}</div>
+    </div>
+    <div class="card"><div class="vrat-h"><h3 class="trh" style="margin:0">${SVI('chart')} Ewige Liste seit 2013/14</h3><input class="search" id="vrAtQ" type="search" placeholder="Name suchen …" value="${svEsc(VR.atQ)}"></div>
+      <div class="trtw"><table class="trtab vrat"><thead><tr><th>#</th><th>Spieler</th>${th('sp','Spiele')}${th('tore','Tore')}${th('vor','Vorl.')}${th('siege','Siege')}${th('quote','Quote')}<th>Abzeichen</th></tr></thead><tbody>
+      ${rows.slice(0,VR.atShow).map((x,i)=>{ const b=TRS.badges(x.tot,rk.get(x.r.key)); return `<tr ${x.pid?`data-svp="${svEsc(x.pid)}"`:''}><td>${i+1}</td><td><b>${svEsc(vrAtName(x))}</b> ${status(x)}</td><td>${x.tot.sp}${x.tot.sp>x.r.spiele?` <small>+${x.tot.sp-x.r.spiele}</small>`:''}</td><td>${x.tot.tore}</td><td>${x.tot.vor}</td><td>${x.tot.siege}</td><td>${x.tot.quote==null?'–':x.tot.quote+' %'}</td>
+        <td>${b.map(y=>`<i class="vrbadge b-${y.k}" title="${svEsc(y.d)}">${svEsc(y.t)}</i>`).join('')}</td></tr>`; }).join('')}</tbody></table></div>
+      ${rows.length>VR.atShow?`<button class="btn ghost sm" id="vrAtMore" style="margin-top:8px">Alle ${rows.length} zeigen</button>`:''}
+      <div class="note">Quelle: Spielerstatistiken der Vereinsseite (Stand ${stand?TRC.fmt(stand)+stand.slice(0,4):'–'}). „+“ = in der App erfasste Pflichtspiele seitdem – dafür nach jedem Spiel „Spiel erfassen“ nutzen oder dem Co-Trainer das Ergebnis sagen.</div></div>`;
+  B.querySelectorAll('[data-as]').forEach(b=>b.onclick=()=>{ VR.atSort=b.dataset.as; vrViewAllTime(B); });
+  B.querySelectorAll('[data-svp]').forEach(x=>x.onclick=()=>openModal(x.dataset.svp));
+  const qi=document.getElementById('vrAtQ'); let t=null; qi.oninput=()=>{ clearTimeout(t); t=setTimeout(()=>{ VR.atQ=qi.value; const pos=qi.selectionStart; vrViewAllTime(B); const n=document.getElementById('vrAtQ'); n.focus(); try{n.setSelectionRange(pos,pos);}catch(e){} },250); };
+  const mo=document.getElementById('vrAtMore'); if(mo)mo.onclick=()=>{ VR.atShow=5000; vrViewAllTime(B); };
+}
+
+/* ---------- Spielerprofil: Scores, Allzeit, Moneyball, Formkurve ---------- */
+function vrProfile(pid){
+  const M=document.getElementById('modal'), p=trP(pid); if(!M||!p||M.querySelector('.vrprof'))return;
+  const anchor=M.querySelector('.trprof')||M.querySelector('.sbwrap')||M.querySelector('.svpos-box')||M.querySelector('.mhead'); if(!anchor)return;
+  const team=canTraining(), {row,ms,tot}=vrTotals(pid);
+  const el=document.createElement('div'); el.className='card vrprof';
+  let h='';
+  if(p.own&&team){ const {ts,ls,rt}=vrScores(p);
+    h+=`<div class="vrsc3"><button data-pwhy><span>Trainings-Score</span><b class="${vrCls(ts.score)}">${ts.score==null?'–':ts.score}</b></button><button data-pwhy><span>Loyalität</span><b class="${vrCls(ls.score)}">${ls.score}</b></button>${rt.lvl?`<button data-pwhy class="warn"><span>Bindungsrisiko</span><b class="bad">${rt.lvl}</b></button>`:''}</div>`;
+    const hs=VR.ev.filter(e=>(e.h||[]).some(x=>x[0]===pid&&x[3]==='geholfen')).slice(0,5);
+    if(hs.length)h+=`<div class="trabs"><span>Zuletzt geholfen:</span> ${hs.map(e=>`<i>${svEsc(e.t)} ${TRC.fmt(e.d)}${e.d.slice(2,4)}</i>`).join('')}</div>`; }
+  if(row||(ms&&ms.sp)){ const b=TRS.badges(tot,row?vrRanks().rk.get(row.key):null), nx=TRS.nextMilestones(tot)[0];
+    h+=`<div class="trkpi vrkpi"><div><b>${tot.sp}</b><span>Pflichtspiele${row?' seit 13/14':''}</span></div><div><b>${tot.tore}</b><span>Tore</span></div><div><b>${tot.vor}</b><span>Vorlagen</span></div><div><b>${tot.quote==null?'–':tot.quote+' %'}</b><span>Siegquote</span></div></div>
+      ${b.length?`<div class="vrbadges">${b.map(y=>`<i class="vrbadge b-${y.k}" title="${svEsc(y.d)}">${svEsc(y.t)}</i>`).join('')}</div>`:''}
+      ${nx&&p.own?`<div class="note">Nächster Meilenstein: ${nx.ziel} ${nx.lab} – noch ${nx.rest}.</div>`:''}`; }
+  if(p.own&&team&&TR.loaded){ const ww=TRS.withWithout(TR.st,pid);
+    if(ms&&ms.sp)h+=`<div class="trabs"><span>Saison 26/27 (App):</span><i>${ms.sp} Spiele (${ms.start}× Startelf)</i><i>${ms.tore} Tore</i><i>${ms.vor} Vorlagen</i></div>`;
+    if(ww.delta!=null)h+=`<div class="vrmb ${ww.delta>=0.5?'ok':ww.delta<=-0.5?'bad':''}"><b>Moneyball · Mit/Ohne</b><span>Mit ihm in der Startelf ${ww.with.ppg.toFixed(2)} Punkte/Spiel (${ww.with.n} Sp., ${ww.with.ga.toFixed(1)} Gegentore) · ohne ihn ${ww.without.ppg.toFixed(2)} (${ww.without.n} Sp., ${ww.without.ga.toFixed(1)} Gegentore)</span></div>`; }
+  if(p.own&&team&&!row&&VR.at.length){ const free=VR.at.filter(r=>!vrIdx().used.has(r.key)).sort((a,b)=>a.name.localeCompare(b.name,'de'));
+    h+=`<div class="vrmap"><label>In der Vereinsstatistik unter anderem Namen?</label><select id="vrMap"><option value="">– zuordnen –</option>${free.map(r=>`<option value="${svEsc(r.key)}">${svEsc(r.name)} (${r.spiele} Sp.)</option>`).join('')}</select></div>`; }
+  if(!p.own&&canScout()){ const rd=VR.radar.filter(r=>r.player_id===pid).slice(0,4);
+    h+=`<div class="vrform" id="vrForm"><span class="note">Formkurve wird geladen …</span></div>${rd.map(r=>`<div class="tra l-${r.lvl}"><span class="tra-av team">${SVI('radar')}</span><div class="tra-b"><b>${svEsc(r.titel)}</b><span>${svEsc(r.detail||'')} · ${TRC.fmt(r.stand)}</span></div></div>`).join('')}`; }
+  if(!h)return;
+  el.innerHTML=`<h3 class="trh">${SVI('trophy')} ${p.own?'Vereinswerte':'Radar & Form'}</h3>${h}`;
+  anchor.after(el);
+  el.querySelectorAll('[data-pwhy]').forEach(b=>b.onclick=()=>vrWhy(pid));
+  const mp=el.querySelector('#vrMap'); if(mp)mp.onchange=()=>{ if(!mp.value)return; crmSet(pid,{at:mp.value}); try{crmApply();}catch(e){} VR._idx=null; kToast('✓ Zugeordnet – gilt fürs ganze Team'); openModal(pid); };
+  const fm=el.querySelector('#vrForm'); if(fm)vrFormCurve(pid,fm);
+}
+async function vrFormCurve(pid,box){
+  try{ const {data,error}=await SVB.sb.rpc('scorer_history',{p_player:pid}); if(error)throw error; const H=data||[];
+    if(H.length<2){ box.innerHTML='<span class="note">Formkurve: sammelt sich ab jetzt mit jedem Daten-Update (montags & donnerstags).</span>'; return; }
+    const pts=[]; for(let i=1;i<H.length;i++){ const dg=H[i][1]-H[i-1][1], dsp=(H[i][2]||0)-(H[i-1][2]||0); if(dsp>0||dg>0)pts.push({d:H[i][0],g:Math.max(0,dg)}); }
+    const mx=Math.max(1,...pts.map(x=>x.g)), w=260, hgt=44, bw=w/Math.max(1,pts.length);
+    box.innerHTML=`<div class="note" style="margin:0 0 4px">Tore je Update-Zeitraum (${pts.length} Zeiträume · aktuell ${H[H.length-1][1]} Tore)</div><svg class="trspark" viewBox="0 0 ${w} ${hgt+12}" preserveAspectRatio="none">${pts.map((x,i)=>`<rect x="${i*bw+2}" y="${hgt-(x.g/mx)*hgt}" width="${bw-4}" height="${Math.max(2,(x.g/mx)*hgt)}" rx="3" class="${x.g?'ok':'na'}"><title>bis ${TRC.fmt(x.d)}: ${x.g} Tore</title></rect>`).join('')}</svg>`;
+  }catch(e){ box.innerHTML=''; }
+}
+{ const _om5=openModal; openModal=function(){ const r=_om5.apply(this,arguments); try{ vrProfile(arguments[0]); }catch(e){ console.warn('Vereinswerte',e); } return r; }; }
+Object.assign(SV_FIELD,{at:'Allzeit-Zuordnung'});
+
+/* ---------- Radar-Seite ---------- */
+const RD_TYP={serie:'Torserie',lauf:'Heißer Lauf',quote:'Überflieger',jung:'Junges Talent',merk:'Merkliste trifft',team:'Unser Team',neu:'Neu im Radar'};
+function rdSeen(){ try{ return localStorage.getItem('svbc-radar-seen')||''; }catch(e){ return ''; } }
+function rdMarkSeen(){ try{ localStorage.setItem('svbc-radar-seen',new Date().toISOString()); }catch(e){} vrBadge(); }
+function vrBadge(){ const s=rdSeen(), n=canScout()?VR.radar.filter(r=>r.created_at>s&&r.lvl!=='info').length:0; document.querySelectorAll('[data-cnt="radar"]').forEach(el=>{ el.textContent=n; el.style.display=n?'':'none'; }); }
+function rdChances(){
+  const own=p=>p.own, L=players.filter(p=>!own(p)&&p.cur&&p.cur.spiele>=3);
+  const age=p=>p.alter!=null&&!p.alterCa?p.alter:null;
+  const young=L.filter(p=>age(p)!=null&&age(p)<=21&&p.cur.tore>=3).sort((a,b)=>b.cur.tore/b.cur.spiele-a.cur.tore/a.cur.spiele).slice(0,10)
+    .map(p=>({p,t:`${p.name} (${age(p)}) – ${p.cur.tore} Tore in ${p.cur.spiele} Spielen`,d:`${p.cur.club} · ${p.cur.sub||p.cur.liga}`}));
+  const carry=L.filter(p=>p.cur.tT>0&&p.cur.tore>=4&&p.cur.tore/p.cur.tT>=0.35&&p.cur.rank&&p.cur.teamCount&&p.cur.rank>p.cur.teamCount/2).sort((a,b)=>b.cur.tore/b.cur.tT-a.cur.tore/a.cur.tT).slice(0,10)
+    .map(p=>({p,t:`${p.name} – ${Math.round(p.cur.tore/p.cur.tT*100)} % der Tore seines Teams`,d:`${p.cur.tore} von ${p.cur.tT} Toren · ${p.cur.club} (Platz ${p.cur.rank}/${p.cur.teamCount}, ${p.cur.sub||p.cur.liga})`}));
+  const low=L.filter(p=>['C','D1','D2','D'].includes(p.cur.sub||p.cur.liga)&&p.cur.spiele>=4&&p.cur.tore/p.cur.spiele>=1).sort((a,b)=>b.cur.tore/b.cur.spiele-a.cur.tore/a.cur.spiele).slice(0,10)
+    .map(p=>({p,t:`${p.name} – ${(p.cur.tore/p.cur.spiele).toFixed(1)} Tore pro Spiel`,d:`${p.cur.tore} Tore · ${p.cur.club} (${p.cur.sub||p.cur.liga})${age(p)!=null?' · '+age(p)+' J.':''}`}));
+  return {young,carry,low};
+}
+function rdItem(r){
+  const p=r.player_id&&trP(r.player_id), star=p&&p.star;
+  return `<div class="tra l-${r.lvl} rdit"><span class="tra-av ${p?'':'team'}" ${p?`data-svp="${svEsc(p.id)}"`:''}>${p?avaHtml(p):SVI(r.typ==='team'?'shield':'radar')}</span>
+    <div class="tra-b"><b ${p?`data-svp="${svEsc(p.id)}"`:''}>${svEsc(r.titel)}</b><span>${svEsc(r.detail||'')}</span><small class="rdmeta">${svEsc(RD_TYP[r.typ]||r.typ)} · ${TRC.fmt(r.stand)}${r.stand.slice(2,4)}${r.created_at>rdSeen()?' · <b class="rdnew">neu</b>':''}</small></div>
+    ${p&&!p.own?`<button class="iconbtn rdstar${star?' on':''}" data-star="${svEsc(p.id)}" title="${star?'Auf der Merkliste':'Auf die Merkliste'}">${SVI('star')}</button>`:''}</div>`;
+}
+function rdRender(){
+  const P=document.getElementById('panel-radar'); if(!P)return;
+  if(!canScout()){ P.innerHTML='<div class="card"><div class="empty">Das Radar sehen nur Trainer, Kaderplaner und Vorstand.</div></div>'; return; }
+  if(!VR.radarLoaded){ P.innerHTML='<div class="card"><div class="empty">Lade Radar …</div></div>'; vrLoadRadar(); return; }
+  const F=VR.rf, R=VR.radar.filter(r=>F==='alle'||r.typ===F||(F==='chancen'&&false));
+  const ch=rdChances(), tf=TR.loaded?TRS.teamForm(TR.st):null;
+  const types=[['alle','Alle'],['serie','Torserien'],['lauf','Heiße Läufe'],['quote','Überflieger'],['jung','Junge'],['merk','Merkliste'],['team','Unser Team'],['chancen','Moneyball-Chancen']];
+  const newN=VR.radar.filter(r=>r.created_at>rdSeen()).length;
+  const sec=(t,L,why)=>L.length?`<div class="card"><h3 class="trh">${t}</h3>${why?`<div class="note" style="margin-top:0">${why}</div>`:''}${L.map(x=>`<div class="tra l-info rdit"><span class="tra-av" data-svp="${svEsc(x.p.id)}">${avaHtml(x.p)}</span><div class="tra-b"><b data-svp="${svEsc(x.p.id)}">${svEsc(x.t)}</b><span>${svEsc(x.d)}</span></div><button class="iconbtn rdstar${x.p.star?' on':''}" data-star="${svEsc(x.p.id)}" title="Merkliste">${SVI('star')}</button></div>`).join('')}</div>`:'';
+  P.innerHTML=`<div class="tiles trtiles">
+      <div class="tile"><div class="v ${newN?'ok':''}">${newN}</div><div class="l">neue Meldungen</div><div class="s">seit deinem letzten Blick</div></div>
+      <div class="tile"><div class="v">${VR.radar.filter(r=>r.typ==='serie').length}</div><div class="l">Torserien erkannt</div><div class="s">3+ Spieltage in Folge getroffen</div></div>
+      ${tf&&tf.n?`<div class="tile"><div class="v">${tf.res.slice(0,5).join(' ')}</div><div class="l">Unsere Form</div><div class="s">${tf.ppg.toFixed(2)} Punkte/Spiel · ${tf.tf}:${tf.ta} Tore</div></div>`:''}</div>
+    <div class="trtabs rdf">${types.map(([k,t])=>`<button class="${F===k?'on':''}" data-rf="${k}">${t}</button>`).join('')}</div>
+    ${F==='chancen'?sec(`${SVI('sprout')} Junge Torjäger (≤ 21)`,ch.young,'Aus den aktuellen Torjägerlisten – Alter, soweit bekannt.')+sec(`${SVI('gem')} Trägt sein Team`,ch.carry,'Schießt einen Großteil der Tore einer Mannschaft aus der unteren Tabellenhälfte – oft wechselbereit.')+sec(`${SVI('chart')} Knipser in C- und D-Liga`,ch.low,'Mindestens ein Tor pro Spiel – wer schafft den Sprung eine oder zwei Ligen höher?')
+      :`<div class="card">${R.length?R.slice(0,150).map(rdItem).join(''):`<div class="empty">Noch keine Meldungen${F!=='alle'?' in dieser Kategorie':''}.<br><small>Das Radar vergleicht bei jedem Daten-Update (montags & donnerstags früh) die Torjägerlisten aller 7 Ligen mit dem letzten Stand. Torserien werden erkannt, sobald drei Spieltage vorliegen. Sofort nutzbar: „Moneyball-Chancen“.</small></div>`}</div>`}
+    <div class="note">Meldungen gehen auch als Push-Nachricht an alle mit aktivierten Mitteilungen. Quelle: Torjägerlisten &amp; Tabellen von FUSSBALL.DE.</div>`;
+  P.querySelectorAll('[data-rf]').forEach(b=>b.onclick=()=>{ VR.rf=b.dataset.rf; rdRender(); });
+  P.querySelectorAll('[data-svp]').forEach(x=>x.onclick=()=>openModal(x.dataset.svp));
+  P.querySelectorAll('[data-star]').forEach(b=>b.onclick=e=>{ e.stopPropagation(); const p=trP(b.dataset.star); if(!p)return; const on=!p.star; crmSet(p.id,{f:on?1:undefined}); try{crmApply();}catch(x){} try{renderAll();}catch(x){} kToast(on?'⭐ '+p.name+' auf der Merkliste – das Radar meldet jedes Tor':'Von der Merkliste genommen'); rdRender(); });
+  setTimeout(rdMarkSeen,1500);
+}
+
+/* ---------- Übersicht: Radar & Verein ---------- */
+function vrHomeCard(){
+  const host=document.getElementById('trHome')||document.getElementById('svRemind')||document.getElementById('svHello'); if(!host||!canScout())return;
+  let el=document.getElementById('vrHome'); if(!el){ el=document.createElement('div'); el.id='vrHome'; host.after(el); }
+  const week=TRC.addDays(trToday(),-8), R=VR.radar.filter(r=>r.stand>=week&&r.lvl!=='info').slice(0,3);
+  let ms=[]; if(VR.at.length){ try{ ms=vrRanks().L.filter(x=>{ const p=x.pid&&trP(x.pid); return p&&p.own&&!p.verzicht; }).map(x=>({p:trP(x.pid),m:TRS.nextMilestones(x.tot).find(m=>(m.lab==='Spiele'&&m.rest<=5)||(m.lab==='Tore'&&m.rest<=3))})).filter(o=>o.m).slice(0,2); }catch(e){} }
+  const tf=TR.loaded?TRS.teamForm(TR.st):null;
+  if(!R.length&&!ms.length&&!(tf&&tf.n)){ el.innerHTML=''; return; }
+  el.innerHTML=`<div class="card trhome"><div class="rm-h"><div class="rm-ic co">${SVI('radar')}</div><div class="rm-t"><h3>Radar &amp; Verein</h3><p>${tf&&tf.n?`Form: <b>${tf.res.slice(0,5).join(' ')}</b>${tf.clean>=2?` · ${tf.clean} Spiele zu Null`:''}${tf.wins>=3?` · ${tf.wins} Siege in Folge`:''}`:'Was sich in der Region tut'}</p></div>
+    <button class="btn sm" data-home-radar>${SVI('radar')} Radar</button></div>
+    ${R.map(rdItem).join('')}${ms.map(o=>`<div class="tra l-mittel"><span class="tra-av" data-svp="${svEsc(o.p.id)}">${avaHtml(o.p)}</span><div class="tra-b"><b data-svp="${svEsc(o.p.id)}">${svEsc(o.p.name)}: noch ${o.m.rest} bis ${o.m.ziel} ${o.m.lab}</b><span>Ehrung vorbereiten?</span></div></div>`).join('')}
+    <div class="rm-f"><button class="btn ghost" data-home-verein>Rankings &amp; Verein →</button></div></div>`;
+  el.querySelector('[data-home-radar]').onclick=()=>goTab('radar');
+  el.querySelector('[data-home-verein]').onclick=()=>goTab('verein');
+  el.querySelectorAll('[data-svp]').forEach(x=>x.onclick=()=>openModal(x.dataset.svp));
+  el.querySelectorAll('[data-star]').forEach(b=>b.style.display='none');
+}
+
+/* ---------- Import: Excel/CSV oder Einfügen (Trainingslisten, Helferlisten, Verletzungen) ---------- */
+function vrXlsx(){ if(window.XLSX)return Promise.resolve(window.XLSX); return new Promise((res,rej)=>{ const s=document.createElement('script'); s.src='vendor/xlsx.mini.min.js?v='+encodeURIComponent((window.SVBC_CFG&&SVBC_CFG.build)||''); s.onload=()=>res(window.XLSX); s.onerror=()=>rej(new Error('Excel-Modul konnte nicht geladen werden')); document.head.appendChild(s); }); }
+function vrCSV(text){
+  const first=(text.split(/\r?\n/).find(l=>l.trim())||'');
+  const d=['\t',';',','].map(c=>[c,first.split(c).length]).sort((a,b)=>b[1]-a[1])[0][0];
+  const rows=[]; let row=[], cell='', q=false;
+  for(let i=0;i<text.length;i++){ const c=text[i];
+    if(q){ if(c==='"'){ if(text[i+1]==='"'){ cell+='"'; i++; } else q=false; } else cell+=c; continue; }
+    if(c==='"'&&cell==='')q=true; else if(c===d){ row.push(cell); cell=''; } else if(c==='\n'){ row.push(cell.replace(/\r$/,'')); rows.push(row); row=[]; cell=''; } else cell+=c; }
+  if(cell!==''||row.length){ row.push(cell.replace(/\r$/,'')); rows.push(row); }
+  return rows.filter(r=>r.some(x=>String(x).trim()));
+}
+function vrDateCell(v){
+  if(v instanceof Date&&!isNaN(v)){ const t=v.getTime()-v.getTimezoneOffset()*60000; return new Date(t+43200000).toISOString().slice(0,10); }
+  if(typeof v==='number'&&v>20000&&v<80000)return new Date(Date.UTC(1899,11,30)+Math.round(v)*864e5).toISOString().slice(0,10);
+  const s=String(v==null?'':v).trim(); let m;
+  if((m=s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/)))return `${m[1]}-${m[2].padStart(2,'0')}-${m[3].padStart(2,'0')}`;
+  if((m=s.match(/^(?:[A-Za-zÄÖÜäöü]{2,3}\.?,?\s*)?(\d{1,2})\.(\d{1,2})\.(\d{2,4})\b/))){ const y=m[3].length===2?'20'+m[3]:m[3]; return `${y}-${m[2].padStart(2,'0')}-${m[1].padStart(2,'0')}`; }
+  if((m=s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{2,4})$/))){ const y=m[3].length===2?'20'+m[3]:m[3]; return `${y}-${m[1].padStart(2,'0')}-${m[2].padStart(2,'0')}`; }
+  if((m=s.match(/^(?:[A-Za-zÄÖÜäöü]{2,3}\.?,?\s*)?(\d{1,2})\.(\d{1,2})\.?$/)))return '????-'+m[2].padStart(2,'0')+'-'+m[1].padStart(2,'0');
+  return null;
+}
+function vrFixYears(ds){ // „12.09.“ ohne Jahr: rückwärts ab heute, Spalten chronologisch angenommen
+  if(!ds.some(d=>d&&d.startsWith('????')))return ds;
+  let y=+trToday().slice(0,4); const out=ds.slice(); let next=null;
+  for(let i=ds.length-1;i>=0;i--){ const d=ds[i]; if(!d||!d.startsWith('????'))continue; const md=d.slice(5);
+    if(next==null){ if(`${y}-${md}`>TRC.addDays(trToday(),7))y--; } else if(md>next)y--;
+    out[i]=`${y}-${md}`; next=md; }
+  return out;
+}
+const VR_CODES=[['da',/^(x|✓|✔|✅|1|ja|j|da|anw|anwesend|\+|dabei|tr)$/],['spaet',/^(sp|spaet|spät|zs|zu spät|zu spaet|verspätet|verspaetet)$/],['verletzt',/^(v|verl|verletzt|vl)$|verletz/],
+  ['krank',/^(k|kr|krank)$|krank|grippe/],['urlaub',/^(ur|url|urlaub)$|urlaub/],['arbeit',/^(ar|arb|arbeit|schicht|a)$|arbeit|schicht/],['uni',/^(s|sch|schule|uni|studium|klausur)$|schule|uni|klausur/],
+  ['zweite',/^(z|2|ii|zweite|res|reserve)$|zweite/],['familie',/^(fam|familie)$|famil|hochzeit|geburtstag/],['privat',/^(e|ent|entsch|entschuldigt|p|priv|privat)$|entschuld|privat/],
+  ['ohne',/^(u|ue|unent|unentschuldigt|0|-|f|fehlt|n|nein|o|ohne|nicht da)$|unentsch|ohne grund/]];
+function vrGuessCode(v){ const s=TRC.N(String(v).trim()); if(!s)return ''; for(const [k,rx] of VR_CODES){ if(rx.test(s))return k; } return '?'; }
+const VR_CODE_OPTS=[['','nicht erfasst (überspringen)'],['da','Da'],['spaet','Zu spät'],...Object.entries(TRC.REASONS).map(([k,t])=>[k,'Fehlt · '+t])];
+function vrMatchName(raw,people){
+  const s=String(raw||'').trim(); if(!s||s.length<2)return null;
+  const n=TRC.N(s).replace(/\s+/g,' '), sw=n.includes(',')?n.split(',').map(x=>x.trim()).reverse().join(' '):n;
+  const full=people.find(p=>TRC.N(p.name)===sw||TRC.N(p.name)===n); if(full)return full.id;
+  const idx=TRC.nameIndex(people), hits=TRC.findPlayers(sw.replace(/[^a-z0-9 ]/g,' '),idx); if(hits.length===1)return hits[0].id;
+  const w=sw.split(' '); if(w.length===2&&w[1].length<=2){ const c=people.filter(p=>{ const q=TRC.N(p.name).split(' '); return q[0]===w[0]&&q[q.length-1].startsWith(w[1].replace('.','')); }); if(c.length===1)return c[0].id; }
+  return null;
+}
+function vrImport(kind0){
+  const people=vrPeople().concat((DATA&&DATA.jugend||[]).filter(j=>j.id&&j.name).map(j=>({id:j.id,name:j.name}))).filter((p,i,a)=>a.findIndex(q=>q.id===p.id)===i);
+  const S={kind:kind0||'training',rows:null,sheets:null,sheet:null,wb:null,hdr:0,nameCol:null,layout:null,map:{},codes:{},cols:{},busy:false,fileName:''};
+  svModal(`<div class="mhead"><div class="rm-ic" style="width:46px;height:46px">${SVI('upload')}</div><div><h2 style="margin:0">Listen importieren</h2><div class="msub">Excel, CSV oder einfach Zellen aus Excel/Google Sheets einfügen</div></div></div><div id="vrIm"></div>`);
+  const $=x=>document.getElementById(x);
+  const load=async(file,text)=>{
+    try{ if(file&&/\.(xlsx|xlsm|xlsb)$/i.test(file.name)){ const X=await vrXlsx(); const wb=X.read(await file.arrayBuffer(),{type:'array',cellDates:true}); S.wb=wb; S.sheets=wb.SheetNames; S.sheet=wb.SheetNames[0]; S.rows=X.utils.sheet_to_json(wb.Sheets[S.sheet],{header:1,raw:true,defval:''}); }
+      else if(file){ S.rows=vrCSV(await file.text()); }
+      else S.rows=vrCSV(text);
+      S.fileName=file?file.name:'eingefügt'; analyse(); draw(); }catch(e){ kToast('⚠️ '+(e.message||e)); } };
+  const analyse=(forceHdr)=>{
+    const R=S.rows||[]; S.map={}; S.codes={}; S.cols={};
+    // Kopfzeile = erste Zeile mit ≥ 2 Datumszellen oder mit bekannten Spaltennamen
+    let hdr=0; for(let i=0;i<Math.min(15,R.length);i++){ const r=R[i]; const nd=r.filter(v=>vrDateCell(v)).length; const kw=r.filter(v=>/name|spieler|datum|helfer|veranstaltung|diagnose/i.test(String(v))).length; if(nd>=2||kw>=1){ hdr=i; break; } }
+    if(forceHdr!=null)hdr=forceHdr; S.hdr=hdr; const H=R[hdr]||[];
+    const dcols=H.map((v,i)=>vrDateCell(v)?i:-1).filter(i=>i>=0);
+    const body=R.slice(hdr+1);
+    // Namensspalte: meiste Treffer im Kader
+    let best=-1, bs=-1; const ncol=Math.max(...R.slice(0,60).map(r=>r.length),0);
+    for(let c=0;c<ncol;c++){ if(dcols.includes(c))continue; const sc=body.slice(0,80).filter(r=>vrMatchName(r[c],people)).length; if(sc>bs){ bs=sc; best=c; } }
+    S.nameCol=best;
+    const find=rx=>H.findIndex(v=>rx.test(TRC.N(String(v))));
+    if(S.kind==='training'&&dcols.length>=2){ S.layout='matrix'; const ds=vrFixYears(dcols.map(c=>vrDateCell(H[c]))); S.cols.dates=dcols.map((c,i)=>({c,d:ds[i]})).filter(x=>x.d&&!x.d.startsWith('?'));
+      const vals={}; body.forEach(r=>S.cols.dates.forEach(x=>{ const v=String(r[x.c]==null?'':r[x.c]).trim(); if(v)vals[v]=(vals[v]||0)+1; })); S.codes=Object.fromEntries(Object.keys(vals).sort((a,b)=>vals[b]-vals[a]).map(v=>[v,{n:vals[v],to:vrGuessCode(v)}])); }
+    else if(S.kind==='training'){ S.layout='lang'; S.cols={datum:find(/datum|date|tag/),status:find(/status|anwesen|grund|da\b|bemerk/),motivation:find(/motiv|einsatz|lust/),notiz:find(/notiz|bemerkung|kommentar/)};
+      const vals={}; if(S.cols.status>=0)body.forEach(r=>{ const v=String(r[S.cols.status]||'').trim(); if(v)vals[v]=(vals[v]||0)+1; }); S.codes=Object.fromEntries(Object.keys(vals).map(v=>[v,{n:vals[v],to:vrGuessCode(v)}])); }
+    else if(S.kind==='helfer'&&dcols.length>=1&&find(/veranstaltung|event|anlass/)<0){ S.layout='matrix'; S.cols.events=dcols.map(c=>({c,d:vrFixYears([vrDateCell(H[c])])[0],t:String(H[c]).replace(/\d{1,2}\.\d{1,2}\.(\d{2,4})?/,'').replace(/[()]/g,'').trim()})); }
+    else if(S.kind==='helfer'){ S.layout='lang'; S.cols={datum:find(/datum|date|tag/),titel:find(/veranstaltung|event|anlass|fest|titel/),aufgabe:find(/aufgabe|rolle|taetig|dienst|einsatz/),stunden:find(/stunden|std|dauer|zeit/),status:find(/status|erschienen/)}; }
+    else { S.layout='lang'; S.cols={diagnose:find(/diagnose|verletzung|beschwerde/),von:find(/von|beginn|seit|start|datum/),bis:find(/bis|zurueck|ende|wieder/),prognose:find(/prognose|voraus/)}; }
+    // Namen zuordnen
+    const names=new Set(); body.forEach(r=>{ const v=String(r[S.nameCol]==null?'':r[S.nameCol]).trim(); if(!v)return; (S.kind==='helfer'?v.split(/,|;|\/|\bund\b|&/):[v]).map(x=>x.trim()).filter(x=>x.length>1).forEach(x=>names.add(x)); });
+    names.forEach(n=>{ S.map[n]=vrMatchName(n,people)||(S.kind==='helfer'?'x:'+n:''); });
+  };
+  const plan=()=>{ // was würde importiert?
+    const R=(S.rows||[]).slice(S.hdr+1), out=[]; const pid=v=>{ const k=String(v==null?'':v).trim(); return k?S.map[k]:null; };
+    if(S.kind==='training'&&S.layout==='matrix'){ const by={}; R.forEach(r=>{ const p=pid(r[S.nameCol]); if(!p||p.startsWith('x:'))return; S.cols.dates.forEach(x=>{ const v=String(r[x.c]==null?'':r[x.c]).trim(); const to=v&&S.codes[v]?S.codes[v].to:''; if(!to||to==='?')return;
+        (by[x.d]=by[x.d]||[]).push(to==='da'||to==='spaet'?{player_id:p,status:to}:{player_id:p,status:'weg',grund:to}); }); }); Object.keys(by).sort().forEach(d=>out.push({datum:d,spieler:by[d]})); }
+    else if(S.kind==='training'){ const by={}; R.forEach(r=>{ const p=pid(r[S.nameCol]), d=vrDateCell(r[S.cols.datum]); if(!p||p.startsWith('x:')||!d||d.startsWith('?'))return; const v=S.cols.status>=0?String(r[S.cols.status]||'').trim():'x'; const to=S.cols.status>=0?(S.codes[v]&&S.codes[v].to):'da'; if(!to||to==='?')return;
+        const o=to==='da'||to==='spaet'?{player_id:p,status:to}:{player_id:p,status:'weg',grund:to}; const mo=S.cols.motivation>=0?+r[S.cols.motivation]:0; if(mo>=1&&mo<=5)o.motivation=Math.round(mo); if(S.cols.notiz>=0&&String(r[S.cols.notiz]).trim())o.notiz=String(r[S.cols.notiz]).trim().slice(0,500);
+        (by[d]=by[d]||[]).push(o); }); Object.keys(by).sort().forEach(d=>out.push({datum:d,spieler:by[d]})); }
+    else if(S.kind==='helfer'&&S.layout==='matrix'){ S.cols.events.forEach(ev=>{ if(!ev.d||ev.d.startsWith('?'))return; const helfer=[]; R.forEach(r=>{ const p=pid(r[S.nameCol]); const v=String(r[ev.c]==null?'':r[ev.c]).trim(); if(!p||!v)return; const h=parseFloat(v.replace(',','.'));
+        helfer.push({person:p,rollen:TRS.roleOf(v),stunden:isNaN(h)?null:Math.min(24,h),status:/nicht|nein|^n$|fehlt/i.test(v)?'nicht_erschienen':'geholfen'}); });
+        const titel=ev.t||'Veranstaltung'; if(helfer.length)out.push({datum:ev.d,titel,art:TRS.eventArt(titel),helfer}); }); }
+    else if(S.kind==='helfer'){ const by={}; R.forEach(r=>{ const d=vrDateCell(r[S.cols.datum]); const titel=String(S.cols.titel>=0?r[S.cols.titel]:'').trim()||'Veranstaltung'; if(!d||d.startsWith('?'))return;
+        const raw=String(r[S.nameCol]==null?'':r[S.nameCol]); const aufg=S.cols.aufgabe>=0?String(r[S.cols.aufgabe]||''):''; const h=S.cols.stunden>=0?parseFloat(String(r[S.cols.stunden]).replace(',','.')):NaN; const stv=S.cols.status>=0?String(r[S.cols.status]||''):'';
+        raw.split(/,|;|\/|\bund\b|&/).map(x=>x.trim()).filter(x=>x.length>1).forEach(n=>{ const p=S.map[n]; if(!p)return; const k=d+'|'+titel; const e=by[k]=by[k]||{datum:d,titel,art:TRS.eventArt(titel+' '+aufg),helfer:[]};
+          e.helfer.push({person:p,rollen:TRS.roleOf(aufg),stunden:isNaN(h)?null:Math.min(24,h),status:/nicht erschienen|nicht gekommen|^nein$/i.test(stv)?'nicht_erschienen':/abgesagt/i.test(stv)?'abgesagt':/zugesagt/i.test(stv)?'zugesagt':'geholfen'}); }); });
+      Object.values(by).forEach(e=>out.push(e)); }
+    else { R.forEach(r=>{ const p=pid(r[S.nameCol]), b=vrDateCell(r[S.cols.von]); if(!p||p.startsWith('x:')||!b||b.startsWith('?'))return; const dg=String(S.cols.diagnose>=0?r[S.cols.diagnose]:'').trim()||'Verletzung';
+        const z=S.cols.bis>=0?vrDateCell(r[S.cols.bis]):null, pr=S.cols.prognose>=0?vrDateCell(r[S.cols.prognose]):null;
+        out.push({player_id:p,diagnose:dg.slice(0,200),beginn:b,zurueck:z&&z>=b&&!z.startsWith('?')?z:null,prognose:pr&&pr>=b&&!pr.startsWith('?')?pr:null}); }); }
+    return out;
+  };
+  const draw=()=>{
+    const E=$('vrIm'); if(!E)return;
+    const kinds=[['training','Trainings-Anwesenheit'],['helfer','Helfer & Veranstaltungen'],['verletzung','Verletzungen']];
+    let h=`<div class="trtabs sm" style="margin:12px 0">${kinds.map(([k,t])=>`<button class="${S.kind===k?'on':''}" data-ik="${k}">${t}</button>`).join('')}</div>`;
+    if(!S.rows){
+      h+=`<div class="vrdrop"><label class="btn" for="vrFile">${SVI('upload')} Datei wählen (.xlsx oder .csv)</label><input type="file" id="vrFile" accept=".xlsx,.xlsm,.csv,.txt,.tsv" hidden>
+          <div class="note">oder Zellen aus Excel/Google Sheets kopieren und hier einfügen:</div><textarea id="vrPaste" rows="6" placeholder="Name	01.09.	03.09.	05.09.&#10;Tim Fries	x	k	x&#10;…"></textarea><button class="btn ghost sm" id="vrPasteGo">Eingefügtes einlesen</button></div>
+        <div class="note">${S.kind==='training'?'Typisch: eine Zeile je Spieler, eine Spalte je Trainingstag (x = da, k = krank, v = verletzt, u = unentschuldigt, e = entschuldigt, ur = Urlaub …). Auch eine lange Liste „Datum | Name | Status“ geht.':S.kind==='helfer'?'Z. B. „Datum | Veranstaltung | Name(n) | Aufgabe | Stunden“ – mehrere Namen in einer Zelle mit Komma trennen. Oder: Zeilen = Helfer, Spalten = Veranstaltungen (Zelle = Stunden oder x).':'Z. B. „Name | Diagnose | von | bis“.'} Die Zuordnung prüfst du im nächsten Schritt.</div>`;
+    } else {
+      const P=plan(), un=Object.entries(S.map).filter(([,v])=>!v);
+      const cnt=S.kind==='training'?`${P.length} Einheiten · ${P.reduce((a,s)=>a+s.spieler.length,0)} Einträge${P.length?` · ${TRC.fmt(P[0].datum)}${P[0].datum.slice(2,4)} – ${TRC.fmt(P[P.length-1].datum)}${P[P.length-1].datum.slice(2,4)}`:''}`
+        :S.kind==='helfer'?`${P.length} Veranstaltungen · ${P.reduce((a,e)=>a+e.helfer.length,0)} Helfereinsätze`:`${P.length} Verletzungen`;
+      const H=(S.rows[S.hdr]||[]), colOpt=(sel)=>`<option value="-1">–</option>`+H.map((v,i)=>`<option value="${i}"${sel===i?' selected':''}>${svEsc(String(v||'Spalte '+(i+1)).slice(0,30))}</option>`).join('');
+      h+=`<div class="vrim-src"><b>${svEsc(S.fileName)}</b> · ${S.rows.length} Zeilen${S.sheets&&S.sheets.length>1?` · Blatt <select id="vrSheet">${S.sheets.map(n=>`<option${n===S.sheet?' selected':''}>${svEsc(n)}</option>`).join('')}</select>`:''} <button class="btn ghost sm" id="vrReset">Andere Datei</button></div>
+        <div class="editgrid"><div class="field"><label>Kopfzeile</label><select id="vrHdr">${S.rows.slice(0,15).map((r,i)=>`<option value="${i}"${S.hdr===i?' selected':''}>Zeile ${i+1}: ${svEsc(r.slice(0,4).join(' | ').slice(0,40))}</option>`).join('')}</select></div>
+          <div class="field"><label>Spalte mit Namen</label><select id="vrNameCol">${colOpt(S.nameCol)}</select></div>
+          ${S.layout==='lang'?Object.entries(S.cols).map(([k,v])=>`<div class="field"><label>Spalte ${svEsc({datum:'Datum',status:'Status/Grund',motivation:'Motivation (1–5)',notiz:'Notiz',titel:'Veranstaltung',aufgabe:'Aufgabe',stunden:'Stunden',diagnose:'Diagnose',von:'Von/Beginn',bis:'Bis/zurück',prognose:'Prognose'}[k]||k)}</label><select data-col="${k}">${colOpt(v)}</select></div>`).join(''):''}</div>
+        ${S.layout==='matrix'&&S.kind==='training'?`<div class="note">Erkannt: Tabelle mit ${S.cols.dates.length} Trainingstagen als Spalten.</div>`:''}
+        ${Object.keys(S.codes).length?`<div class="sbsec"><h4>Was bedeuten die Einträge?</h4><div class="vrcodes">${Object.entries(S.codes).slice(0,30).map(([v,o])=>`<div class="${o.to==='?'?'warn':''}"><code>${svEsc(v.slice(0,20))}</code><small>${o.n}×</small><select data-code="${svEsc(v)}">${(o.to==='?'?'<option value="?" selected>– bitte wählen –</option>':'')+VR_CODE_OPTS.map(([k,t])=>`<option value="${k}"${o.to===k?' selected':''}>${t}</option>`).join('')}</select></div>`).join('')}</div></div>`:''}
+        <div class="sbsec"><h4>Namen <small>${Object.keys(S.map).length-un.length} von ${Object.keys(S.map).length} zugeordnet</small></h4>
+          ${un.length?`<div class="vrcodes">${un.map(([n])=>`<div class="warn"><code>${svEsc(n.slice(0,30))}</code><select data-nm="${svEsc(n)}"><option value="">ignorieren</option>${people.map(p=>`<option value="${svEsc(p.id)}">${svEsc(p.name)}</option>`).join('')}${S.kind==='helfer'?`<option value="x:${svEsc(n)}">als Helfer ohne Profil</option>`:''}</select></div>`).join('')}</div>`:'<div class="note">Alle Namen erkannt. 👍</div>'}
+          <details class="vrdet"><summary>Zuordnung prüfen (${Object.keys(S.map).length-un.length})</summary>${Object.entries(S.map).filter(([,v])=>v).map(([n,v])=>`<div><code>${svEsc(n)}</code> → ${svEsc(vrPersonName(v))}</div>`).join('')}</details></div>
+        <div class="vrim-sum">${SVI('check')} ${cnt}</div>
+        <div class="btnrow sbact"><button class="btn" id="vrGo"${P.length&&!S.busy?'':' disabled'}>${S.busy?'Importiere …':'Importieren'}</button><button class="btn ghost" id="vrCancel">Abbrechen</button></div>
+        <div class="note">Bereits vorhandene Einträge am selben Tag werden ergänzt bzw. für diese Spieler überschrieben – nichts wird doppelt angelegt.</div>`;
+    }
+    E.innerHTML=h;
+    E.querySelectorAll('[data-ik]').forEach(b=>b.onclick=()=>{ S.kind=b.dataset.ik; if(S.rows)analyse(); draw(); });
+    if($('vrFile'))$('vrFile').onchange=e=>{ const f=e.target.files[0]; if(f)load(f); };
+    if($('vrPasteGo'))$('vrPasteGo').onclick=()=>{ const t=$('vrPaste').value; if(t.trim())load(null,t); };
+    if($('vrReset'))$('vrReset').onclick=()=>{ S.rows=null; S.wb=null; S.sheets=null; draw(); };
+    if($('vrCancel'))$('vrCancel').onclick=()=>closeOverlay();
+    if($('vrSheet'))$('vrSheet').onchange=()=>{ S.sheet=$('vrSheet').value; S.rows=window.XLSX.utils.sheet_to_json(S.wb.Sheets[S.sheet],{header:1,raw:true,defval:''}); analyse(); draw(); };
+    if($('vrHdr'))$('vrHdr').onchange=()=>{ analyse(+$('vrHdr').value); draw(); };
+    if($('vrNameCol'))$('vrNameCol').onchange=()=>{ S.nameCol=+$('vrNameCol').value; const body=S.rows.slice(S.hdr+1); S.map={}; body.forEach(r=>{ const v=String(r[S.nameCol]==null?'':r[S.nameCol]).trim(); if(!v)return; (S.kind==='helfer'?v.split(/,|;|\/|\bund\b|&/):[v]).map(x=>x.trim()).filter(x=>x.length>1).forEach(x=>{ S.map[x]=vrMatchName(x,people)||(S.kind==='helfer'?'x:'+x:''); }); }); draw(); };
+    E.querySelectorAll('[data-col]').forEach(s=>s.onchange=()=>{ S.cols[s.dataset.col]=+s.value; if(s.dataset.col==='status'){ const vals={}; S.rows.slice(S.hdr+1).forEach(r=>{ const v=String(r[+s.value]||'').trim(); if(v)vals[v]=(vals[v]||0)+1; }); S.codes=Object.fromEntries(Object.keys(vals).map(v=>[v,{n:vals[v],to:vrGuessCode(v)}])); } draw(); });
+    E.querySelectorAll('[data-code]').forEach(s=>s.onchange=()=>{ S.codes[s.dataset.code].to=s.value; draw(); });
+    E.querySelectorAll('[data-nm]').forEach(s=>s.onchange=()=>{ S.map[s.dataset.nm]=s.value||null; if(!s.value)S.map[s.dataset.nm]=null; draw(); });
+    if($('vrGo'))$('vrGo').onclick=async()=>{ const P=plan(); if(!P.length)return; S.busy=true; draw(); const b=$('vrGo'); let ok=0, fail=0;
+      try{
+        if(S.kind==='training'){ for(const s of P){ for(let i=0;i<s.spieler.length;i+=80){ try{ const {error}=await SVB.sb.rpc('training_save',{p:{datum:s.datum,typ:'training',spieler:s.spieler.slice(i,i+80)}}); if(error)throw error; ok++; }catch(e){ fail++; console.warn(s.datum,e); } } if(b)b.textContent=`Importiere … ${ok}/${P.length}`; } await trLoad(true); }
+        else if(S.kind==='helfer'){ for(const e of P){ try{ const {error}=await SVB.sb.rpc('event_save',{p:e}); if(error)throw error; ok++; }catch(x){ fail++; console.warn(e,x); } if(b)b.textContent=`Importiere … ${ok}/${P.length}`; } await vrLoadEvents(); }
+        else { const have=new Set(TR.st.injuries.map(i=>i.p+'|'+i.b)); const rows=P.filter(i=>!have.has(i.player_id+'|'+i.beginn)).map(i=>({player_id:i.player_id,diagnose:i.diagnose,beginn:i.beginn,zurueck:i.zurueck,prognose:i.prognose}));
+          if(rows.length){ const {error}=await SVB.sb.from('injuries').insert(rows); if(error)throw error; } ok=rows.length; fail=0; await trLoad(true); }
+        closeOverlay(); kToast(`✓ Import fertig: ${ok} ${S.kind==='training'?'Einheiten':S.kind==='helfer'?'Veranstaltungen':'Verletzungen'}${fail?' · '+fail+' fehlgeschlagen':''}`);
+      }catch(e){ S.busy=false; draw(); kToast('⚠️ '+(e.message||e)); } };
+  };
+  draw();
+}
+
+/* ---------- Start ---------- */
+{ const _gt3=goTab; goTab=function(tab){ const r=_gt3.apply(this,arguments); if(tab==='verein')vrRender(); if(tab==='radar')rdRender(); return r; }; }
+{ const _si3=svInit; svInit=function(){
+    const r=_si3.apply(this,arguments);
+    const scout=canScout();
+    document.querySelectorAll('[data-tab="radar"],[data-sheet="radar"]').forEach(b=>{ b.style.display=scout?'':'none'; });
+    vrLoadAllTime();
+    if(canTraining())vrLoadEvents();
+    if(scout){ vrLoadRadar();
+      try{ const ch=SVB.sb.channel('verein-live'); let t=null, t2=null;
+        ['events','event_helpers'].forEach(tb=>ch.on('postgres_changes',{event:'*',schema:'public',table:tb},()=>{ clearTimeout(t); t=setTimeout(vrLoadEvents,600); }));
+        ch.on('postgres_changes',{event:'INSERT',schema:'public',table:'radar'},()=>{ clearTimeout(t2); t2=setTimeout(vrLoadRadar,800); });
+        ch.subscribe(); }catch(e){}
+      { const _rh4=renderHome; renderHome=function(){ const x=_rh4.apply(this,arguments); try{vrHomeCard();}catch(e){} return x; }; }
+    }
+    { const _ta=trAfter; trAfter=function(){ const x=_ta.apply(this,arguments); try{ if(document.querySelector('#panel-verein.active'))vrRender(); vrHomeCard(); }catch(e){} return x; }; }
+    const h=(location.hash||'').slice(1); if(h==='verein'||h==='radar')setTimeout(()=>goTab(h),60);
     return r; }; }
 
 /* ================= INIT ================= */
