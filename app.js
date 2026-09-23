@@ -2100,7 +2100,7 @@ function openSlotPicker(i,depth){
 }
 
 /* ===== App-Modus: installierbar, offline-fest, aktualisiert sich selbst ===== */
-const APP_BUILD='20260923-1309', OUTBOX_KEY='svbcOutbox', APP_HIDE_KEY='svbcInstallHide';
+const APP_BUILD='20260923-1312', OUTBOX_KEY='svbcOutbox', APP_HIDE_KEY='svbcInstallHide';
 let _appPrompt=null, _appNew=null, _obT=null;
 function appStandalone(){ try{ return !!(window.matchMedia&&matchMedia('(display-mode: standalone)').matches)||navigator.standalone===true; }catch(e){ return false; } }
 function appPlatform(){
@@ -3186,14 +3186,14 @@ function sbOptimize(){
 function sbFitRow(){
   const host=document.getElementById('gapRow'); if(!host)return;
   let el=document.getElementById('sbFitRow'); if(!el){ el=document.createElement('div'); el.id='sbFitRow'; el.className='sbfitrow'; host.after(el); }
-  const form=FORMATIONS[LINEUP.formation], issues=[], foot=[]; let n=0, ok=0;
+  const form=FORMATIONS[LINEUP.formation], issues=[], foot=[]; let n=0, ok=0, main=0;
   form.forEach((slot,i)=>{ const p=players.find(z=>z.id===LINEUP.slots[i]); if(!p)return; n++; const fi=sbFitInfo(p,slot);
-    if(fi.cls==='bad'||fi.cls==='weak')issues.push(`<b>${svEsc(p.name.split(' ').slice(-1)[0])}</b> (${svEsc(p.pos||'?')}) als ${svEsc(slot[0])}`); else ok++;
+    if(fi.cls==='bad'||fi.cls==='weak')issues.push(`<b>${svEsc(p.name.split(' ').slice(-1)[0])}</b> (${svEsc(p.pos||'?')}) als ${svEsc(slot[0])}`); else { ok++; if(fi.cls==='ok'||fi.cls==='neben')main++; }
     if(fi.footWarn)foot.push(`<b>${svEsc(p.name.split(' ').slice(-1)[0])}</b> (${svEsc(p.fuss)}) auf ${sbSlotSide(slot[1])==='L'?'links':'rechts'}`); });
   if(!n){ el.innerHTML=''; return; }
   const good=!issues.length&&!foot.length;
   el.innerHTML=`<div class="sbfitbox ${good?'good':'warn'}"><span class="sbfit-ic">${SVI(good?'check':'info')}</span>
-    <div class="sbfit-t"><b>Positions-Check: ${ok}/${n} auf passender Position</b>${issues.length?`<span>Passt nicht: ${issues.join(' · ')}</span>`:''}${foot.length?`<span>Fuß/Seite: ${foot.join(' · ')}</span>`:''}${good?'<span>Alle Spieler auf Haupt- oder Nebenposition – realistisch aufgestellt.</span>':''}</div>
+    <div class="sbfit-t"><b>Positions-Check: ${ok}/${n} auf passender Position</b>${issues.length?`<span>Passt nicht: ${issues.join(' · ')}</span>`:''}${foot.length?`<span>Fuß/Seite: ${foot.join(' · ')}</span>`:''}${good?`<span>${main===ok?'Alle auf Haupt- oder Nebenposition':main+' auf Haupt-/Nebenposition, '+(ok-main)+' auf verwandter Position'} – realistisch aufgestellt. Grüner Punkt = Hauptposition, gelber = verwandte Position.</span>`:''}</div>
     ${canEdit()&&!good?`<button class="btn sm" id="sbOpt" type="button">${SVI('move')} Automatisch sortieren</button>`:''}</div>`;
   const b=document.getElementById('sbOpt'); if(b)b.onclick=sbOptimize;
 }
