@@ -437,6 +437,7 @@
   <!-- HOME -->
   <section class="panel active" id="panel-home">
     <div class="tiles" id="homeTiles"></div>
+    <div id="homeKand"></div>
     <div id="homeCrm"></div>
     <div class="sechead">Spieler im Fokus <small data-goto="scout">Alle ›</small></div>
     <div class="hscroll" id="homeFocus"></div>
@@ -467,16 +468,132 @@
 <style id="kandCss">
 #panel-kandidaten .kwrap{overflow-x:auto}
 #panel-kandidaten table.kand-table{width:100%;border-collapse:collapse;font-size:12px}
-#panel-kandidaten .kand-table th,#panel-kandidaten .kand-table td{padding:5px 6px;border-bottom:1px solid var(--line,#22304a);text-align:left;vertical-align:top}
+#panel-kandidaten .kand-table th,#panel-kandidaten .kand-table td{padding:6px 6px;border-bottom:1px solid var(--line,#22304a);text-align:left;vertical-align:top}
 #panel-kandidaten .kand-table th{position:sticky;top:0;background:var(--bg2,#0f1830);color:var(--ink3,#8fa3c7);font-weight:600;white-space:nowrap;z-index:1}
-#panel-kandidaten tr.due{background:rgba(255,70,70,.10)}
+#panel-kandidaten tr.due{background:rgba(255,70,70,.08)}
 #panel-kandidaten tr.due td:first-child{box-shadow:inset 3px 0 0 #ff5b5b}
-#panel-kandidaten .kand-in{width:100%;box-sizing:border-box;background:var(--bg,#0b1224);color:var(--ink,#e8eefc);border:1px solid var(--line,#22304a);border-radius:6px;padding:3px 5px;font-size:12px}
-#panel-kandidaten .kand-name{font-weight:600;cursor:pointer;color:var(--ink,#e8eefc)}
+#panel-kandidaten .kand-in{width:100%;box-sizing:border-box;background:var(--bg,#0b1224);color:var(--ink,#e8eefc);border:1px solid rgba(255,255,255,.12);border-radius:7px;padding:4px 6px;font-size:12px;font-family:inherit}
+#panel-kandidaten .kand-in:focus{outline:none;border-color:var(--accent,#4da3ff);box-shadow:0 0 0 2px rgba(77,163,255,.2)}
+#panel-kandidaten .kand-name{font-weight:700;cursor:pointer;color:var(--ink,#e8eefc)}
 #panel-kandidaten .kand-name:hover{text-decoration:underline}
-#panel-kandidaten .kand-sub{color:var(--ink3,#8fa3c7);font-size:11px}
-#panel-kandidaten .kchip{display:inline-block;padding:1px 7px;border-radius:999px;font-size:11px;font-weight:600;white-space:nowrap}
-#panel-kandidaten .kbtn{background:var(--bg2,#16223c);color:var(--ink,#e8eefc);border:1px solid var(--line,#22304a);border-radius:6px;padding:3px 8px;font-size:11px;cursor:pointer}
+.kand-sub{color:var(--ink3,#8fa3c7);font-size:11px}
+.kchip{display:inline-block;padding:1px 8px;border-radius:999px;font-size:11px;font-weight:700;white-space:nowrap}
+.kbtn{background:var(--card2,#16223c);color:var(--ink,#e8eefc);border:1px solid rgba(255,255,255,.12);border-radius:8px;padding:4px 10px;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;white-space:nowrap}
+.kbtn:hover{border-color:rgba(77,163,255,.5)}
+a.kbtn{text-decoration:none;display:inline-block}
+.kbtn-warn{border-color:rgba(255,179,71,.5);color:#ffb347}
+.kbtn-go{border-color:rgba(47,210,122,.45);color:#5fe09b}
+.kx{background:none;border:none;color:var(--ink3);cursor:pointer;font-size:14px;line-height:1;padding:3px 6px;border-radius:6px;font-family:inherit}
+.kx:hover{color:#ff8a8a;background:rgba(255,90,90,.1)}
+.kctrl{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.kctrl + .kctrl{margin-top:8px}
+#panel-kandidaten .kadd{position:relative;flex:1 1 230px;max-width:380px}
+#panel-kandidaten .kaddres{display:none;position:absolute;left:0;right:0;top:calc(100% + 4px);background:var(--card2);border:1px solid rgba(255,255,255,.14);border-radius:12px;z-index:30;max-height:340px;overflow:auto;box-shadow:0 14px 34px rgba(0,0,0,.5)}
+#panel-kandidaten .kaddit{display:block;width:100%;text-align:left;background:none;border:none;border-bottom:1px solid var(--line2);color:var(--ink);padding:8px 12px;cursor:pointer;font-family:inherit;font-size:13px}
+#panel-kandidaten .kaddit:hover,#panel-kandidaten .kaddit:focus{background:rgba(77,163,255,.12);outline:none}
+#panel-kandidaten .kpanel{padding:12px 14px;margin-bottom:8px;border-color:rgba(77,163,255,.35)}
+#panel-kandidaten .kpanel-h{display:flex;align-items:center;gap:8px;margin-bottom:6px}
+#panel-kandidaten .kpanel-h b{font-size:14px}
+#panel-kandidaten .kdgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(270px,1fr));gap:10px;margin-top:10px}
+#panel-kandidaten .kdcard{background:var(--card2);border:1px solid var(--line);border-radius:12px;padding:10px}
+#panel-kandidaten .kdh{display:flex;align-items:center;justify-content:space-between;gap:6px;margin-bottom:6px;font-size:13px}
+#panel-kandidaten .kdcard textarea{width:100%;min-height:160px;background:var(--bg);color:var(--ink);border:1px solid var(--line);border-radius:8px;padding:8px;font:12px/1.45 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;resize:vertical}
+#panel-kandidaten .kplchip{display:inline-flex;align-items:center;gap:2px;background:var(--card2);border:1px solid var(--line);border-radius:999px;padding:2px 2px 2px 10px;font-size:12px;font-weight:600}
+#panel-kandidaten .kand-lock{font-size:12px;color:var(--ink3)}
+#panel-kandidaten .kacts{display:flex;gap:4px;margin-top:4px}
+#panel-kandidaten .klink{padding:2px 7px;font-size:13px}
+#panel-kandidaten .kmsg{font-size:12.5px;margin-top:6px;color:#ffb347;min-height:1em}
+.ktoast{position:fixed;left:50%;bottom:96px;transform:translateX(-50%) translateY(16px);background:#1f2940;color:#fff;border:1px solid rgba(255,255,255,.14);border-radius:12px;padding:10px 14px;font-size:13px;font-weight:600;box-shadow:0 12px 32px rgba(0,0,0,.45);opacity:0;pointer-events:none;transition:opacity .2s,transform .2s;z-index:300;display:flex;gap:12px;align-items:center;max-width:92vw}
+.ktoast.on{opacity:1;transform:translateX(-50%) translateY(0);pointer-events:auto}
+.ktoast button{background:none;border:none;color:#4da3ff;font-weight:800;cursor:pointer;font-size:13px;font-family:inherit}
+.homekand{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:13px 18px;cursor:pointer;border-color:rgba(77,163,255,.3)!important;background:linear-gradient(135deg,rgba(37,99,235,.14),rgba(21,26,36,1) 60%)!important}
+.homekand:hover{border-color:rgba(77,163,255,.6)!important}
+/* ---- MVP-Pflege (Tab Datenbank) ---- */
+#mvpCard details#mvpDet{background:var(--card);border:1px solid rgba(47,210,122,.25);border-radius:20px;padding:14px 18px;margin-bottom:14px}
+#mvpCard summary{cursor:pointer;font-weight:800;font-size:14px}
+#mvpCard .mvtbl{width:100%;border-collapse:collapse;font-size:13px;margin-top:10px}
+#mvpCard .mvtbl td,#mvpCard .mvtbl th{padding:6px 6px;border-bottom:1px solid var(--line2);text-align:left;vertical-align:middle}
+#mvpCard .mvtbl th{font-size:11px;color:var(--ink3);text-transform:uppercase;letter-spacing:.03em;font-weight:700}
+#mvpCard input.mvin{width:74px;background:var(--bg);color:var(--ink);border:1px solid rgba(255,255,255,.14);border-radius:8px;padding:6px;font-size:14px;text-align:center;font-family:inherit}
+#mvpCard input.mvin:focus{outline:none;border-color:#2fd27a}
+#mvpCard textarea{width:100%;min-height:90px;margin-top:6px;background:var(--bg);color:var(--ink);border:1px solid var(--line);border-radius:8px;padding:8px;font-size:12px;font-family:inherit}
+#mvpCard select,#mvpCard input[type=date]{background:var(--bg);color:var(--ink);border:1px solid rgba(255,255,255,.14);border-radius:8px;padding:6px 8px;font-size:13px;font-family:inherit;max-width:100%}
+#mvpCard .up{color:#5fe09b;font-weight:700} #mvpCard .dn{color:#ff8a8a;font-weight:700}
+#mvpCard .mvprev{font-variant-numeric:tabular-nums;white-space:nowrap}
+/* ---- Navigation: auf dem Desktop alle Tabs sichtbar (umbrechen statt unsichtbar scrollen) ---- */
+@media(min-width:761px){nav{flex-wrap:wrap;justify-content:center;row-gap:2px}}
+/* ---- Handy-Tableiste: passt sich an, wird bei schmalen Geräten wischbar ---- */
+@media(max-width:760px){
+  .tabbar{overflow-x:auto;scrollbar-width:none;gap:0}
+  .tabbar::-webkit-scrollbar{display:none}
+  .tabbar .ti{flex:1 0 auto;padding:4px 1px;white-space:nowrap}
+  /* Kandidaten als Karten */
+  #panel-kandidaten table.kand-table,#panel-kandidaten .kand-table tbody{display:block}
+  #panel-kandidaten .kand-table thead{display:none}
+  #panel-kandidaten .kand-table tr{display:grid;grid-template-columns:1fr 1fr;gap:8px 10px;background:var(--card);border:1px solid var(--line);border-radius:16px;padding:12px;margin-bottom:10px}
+  #panel-kandidaten .kand-table td{border:none;padding:0;min-width:0}
+  #panel-kandidaten .kand-table td[data-l]::before{content:attr(data-l);display:block;font-size:10px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;color:var(--ink3);margin-bottom:3px}
+  #panel-kandidaten .kand-table td.kfull{grid-column:1/-1}
+  #panel-kandidaten .kand-table td:first-child::before{display:none}
+  #panel-kandidaten tr.due{background:linear-gradient(0deg,rgba(255,70,70,.07),rgba(255,70,70,.07)),var(--card);border-color:rgba(255,90,90,.35);box-shadow:inset 4px 0 0 #ff5b5b}
+  #panel-kandidaten tr.due td:first-child{box-shadow:none}
+  #panel-kandidaten .kand-name{font-size:15px}
+  #panel-kandidaten .kand-in,#mvpCard input.mvin,#mvpCard select,#mvpCard input[type=date]{font-size:16px;padding:7px 8px} /* ab 16px zoomt iOS beim Tippen nicht */
+  #panel-kandidaten .kadd{max-width:none}
+}
+/* ---- Kandidaten Desktop: Spaltenbreiten, damit nichts abgeschnitten wird ---- */
+@media(min-width:761px){
+  #panel-kandidaten .kand-table th:nth-child(1){min-width:158px}
+  #panel-kandidaten .kand-table th:nth-child(2){min-width:92px}
+  #panel-kandidaten .kand-table th:nth-child(3){min-width:106px}
+  #panel-kandidaten .kand-table th:nth-child(4){min-width:84px}
+  #panel-kandidaten .kand-table th:nth-child(5){min-width:126px}
+  #panel-kandidaten .kand-table th:nth-child(6){min-width:174px}
+  #panel-kandidaten .kand-table th:nth-child(7){min-width:84px}
+  #panel-kandidaten .kand-table th:nth-child(8){min-width:106px}
+}
+/* ---- Handy: Tableiste kompakter, Steuerzeile volle Breite, Kaderplan als Karten ---- */
+@media(max-width:760px){
+  .tabbar{padding-left:2px;padding-right:2px}
+  .tabbar .ti{flex:1 0 auto;padding:4px 1px;font-size:9.5px;letter-spacing:-.15px}
+  .tabbar .ti .ic{font-size:19px}
+  #panel-kandidaten #kandSearch{max-width:none!important;flex:1 1 100%}
+  #panel-kandidaten #kandPl{flex:1 1 auto;max-width:none!important}
+  #mvpCard input.mvin{width:64px}
+}
+@media screen and (max-width:760px){
+  main #panel-kaderplan table.kp-table,main #panel-kaderplan table.kp-table tbody{display:block}
+  main #panel-kaderplan table.kp-table thead{display:none}
+  main #panel-kaderplan table.kp-table tr{display:grid;grid-template-columns:auto 1fr auto;gap:5px 10px;align-items:center;padding:10px 4px;border-bottom:1px solid var(--line)}
+  main #panel-kaderplan table.kp-table tr.kp-grp{display:block;padding:0;border:none;margin-top:6px}
+  main #panel-kaderplan table.kp-table tr.kp-grp td{display:block;border-radius:8px;padding:6px 10px}
+  main #panel-kaderplan table.kp-table td{border:none;padding:0;min-width:0}
+  main #panel-kaderplan table.kp-table td.kp-pos{grid-row:1;grid-column:1;font-size:15px;min-width:34px}
+  main #panel-kaderplan table.kp-table td[data-l="Stammspieler"]{grid-row:1;grid-column:2;font-weight:600}
+  main #panel-kaderplan table.kp-table td.kp-stc{grid-row:1;grid-column:3}
+  main #panel-kaderplan table.kp-table td.kp-sub{grid-column:1/-1;font-size:12.5px;padding-left:44px}
+  main #panel-kaderplan table.kp-table td.kp-sub::before{content:attr(data-l) " ";color:var(--ink3);font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.05em;margin-right:4px}
+}
+/* ---- Druck (Kaderplan fürs Vorstands-PDF): ohne Animationen, heller, ohne App-Kopf ---- */
+.kp-print-only{display:none}
+@media print{
+  *,*::before,*::after{animation:none!important;transition:none!important}
+  .hero,.ktoast,#kToast{display:none!important}
+  body{padding-bottom:0!important;background:#fff!important;color:#000!important}
+  main{margin:0!important;max-width:none!important;padding:0!important}
+  main #panel-kaderplan .sechead{display:none!important}
+  main #panel-kaderplan .kp-print-only{display:block!important;margin-bottom:10px}
+  main #panel-kaderplan .card{background:#fff!important;border:1px solid #d0d0d0!important;box-shadow:none!important;padding:6px 10px!important}
+  main #panel-kaderplan .kp-sum .kchip{background:#f3f3f3!important;color:#000!important;border:1px solid #ccc}
+  main #panel-kaderplan .kp-name{color:#000!important;text-decoration:none!important}
+  main #panel-kaderplan .kp-fit{color:#555!important}
+  main #panel-kaderplan table.kp-table th{color:#555!important}
+  main #panel-kaderplan table.kp-table td{color:#000!important}
+  main #panel-kaderplan .kp-st.ok{background:#e3f6ea!important;color:#10703a!important}
+  main #panel-kaderplan .kp-st.thin{background:#fff1dc!important;color:#8a4b00!important}
+  main #panel-kaderplan .kp-st.off{background:#ffe3e3!important;color:#a3001b!important}
+  main #panel-kaderplan table.kp-table tr{break-inside:avoid}
+}
 </style>
 <section class="panel" id="panel-kandidaten">
   <div class="sechead">🗂️ Kaderplaner-Pipeline <small style="color:var(--ink3)">Kandidaten · Kontakt · Wechselwahrscheinlichkeit</small></div>
@@ -568,8 +685,9 @@
 
   <!-- DATENBANK -->
   <section class="panel" id="panel-db">
+    <div id="mvpCard"></div>
     <div class="card" style="padding:14px 18px">
-      <p style="margin:0;font-size:13px">🗄️ <b>Alle 261 Spieler als sortierbare Tabelle.</b> Spaltenkopf antippen zum Sortieren, Zeile antippen für den Steckbrief. Fehlende Angaben = „–". <a href="#" data-legend="1" style="font-weight:700">ⓘ Legende</a></p>
+      <p style="margin:0;font-size:13px">🗄️ <b>Alle <span id="dbCount">–</span> Spieler als sortierbare Tabelle.</b> Spaltenkopf antippen zum Sortieren, Zeile antippen für den Steckbrief. Fehlende Angaben = „–". <a href="#" data-legend="1" style="font-weight:700">ⓘ Legende</a></p>
     </div>
     <div class="dbwrap"><table class="db"><thead id="dbhead"></thead><tbody id="dbbody"></tbody></table></div>
   </section>
@@ -687,6 +805,9 @@
     <div class="card">
       <h3>So rechnet das Modell</h3>
       <ul>
+        <li><b>🔵 FuPa-MVP (NEU, Saison 26/27):</b> FuPa weist pro Team einen MVP-Wert von 0–100 % aus („wie wertvoll ist ein Spieler für sein Team, auf Basis der Leistungsdaten“) – der Wertvollste eines Teams hat 100 %. Weil der Wert <b>team-relativ</b> ist, fließt er nicht absolut ein, sondern als <b>Modifikator von max. ±6 %</b>: MScore × (0,94 + 0,12 × MVP/100), 50 % = neutral. Ein Insider-Rating hat Vorrang. Im Wechsel-Index gilt: MVP ≥ 90 % = Schlüsselspieler (−6, schwer loszueisen), MVP ≤ 55 % = eher Randfigur (+5). <b>Pflege nach jedem Spieltag</b> im Tab 🗄️ Datenbank („FuPa-MVP eintragen“) oder im Spielerprofil – die Werte gelten sofort auf allen Geräten.</li>
+        <li><b>🗂️ Kaderplaner-Pipeline (NEU):</b> Kandidaten mit Wechselwahrscheinlichkeit (manuell, daneben der Modellwert), Zielrolle/-position, verantwortlichem Planer und letztem Kontakt – nach 21 Tagen ohne Kontakt wird er rot und rutscht nach oben. Wochen-Digest je Planer zum Kopieren oder Teilen per WhatsApp. Änderungen mehrerer Planer werden <b>feldweise zusammengeführt</b> – niemand überschreibt die Einträge der anderen. <b>Kontaktdaten werden im Browser mit einem Team-Schlüssel verschlüsselt</b> (AES-256); online liegen sie nur als unlesbarer Code.</li>
+        <li><b>📋 Kaderplan-Board (NEU):</b> Traumelf mit Backup und Ziel je Position, offene Positionen markiert – druckfertig als PDF für Vorstand und Kaderplanung.</li>
         <li><b>👥 Schattenmannschaft:</b> Kaderplanungs-Werkzeug wie im Profiscouting — hinter jeder Position der Startelf stehen ein geplanter <b>Backup</b> aus dem eigenen Kader und ein externes <b>Transferziel</b> (sortiert nach Transfer-Chance). Auto-Vervollständigen besetzt offene Planungen positionstreu; alles wird geräteübergreifend mitgespeichert.</li>
         <li><b>Gruppenliga-Radar (NEU):</b> Alle Torschützen (≥2 Tore) der 7 Gruppenliga-Vereine im Umkreis (Wald-Michelbach, FC/SV Fürth, Fehlheim, Auerbach, Bensheim, Riedrode) sind erfasst — Quelle fussball.de (Torschützenliste, Tabelle, 24 Spielerprofile mit Minuten). Der <b>Wechsel-Index</b> unterscheidet: Gruppenliga-<i>Stammspieler</i> sind quasi unerreichbar (−26), wer dort aber <i>meist draußen sitzt</i>, ist für garantierte Spielzeit ansprechbar. Echte Bankspieler ohne Torbeteiligung sind öffentlich nicht auffindbar (nur FuPa hätte komplette Kader — für automatisierte Abrufe gesperrt).</li>
         <li><b>Positionen &amp; Nebenpositionen:</b> Jeder Spieler hat eine feste Hauptposition. Hat er laut Vereinsheft-Aufstellungen nachweislich auch woanders gespielt (z.B. S. Goderbauer im Mittelfeld, Fries vorne), ist das als <b>Nebenposition</b> hinterlegt. Die „Beste Elf“-Automatik bewertet mit <b>75 % Stärke + Trainer-Vertrauen</b> (bis +10 für Startelf-Häufigkeit 25/26) <b>− 8 bei Disziplin-Risiko</b> (Rote Karten) und besetzt Slots nur mit Haupt-/Nebenposition; einzig LM/RM dürfen zur Not von zentralen Spielern (ZM/OM/ST) mit Malus übernommen werden — Kreisliga-Realität. Lieber ein Slot leer als wild verschoben.</li>
@@ -854,15 +975,15 @@ function scores(p){
   let total=(prod*W.prod+share*W.share+ctx*W.ctx+pot*W.pot+trend*W.trend+presse*W.presse+scout*W.scout)/sum;
   let sdsB=0;
   if(p.sds>0){sdsB=Math.min(6,p.sds*2);total=Math.min(100,total+sdsB);} /* FuPa Elf der Woche/Spieler des Spieltags: +2 je Nominierung, max +6 */
-  let mvpAdj=0, mvpVal=(typeof p.mvp==='number')?p.mvp:null;
-  if(mvpVal!=null){const _b=total;total=Math.min(100,total*(0.94+0.12*(mvpVal/100)));mvpAdj=Math.round((total-_b)*10)/10;} /* FuPa-MVP: team-relativer Leistungswert als +-6% Modifikator */
+  const _mo=mvpOf(p); let mvpAdj=0, mvpVal=_mo?_mo.v:null, mvpD=_mo?_mo.d:null, mvpBase=total;
+  if(mvpVal!=null&&p.adjTo==null){const _b=total;total=Math.min(100,total*mvpFactor(mvpVal));mvpAdj=Math.round((total-_b)*10)/10;} /* FuPa-MVP: team-relativer Leistungswert als ±6 %-Modifikator (50 % = neutral); Insider-Rating hat Vorrang */
   let adjD=0, adjBase=null;
   if(p.adjTo!=null){adjBase=Math.round(total*10)/10;adjD=Math.round((p.adjTo-total)*10)/10;total=p.adjTo;} /* Insider-Rating: Modellwert wird transparent überschrieben */
   const spTeam=(p.toreBelegt&&p.kaderDoc&&p.kaderStarts)?Math.max(6,p.kaderStarts):(p.teamSp||sp);
   const proj=Math.round((p.tore/Math.max(1,spTeam))*wOf(p)*30); /* xT über Team-Spiele: reale Einsatzquote eingerechnet, keine Vollzeit-Hochrechnung */
   return {prod:Math.round(prod),share:Math.round(share),ctx:Math.round(ctx),pot:Math.round(pot),
     trend:Math.round(trend),presse:Math.round(presse),scout:Math.round(scout),total:Math.round(total*10)/10,
-    mvp:mvpVal,mvpAdj,gpg,proj,tratio,defMode,gaTxt,sdsB,adjD,adjBase,shareRaw:(p.tT&&p.tT>0)?p.tore/p.tT:null};
+    mvp:mvpVal,mvpAdj,mvpD,mvpBase:Math.round(mvpBase*10)/10,gpg,proj,tratio,defMode,gaTxt,sdsB,adjD,adjBase,shareRaw:(p.tT&&p.tT>0)?p.tore/p.tT:null};
 }
 
 /* ================= GEMS ================= */
@@ -1048,7 +1169,7 @@ function renderHome(){
       return `<div class="rankrow row" data-id="${p.id}">
         <span class="rk" style="color:${W?tierColor(W.k):'var(--ink3)'}" title="${W?'Transfer-Chance':''}">${W?Math.round(W.k):'–'}</span>
         <div class="ava l-${p.liga}" style="width:30px;height:30px;font-size:11px;border-radius:9px">${src?`<img src="${src}" onerror="this.remove()">`:initials(p.name)}</div>
-        <span class="rn">${p.name}${C.c?' <span class="badge b-crmc">📞</span>':''} <i style="color:var(--ink3)">${p.club} · ${LIGA_NAME[p.liga]||p.liga}</i>${sub?`<br><i style="color:#8fa3c7;font-size:11px">${sub}</i>`:''}${C.n?`<div class="crmnote">📝 ${C.n.length>90?C.n.slice(0,90)+'…':C.n}</div>`:''}</span>
+        <span class="rn">${p.name}${C.c?' <span class="badge b-crmc">📞</span>':''} <i style="color:var(--ink3)">${p.club} · ${LIGA_NAME[p.liga]||p.liga}</i>${sub?`<br><i style="color:#8fa3c7;font-size:11px">${sub}</i>`:''}${C.n?`<div class="crmnote">📝 ${kEsc(C.n.length>90?C.n.slice(0,90)+'…':C.n)}</div>`:''}</span>
         <span class="rv">${p.km!=null?p.km+' km':''}</span></div>`;};
     let out='<div class="sechead">🗂 Scouting-Zentrale <small style="color:var(--ink3)">Kontakte · Merkliste · Wiedervorlagen</small></div><div class="card" style="padding:10px 12px">';
     if(due.length)out+=`<div class="duebox"><b style="color:#ffb347">⏰ Wiedervorlage fällig (${due.length})</b> — die wolltet ihr euch jetzt wieder anschauen:</div>`+
@@ -1110,11 +1231,13 @@ const DB_COLS=[
   {k:'proj',l:'KLA-Prog.',num:1,get:p=>scores(p).proj},
   {k:'km',l:'km',num:1,get:p=>p.km},
   {k:'status',l:'Status',get:p=>p.status||'Neu'},
+  {k:'mvp',l:'MVP',num:1,get:p=>scores(p).mvp},
   {k:'score',l:'MScore',num:1,get:p=>scores(p).total},
 ];
 function renderDB(){
   const head=document.getElementById('dbhead');
   if(!head)return;
+  {const dc=document.getElementById('dbCount'); if(dc)dc.textContent=players.length.toLocaleString('de-DE');}
   head.innerHTML='<tr>'+DB_COLS.map(c=>`<th class="${c.num?'num':''} ${dbSort.k===c.k?'on':''}" data-k="${c.k}">${c.l}${dbSort.k===c.k?(dbSort.dir<0?' ↓':' ↑'):''}</th>`).join('')+'</tr>';
   head.querySelectorAll('th').forEach(th=>{th.onclick=()=>{
     const k=th.dataset.k;
@@ -1143,6 +1266,7 @@ function renderDB(){
       <td class="num">${s.proj}</td>
       <td class="num">${p.km}</td>
       <td>${p.status||'Neu'}</td>
+      <td class="num">${s.mvp!=null?s.mvp:'–'}</td>
       <td class="num"><b>${fmt(s.total,1)}</b></td>
     </tr>`;
   }).join('');
@@ -1154,28 +1278,196 @@ window.addEventListener('beforeinstallprompt',e=>{
   const b=document.getElementById('installBtn');
   if(b){b.style.display='inline-block';b.onclick=()=>{deferredPrompt.prompt();};}
 });
-/* ===== Kaderplaner-Pipeline (Kandidaten-CRM-Sicht) =====
-   Zusatzfelder je Spieler in CRM[pid]: k=Kontaktdaten, lc=letzter Kontakt (ISO),
-   w=Wechselwahrscheinlichkeit 1-4, rl=Zielrolle, tp=Zielposition, pl=verantw. Kaderplaner.
-   Werden vom bestehenden lineupSync() automatisch mitsynchronisiert. */
+/* ===== Kaderplaner-Pipeline (Kandidaten-CRM-Sicht) · v2 =====
+   Felder je Spieler in CRM[pid]: k=Kontaktdaten (im Browser verschlüsselt, 'enc1:…'), lc=letzter Kontakt (ISO),
+   w=Wechselwahrscheinlichkeit 1-4, rl=Zielrolle, tp=Zielposition, pl=verantw. Kaderplaner, mv/mvd=FuPa-MVP + Stand.
+   CRM['__meta'] = {pl:[zusätzliche Planer], kv:Prüfwert des Team-Schlüssels}. Sync feldweise (siehe crmMerge). */
 const KAND_DUE_DAYS=21;
-let PLANNERS=['Dome','Nico'];
+const META_ID='__meta';
+const PLANNERS_DEFAULT=['Dome','Nico'];
 const WPROB={1:{t:'gering',c:'#8fa3c7'},2:{t:'mittel',c:'#ffd60a'},3:{t:'hoch',c:'#ffb347'},4:{t:'sehr hoch',c:'#5fe09b'}};
 const KPOS=['TW','IV','AV','ZM','OM','Flügel','ST'];
-let kandFP='',kandDue=false,kandQ='';
+let kandFP='',kandDue=false,kandQ='',kandPanel='',kandAddQ='',kandKeyMsg='',kandDigestContacts=false,kandDigestCache=[],kandPlDraft='',kandKeyDraft='';
 function kEsc(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
 function daysSince(iso){if(!iso)return null;const d=new Date(iso+'T00:00:00'),n=new Date(todayISO()+'T00:00:00');return Math.round((n-d)/86400000);}
-function kandList(){return players.filter(p=>{const C=crmOf(p);return (C.f||C.pl||C.w||C.lc||C.s==='att')&&C.s!=='no';});}
-function kandIsDue(p){const C=crmOf(p);const ds=daysSince(C.lc);return ds===null||ds>KAND_DUE_DAYS;}
-function kandPlanners(){const s=new Set(PLANNERS);kandList().forEach(p=>{const q=crmOf(p).pl;if(q)s.add(q);});return [...s];}
+function metaOf(){try{return CRM[META_ID]||{};}catch(e){return {};}}
+function kandOut(C){ /* aus der Pipeline genommen – gilt, bis danach wieder markiert/zugewiesen/eingeschätzt wird */
+  if(!C.px)return false; const T=C._t||{}; return (T.px||0)>=Math.max(T.f||0,T.pl||0,T.w||0,T.s||0);}
+function kandList(){return players.filter(p=>{const C=crmOf(p);return (C.f||C.pl||C.w||C.lc||C.s==='att')&&C.s!=='no'&&!kandOut(C);});}
+function kandIsDue(p){const ds=daysSince(crmOf(p).lc);return ds===null||ds>KAND_DUE_DAYS;}
+function metaPlanners(){const M=metaOf();return Object.keys(M).filter(k=>k.slice(0,3)==='pl:'&&M[k]).map(k=>k.slice(3));}
+function kandPlanners(){const s=new Set(PLANNERS_DEFAULT);metaPlanners().forEach(x=>{if(x)s.add(x);});kandList().forEach(p=>{const q=crmOf(p).pl;if(q)s.add(q);});return [...s];}
+function kandSoftRender(){ setTimeout(()=>{ if(crmIsTyping())_pendingRefresh=true; else renderKandidaten(); },0); } /* nicht neu zeichnen, solange jemand tippt (sonst schließt die Handy-Tastatur) */
+function kToast(msg,actLabel,actFn){
+  let t=document.getElementById('kToast');
+  if(!t){t=document.createElement('div');t.id='kToast';t.className='ktoast';document.body.appendChild(t);}
+  t.innerHTML='<span>'+kEsc(msg)+'</span>'+(actLabel?'<button type="button">'+kEsc(actLabel)+'</button>':'');
+  if(actLabel){t.querySelector('button').onclick=()=>{t.classList.remove('on');try{actFn();}catch(e){}};}
+  t.classList.add('on');clearTimeout(t._h);t._h=setTimeout(()=>t.classList.remove('on'),actLabel?6000:2600);
+}
+async function kCopy(txt){
+  try{await navigator.clipboard.writeText(txt);kToast('📋 In die Zwischenablage kopiert');}
+  catch(e){const ta=document.createElement('textarea');ta.value=txt;ta.style.position='fixed';ta.style.opacity='0';document.body.appendChild(ta);ta.select();
+    try{document.execCommand('copy');kToast('📋 In die Zwischenablage kopiert');}catch(e2){kToast('Kopieren nicht möglich – Text bitte markieren');}ta.remove();}
+}
+
+/* ---------- Team-Schlüssel: Kontaktdaten Ende-zu-Ende verschlüsselt (AES-GCM 256, Schlüssel per PBKDF2 aus einem Satz) ---------- */
+const TK_LS='svbcTeamKey';
+let TK=null, tkVerified=false, tkBusy=false;
+const KDEC={}, KSRC={};
+function tkCan(){try{return !!(window.crypto&&crypto.subtle&&window.isSecureContext!==false);}catch(e){return false;}}
+function lsGet(k){try{return localStorage.getItem(k);}catch(e){return null;}}
+function lsSet(k,v){try{if(v==null)localStorage.removeItem(k);else localStorage.setItem(k,v);}catch(e){}}
+function b64e(u){let s='';for(let i=0;i<u.length;i++)s+=String.fromCharCode(u[i]);return btoa(s);}
+function b64d(s){const b=atob(s),u=new Uint8Array(b.length);for(let i=0;i<b.length;i++)u[i]=b.charCodeAt(i);return u;}
+function isEnc(v){return typeof v==='string'&&v.slice(0,5)==='enc1:';}
+async function tkDerive(pass){
+  const e=new TextEncoder();
+  const base=await crypto.subtle.importKey('raw',e.encode(pass),'PBKDF2',false,['deriveKey']);
+  return crypto.subtle.deriveKey({name:'PBKDF2',salt:e.encode('svbc-scout/kontakt/v1'),iterations:600000,hash:'SHA-256'},base,{name:'AES-GCM',length:256},false,['encrypt','decrypt']);
+}
+async function tkEncWith(key,plain,aad){
+  const iv=crypto.getRandomValues(new Uint8Array(12));
+  const ct=new Uint8Array(await crypto.subtle.encrypt({name:'AES-GCM',iv,additionalData:new TextEncoder().encode('svbc:'+aad)},key,new TextEncoder().encode(plain)));
+  const o=new Uint8Array(12+ct.length);o.set(iv,0);o.set(ct,12);return 'enc1:'+b64e(o);
+}
+async function tkDecWith(key,s,aad){const u=b64d(String(s).slice(5));const pt=await crypto.subtle.decrypt({name:'AES-GCM',iv:u.slice(0,12),additionalData:new TextEncoder().encode('svbc:'+aad)},key,u.slice(12));return new TextDecoder().decode(pt);}
+function tkGenerate(){const A='abcdefghjkmnpqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789',r=crypto.getRandomValues(new Uint32Array(16));let o='';for(let i=0;i<16;i++){if(i&&i%4===0)o+='-';o+=A[r[i]%A.length];}return o;} /* ~90 Bit Zufall */
+async function tkInit(){ if(!tkCan())return; const pass=lsGet(TK_LS); if(!pass)return; try{TK=await tkDerive(pass);}catch(e){TK=null;return;} kandCryptoTick(true); }
+async function tkSetPass(pass){
+  pass=(pass||'').trim();
+  const fail=m=>{kandKeyMsg=m;renderKandidaten();setTimeout(()=>{const i=document.getElementById('kKeyIn');if(i)i.focus();},0);};
+  if(pass.length<12)return fail('Bitte mindestens 12 Zeichen – am sichersten: „🎲 Schlüssel erzeugen“ nutzen.');
+  if(!tkCan())return fail('Dieser Browser kann nicht verschlüsseln – bitte aktuellen Chrome/Safari/Firefox nutzen.');
+  if(!_remoteDone)return fail('Daten werden noch geladen – bitte in ein paar Sekunden erneut versuchen.');
+  kandKeyMsg='⏳ Prüfe …'; try{const m=document.querySelector('#panel-kandidaten .kmsg');if(m)m.textContent=kandKeyMsg;}catch(e){}
+  let key; try{key=await tkDerive(pass);}catch(e){return fail('Schlüssel konnte nicht erzeugt werden.');}
+  if(!metaOf().kv){ try{ const d=await syncFetch(); if(syncAdoptRemote(d))crmAfterRemote(); }catch(e){ return fail('Keine Verbindung zum Speicher – bitte gleich noch einmal versuchen.'); } }
+  const kv=metaOf().kv;
+  if(kv){ try{ if(await tkDecWith(key,kv,'kv')!=='svbc-ok')throw 0; }catch(e){ return fail('❌ Das ist nicht der Team-Schlüssel.'); } }
+  else { crmSet(META_ID,{kv:await tkEncWith(key,'svbc-ok','kv')}); kToast('🔐 Team-Schlüssel festgelegt – teile ihn mit den anderen Kaderplanern'); }
+  TK=key; tkVerified=true; lsSet(TK_LS,pass); kandKeyMsg=''; kandKeyDraft=''; kandPanel='';
+  await kandCryptoTick(true);
+}
+function tkForget(){ TK=null; tkVerified=false; lsSet(TK_LS,null); for(const k in KDEC)delete KDEC[k]; for(const k in KSRC)delete KSRC[k]; kandPanel=''; renderKandidaten(); kToast('Schlüssel auf diesem Gerät entfernt'); }
+async function kandCryptoTick(force){
+  if(!TK||tkBusy){ if(force)try{renderKandidaten();}catch(e){} return; }
+  tkBusy=true; let changed=!!force;
+  try{
+    const kv=metaOf().kv;
+    if(!tkVerified&&kv){
+      let ok=false; try{ ok=(await tkDecWith(TK,kv,'kv'))==='svbc-ok'; }catch(e){ ok=false; }
+      if(!ok){ TK=null; kandKeyMsg='Der gespeicherte Schlüssel passt nicht zum Team-Schlüssel – bitte neu eingeben.'; tkBusy=false; try{renderKandidaten();}catch(e){} return; }
+      tkVerified=true; changed=true;
+    }
+    if(!tkVerified&&!kv){ tkBusy=false; return; } /* ohne Prüfwert nichts ver-/entschlüsseln */
+    for(const id in CRM){
+      if(id===META_ID)continue; const C=CRM[id]; if(!C||!C.k)continue;
+      if(isEnc(C.k)){ if(KSRC[id]!==C.k){ const src=C.k; try{KDEC[id]=await tkDecWith(TK,src,id);}catch(e){KDEC[id]=null;} KSRC[id]=src; changed=true; } }
+      else if(tkVerified){ const plain=String(C.k); const ct=await tkEncWith(TK,plain,id); if(CRM[id]&&CRM[id].k===plain){ KDEC[id]=plain; KSRC[id]=ct; crmSet(id,{k:ct}); changed=true; } } /* Altbestand im Klartext → verschlüsseln (nur wenn zwischenzeitlich unverändert) */
+    }
+  }catch(e){}
+  tkBusy=false;
+  if(changed){ if(!force&&crmIsTyping())_pendingRefresh=true; else try{renderKandidaten();}catch(e){} }
+}
+async function kandSaveContact(id,val){
+  val=(val||'').trim();
+  if(!val){ crmSet(id,{k:undefined}); delete KDEC[id]; delete KSRC[id]; kandSoftRender(); return; }
+  if(!TK||!tkVerified){ kToast('🔒 Erst den Team-Schlüssel eingeben'); renderKandidaten(); return; }
+  const ct=await tkEncWith(TK,val,id); KDEC[id]=val; KSRC[id]=ct; crmSet(id,{k:ct}); kandSoftRender();
+}
+function kandContactPlain(p){const C=crmOf(p);if(!C.k)return '';if(isEnc(C.k))return (TK&&tkVerified&&KDEC[p.id])?KDEC[p.id]:'';return String(C.k);}
+function kandPhone(v){const m=String(v||'').match(/\+?\d[\d \/().-]{4,}\d/);if(!m)return null;let d=m[0].replace(/[^\d+]/g,'');
+  let intl=d.startsWith('+')?d.slice(1):d.startsWith('00')?d.slice(2):d.startsWith('0')?'49'+d.slice(1):d; return {tel:d,wa:intl};}
+function kandMail(v){const m=String(v||'').match(/[^\s,;<>]+@[^\s,;<>]+\.[a-z]{2,}/i);return m?m[0]:null;}
+function kandContactCell(p,C){
+  if(TK&&tkVerified){
+    const bad=C.k&&isEnc(C.k)&&KDEC[p.id]===null;
+    const v=kandContactPlain(p);
+    const ph=kandPhone(v), ml=kandMail(v);
+    return '<input class="kand-in" data-kc="'+p.id+'" value="'+kEsc(v)+'" placeholder="'+(bad?'⚠ nicht lesbar':'Handy / E-Mail')+'" autocomplete="off">'
+      +((ph||ml)?'<div class="kacts">'+(ph?'<a class="kbtn klink" href="tel:'+kEsc(ph.tel)+'" title="Anrufen">📞</a><a class="kbtn klink" href="https://wa.me/'+kEsc(ph.wa)+'" target="_blank" rel="noopener" title="WhatsApp-Chat öffnen">💬</a>':'')+(ml?'<a class="kbtn klink" href="mailto:'+kEsc(ml)+'" title="E-Mail">✉️</a>':'')+'</div>':'');
+  }
+  if(C.k&&!isEnc(C.k))return '<span class="kand-lock" style="color:#ffb347" title="Wird verschlüsselt, sobald ein Planer mit Schlüssel die Seite öffnet">⚠ unverschlüsselt</span>';
+  if(C.k)return '<span class="kand-lock" title="Verschlüsselt gespeichert – Team-Schlüssel eingeben zum Anzeigen">🔒 hinterlegt</span>';
+  return '<span class="kand-lock" title="Kontaktdaten werden verschlüsselt gespeichert – dazu Team-Schlüssel eingeben">🔒 –</span>';
+}
+
+/* ---------- Wochen-Digest je Kaderplaner (zum Kopieren / Teilen per WhatsApp) ---------- */
+function kandLine(p){
+  const C=crmOf(p),ds=daysSince(C.lc),b=[];
+  b.push(p.name+' ('+[p.club,(C.tp||p.pos)].filter(Boolean).join(' · ')+')');
+  b.push(ds===null?'noch nie kontaktiert':'letzter Kontakt vor '+ds+' T');
+  if(C.w)b.push('Wechsel '+WPROB[C.w].t);
+  if(C.rl)b.push('Rolle: '+C.rl);
+  if(kandDigestContacts){const kd=kandContactPlain(p);if(kd)b.push('☎ '+kd);}
+  return '• '+b.join(' · ');
+}
+function kandDigestText(pl){
+  const d=new Date(),ds=String(d.getDate()).padStart(2,'0')+'.'+String(d.getMonth()+1).padStart(2,'0')+'.'+d.getFullYear();
+  const all=kandList();
+  const sec=(name,L)=>{
+    const due=L.filter(kandIsDue).sort((a,b)=>(daysSince(crmOf(b).lc)??1e9)-(daysSince(crmOf(a).lc)??1e9)), ok=L.filter(p=>!kandIsDue(p));
+    let t=(name?'👤 '+name:'👤 ohne Verantwortlichen')+' – '+(due.length?due.length+' von '+L.length+' fällig':'alle '+L.length+' im Plan ✓')+'\n';
+    if(due.length)t+='⏰ Jetzt melden:\n'+due.map(kandLine).join('\n')+'\n';
+    if(ok.length)t+='✅ Im Plan: '+ok.map(p=>p.name+' ('+daysSince(crmOf(p).lc)+' T)').join(', ')+'\n';
+    return t;
+  };
+  let t='⚽ SV/BSC Kaderplanung · Digest '+ds+'\n(überfällig = länger als '+KAND_DUE_DAYS+' Tage kein Kontakt)\n\n';
+  if(pl!=null){ t+=sec(pl,all.filter(p=>(crmOf(p).pl||'')===pl)); return t.trim(); }
+  const groups={}; all.forEach(p=>{const k=crmOf(p).pl||'';(groups[k]=groups[k]||[]).push(p);});
+  Object.keys(groups).sort((a,b)=>(a===''?1:0)-(b===''?1:0)||a.localeCompare(b,'de')).forEach(k=>{t+=sec(k||null,groups[k])+'\n';});
+  return t.trim();
+}
+function kandDigestPanel(){
+  const planners=kandPlanners(), metaPl=metaPlanners(), all=kandList();
+  const chips=planners.map(n=>'<span class="kplchip">'+kEsc(n)+(metaPl.includes(n)&&!PLANNERS_DEFAULT.includes(n)?'<button class="kx" data-plrm="'+kEsc(n)+'" title="Planer entfernen">×</button>':'<span style="width:6px"></span>')+'</span>').join(' ');
+  kandDigestCache=[];
+  let cards='';
+  if(!all.length){ cards='<div class="kand-sub" style="padding:8px 0">Noch keine Kandidaten in der Pipeline – dann gibt es auch nichts zu erinnern.</div>'; }
+  else{
+    const items=[{t:'👥 Alle Planer',pl:null,n:all.filter(kandIsDue).length}];
+    planners.forEach(n=>{const L=all.filter(p=>(crmOf(p).pl||'')===n);if(L.length)items.push({t:'👤 '+n,pl:n,n:L.filter(kandIsDue).length});});
+    cards='<div class="kdgrid">'+items.map((it,i)=>{const txt=kandDigestText(it.pl);kandDigestCache[i]=txt;
+      return '<div class="kdcard"><div class="kdh"><b>'+kEsc(it.t)+'</b> <span class="kchip" style="background:'+(it.n?'rgba(255,70,70,.15);color:#ff8a8a':'rgba(47,210,122,.15);color:#5fe09b')+'">'+(it.n?it.n+' fällig':'alles im Plan')+'</span></div>'
+        +'<textarea readonly>'+kEsc(txt)+'</textarea><div class="btnrow" style="margin-top:6px;display:flex;gap:6px"><button class="kbtn" data-kdcopy="'+i+'">📋 Kopieren</button><a class="kbtn kbtn-go" href="https://wa.me/?text='+encodeURIComponent(txt)+'" target="_blank" rel="noopener">💬 Per WhatsApp teilen</a></div></div>';}).join('')+'</div>';
+  }
+  return '<div class="card kpanel"><div class="kpanel-h"><b>📨 Wochen-Digest &amp; Kaderplaner</b><span style="flex:1"></span><button class="kx" id="kpClose" title="Schließen">✕</button></div>'
+    +'<div class="kand-sub" style="margin-bottom:8px">Pro Planer eine fertige Erinnerung: wer ist fällig, wer ist im Plan. Kopieren oder direkt in WhatsApp teilen – z.B. jeden Montag.</div>'
+    +'<div class="kctrl"><span class="kand-sub">Kaderplaner:</span> '+chips+' <input id="kplNew" class="kand-in" style="max-width:150px" placeholder="＋ Name" autocomplete="off" value="'+kEsc(kandPlDraft)+'"><button class="kbtn" id="kplAdd">Hinzufügen</button></div>'
+    +'<label style="display:flex;align-items:center;gap:6px;font-size:12px;margin-top:8px"><input type="checkbox" id="kdContacts"'+(kandDigestContacts?' checked':'')+'> Kontaktdaten mit in den Text nehmen'+(TK&&tkVerified?'':' <i class="kand-sub">(nur mit Team-Schlüssel)</i>')+'</label>'
+    +cards+'</div>';
+}
+function kandKeyPanel(){
+  const kv=metaOf().kv;
+  let body;
+  if(!tkCan()) body='<p class="kand-sub">Dieser Browser unterstützt keine Verschlüsselung. Bitte einen aktuellen Browser verwenden.</p>';
+  else if(TK&&tkVerified) body='<p style="font-size:13px;margin:0 0 8px">✅ Auf diesem Gerät entsperrt. Kontaktdaten werden <b>im Browser verschlüsselt</b>, bevor sie gespeichert werden – online (GitHub, Make-Speicher) liegen sie nur als unlesbarer Code.</p><button class="kbtn" id="kKeyForget">Schlüssel auf diesem Gerät entfernen</button>';
+  else body='<p style="font-size:13px;margin:0 0 8px">'+(kv?'Gib den <b>Team-Schlüssel</b> ein, den ihr unter euch Kaderplanern geteilt habt. Er wird nur auf diesem Gerät gespeichert.':'<b>Noch kein Team-Schlüssel festgelegt.</b> Am sichersten: <b>🎲 erzeugen</b> lassen, kopieren und den anderen Kaderplanern schicken. Eigener Schlüssel geht auch (mind. 12 Zeichen). Ohne Schlüssel sind die Kontaktdaten für niemanden lesbar – auch nicht für GitHub oder den Make-Speicher.')+'</p>'
+    +'<div class="kctrl"><input type="'+(kv?'password':'text')+'" id="kKeyIn" class="kand-in" style="max-width:280px" placeholder="Team-Schlüssel" autocomplete="off" autocapitalize="off" spellcheck="false" value="'+kEsc(kandKeyDraft)+'">'+(kv?'':'<button class="kbtn" id="kKeyGen">🎲 Schlüssel erzeugen</button><button class="kbtn" id="kKeyCopy" title="Kopieren">📋</button>')+'<button class="kbtn kbtn-go" id="kKeyOk">'+(kv?'🔓 Entsperren':'🔐 Festlegen')+'</button></div>'
+    +'<div class="kmsg">'+kEsc(kandKeyMsg)+'</div><p class="kand-sub" style="margin-top:4px">Der Schlüssel lässt sich nicht wiederherstellen – wer ihn vergisst, fragt einfach einen anderen Planer.</p>';
+  return '<div class="card kpanel"><div class="kpanel-h"><b>🔐 Team-Schlüssel für Kontaktdaten</b><span style="flex:1"></span><button class="kx" id="kpClose" title="Schließen">✕</button></div>'+body+'</div>';
+}
+
+/* ---------- Ansicht ---------- */
+function renderHomeKand(){
+  const el=document.getElementById('homeKand'); if(!el)return;
+  const L=kandList(); if(!L.length){el.innerHTML='';return;}
+  const due=L.filter(kandIsDue).length;
+  el.innerHTML='<div class="card homekand" role="button" tabindex="0"><div><b>🗂️ Kaderplaner-Pipeline</b><div class="kand-sub" style="font-size:12.5px;margin-top:2px">'+L.length+' Kandidat'+(L.length>1?'en':'')+(due?' · <span style="color:#ff8a8a;font-weight:700">'+due+' Kontakt'+(due>1?'e':'')+' überfällig</span>':' · alle Kontakte im Plan ✓')+'</div></div><span style="font-weight:800;font-size:20px;color:var(--accent)">›</span></div>';
+  el.firstChild.onclick=()=>goTab('kandidaten');
+}
 function renderKandidaten(){
+  try{renderHomeKand();}catch(e){}
   const wrap=document.getElementById('kandWrap'); if(!wrap)return;
+  if(TK)kandCryptoTick();
   const planners=kandPlanners();
-  let list=kandList();
+  const all=kandList();
+  let list=all;
   if(kandFP)list=list.filter(p=>(crmOf(p).pl||'')===kandFP);
   if(kandDue)list=list.filter(kandIsDue);
-  if(kandQ){const q=kandQ.toLowerCase();list=list.filter(p=>(p.name||'').toLowerCase().includes(q));}
-  list.sort((a,b)=>{
+  if(kandQ){const q=_mvpNorm(kandQ);list=list.filter(p=>_mvpNorm(p.name+' '+(p.club||'')).includes(q));}
+  list=list.slice().sort((a,b)=>{
     const da=kandIsDue(a)?1:0,db=kandIsDue(b)?1:0; if(da!==db)return db-da;
     const sa=daysSince(crmOf(a).lc),sb=daysSince(crmOf(b).lc);
     const va=sa===null?1e9:sa,vb=sb===null?1e9:sb; if(va!==vb)return vb-va;
@@ -1183,54 +1475,111 @@ function renderKandidaten(){
     return (a.name||'').localeCompare(b.name||'');
   });
   const opt=(arr,cur,ph)=>'<option value="">'+ph+'</option>'+arr.map(o=>'<option value="'+kEsc(o)+'"'+(String(cur)===String(o)?' selected':'')+'>'+kEsc(o)+'</option>').join('');
-  const dueCount=kandList().filter(kandIsDue).length;
-  let html='<div class="card" style="padding:8px 10px;margin-bottom:8px"><div class="frow" style="gap:8px;flex-wrap:wrap;align-items:center">'
-    +'<input id="kandSearch" class="kand-in" style="max-width:180px" placeholder="Kandidat suchen…" value="'+kEsc(kandQ)+'">'
+  const dueCount=all.filter(kandIsDue).length;
+  const keyBtn=!tkCan()?'<span class="kchip" style="background:var(--card2);color:var(--ink3)">🔒 Verschlüsselung n/v</span>'
+    :(TK&&tkVerified)?'<button class="kbtn" id="kKeyBtn" title="Kontaktdaten entschlüsselt">🔓 Kontakte offen</button>'
+    :'<button class="kbtn kbtn-warn" id="kKeyBtn" title="Kontaktdaten sind verschlüsselt – Team-Schlüssel eingeben">🔒 Kontakte: Schlüssel eingeben</button>';
+  const stT={pending:'⏳ speichert…',ok:'☁️ gespeichert',err:'⚠️ offline – wird nachgeholt'}[SYNC_ST]||'';
+  let html='<div class="card" style="padding:10px 12px;margin-bottom:8px">'
+    +'<div class="kctrl">'
+    +'<input id="kandSearch" class="kand-in" style="max-width:190px" placeholder="🔎 In Pipeline suchen…" value="'+kEsc(kandQ)+'" autocomplete="off">'
     +'<select id="kandPl" class="kand-in" style="max-width:160px">'+opt(planners,kandFP,'Alle Planer')+'</select>'
-    +'<label style="display:flex;align-items:center;gap:5px;font-size:12px;color:var(--ink,#e8eefc)"><input type="checkbox" id="kandDueChk"'+(kandDue?' checked':'')+'> nur überfällig</label>'
+    +'<label style="display:flex;align-items:center;gap:5px;font-size:12px;color:var(--ink)"><input type="checkbox" id="kandDueChk"'+(kandDue?' checked':'')+'> nur überfällig</label>'
     +'<span style="flex:1"></span>'
     +'<span class="kchip" style="background:rgba(255,70,70,.15);color:#ff8a8a">'+dueCount+' überfällig</span>'
-    +'<span class="kchip" style="background:var(--bg2,#16223c);color:var(--ink3,#8fa3c7)">'+kandList().length+' Kandidaten</span>'
+    +'<span class="kchip" style="background:var(--card2);color:var(--ink3)">'+all.length+' Kandidaten</span>'
+    +'</div><div class="kctrl">'
+    +'<div class="kadd"><input id="kandAdd" class="kand-in" placeholder="＋ Spieler aufnehmen (Name tippen)…" value="'+kEsc(kandAddQ)+'" autocomplete="off"><div id="kandAddRes" class="kaddres"></div></div>'
+    +'<button class="kbtn" id="kDigBtn">📨 Digest &amp; Planer</button>'+keyBtn
+    +'<span class="kchip ksync" style="background:var(--card2);color:var(--ink3)'+(stT?'':';display:none')+'">'+stT+'</span>'
     +'</div></div>';
+  if(kandPanel==='digest')html+=kandDigestPanel();
+  if(kandPanel==='key')html+=kandKeyPanel();
   if(!list.length){
-    html+='<div class="card" style="padding:16px;text-align:center;color:var(--ink3,#8fa3c7)">Keine Kandidaten für diesen Filter. Spieler über ☆ „Auf die Shortlist" (im Spielerprofil) aufnehmen — oder hier direkt Wechselwahrscheinlichkeit/Planer setzen.</div>';
+    html+='<div class="card" style="padding:18px;text-align:center;color:var(--ink3,#8fa3c7)">'+(all.length?'Keine Kandidaten für diesen Filter.':'Noch keine Kandidaten. Oben bei <b>„＋ Spieler aufnehmen"</b> einen Namen tippen – oder im Spielerprofil ☆ „Auf die Shortlist".')+'</div>';
     wrap.innerHTML=html; wireKand(); return;
   }
   const rows=list.map(p=>{
-    const C=crmOf(p),ds=daysSince(C.lc),due=kandIsDue(p);
-    const wsel='<select class="kand-in" data-kf="w" data-id="'+p.id+'"><option value="">–</option>'+[1,2,3,4].map(n=>'<option value="'+n+'"'+(C.w==n?' selected':'')+'>'+WPROB[n].t+'</option>').join('')+'</select>';
-    const posSel='<select class="kand-in" data-kf="tp" data-id="'+p.id+'">'+opt(KPOS,C.tp,(p.pos||'Pos'))+'</select>';
+    const C=crmOf(p),ds=daysSince(C.lc),due=kandIsDue(p),s=scores(p),W=p.own?null:wscoreSafe(p);
+    const wsel='<select class="kand-in" data-kf="w" data-id="'+p.id+'"><option value="">–</option>'+[1,2,3,4].map(n=>'<option value="'+n+'"'+(C.w==n?' selected':'')+'>'+WPROB[n].t+'</option>').join('')+'</select>'
+      +(W?'<div class="kand-sub" style="margin-top:2px" title="Modell-Wechselbereitschaft: '+kEsc(wreason(W,3))+'">Modell: '+W.w+'/100</div>':'');
+    const posSel='<select class="kand-in" data-kf="tp" data-id="'+p.id+'">'+opt(KPOS,C.tp,(p.pos?p.pos+' (akt.)':'Pos'))+'</select>';
     const plSel='<select class="kand-in" data-kf="pl" data-id="'+p.id+'">'+opt(planners,C.pl,'—')+'</select>';
-    const badge=due?(ds===null?'<span class="kchip" style="background:#ff5b5b22;color:#ff8a8a">nie kontaktiert</span>':'<span class="kchip" style="background:#ff5b5b22;color:#ff8a8a">überfällig · '+ds+' T</span>'):'<span class="kand-sub">vor '+ds+' T</span>';
+    const badge=due?(ds===null?'<span class="kchip" style="background:#ff5b5b22;color:#ff8a8a">nie kontaktiert</span>':'<span class="kchip" style="background:#ff5b5b22;color:#ff8a8a">überfällig · '+ds+' T</span>'):'<span class="kand-sub">vor '+ds+' T · fällig in '+(KAND_DUE_DAYS-ds+1)+' T</span>';
+    const mv=s.mvp!=null?' <span class="kchip" style="background:rgba(47,210,122,.14);color:#5fe09b" title="FuPa-MVP (team-relativ)">MVP '+s.mvp+'</span>':'';
     return '<tr class="'+(due?'due':'')+'">'
-      +'<td><span class="kand-name" data-open="'+p.id+'">'+kEsc(p.name)+'</span><div class="kand-sub">'+kEsc(p.club||'')+(p.pos?' · '+kEsc(p.pos):'')+(p.alter?' · '+p.alter+'J':'')+'</div></td>'
-      +'<td>'+wsel+'</td>'
-      +'<td><input class="kand-in" data-kf="rl" data-id="'+p.id+'" value="'+kEsc(C.rl||'')+'" placeholder="Rolle"></td>'
-      +'<td>'+posSel+'</td>'
-      +'<td><input class="kand-in" data-kf="k" data-id="'+p.id+'" value="'+kEsc(C.k||'')+'" placeholder="Handy / E-Mail"></td>'
-      +'<td style="white-space:nowrap"><input type="date" class="kand-in" style="width:132px" data-kf="lc" data-id="'+p.id+'" value="'+(C.lc||'')+'"> <button class="kbtn" data-today="'+p.id+'">heute</button><div style="margin-top:3px">'+badge+'</div></td>'
-      +'<td>'+plSel+'</td>'
-      +'<td><input class="kand-in" data-kf="n" data-id="'+p.id+'" value="'+kEsc(C.n||'')+'" placeholder="Notiz"></td>'
+      +'<td class="kfull" data-l="Kandidat"><div style="display:flex;align-items:flex-start;gap:6px"><div style="flex:1;min-width:0"><span class="kand-name" data-open="'+p.id+'">'+kEsc(p.name)+'</span>'+mv
+        +'<div class="kand-sub">'+kEsc(p.club||'')+(p.pos?' · '+kEsc(p.pos):'')+(p.alter?' · '+p.alter+' J':'')+' · MScore '+fmt(s.total,1)+'</div></div><button class="kx" data-krm="'+p.id+'" title="Aus der Pipeline nehmen">✕</button></div></td>'
+      +'<td data-l="Wechsel-W.">'+wsel+'</td>'
+      +'<td data-l="Rolle"><input class="kand-in" data-kf="rl" data-id="'+p.id+'" value="'+kEsc(C.rl||'')+'" placeholder="z.B. Stammspieler"></td>'
+      +'<td data-l="Zielposition">'+posSel+'</td>'
+      +'<td class="kfull" data-l="Kontakt 🔒">'+kandContactCell(p,C)+'</td>'
+      +'<td class="kfull" data-l="Letzter Kontakt" style="white-space:nowrap"><input type="date" class="kand-in" style="width:128px;display:inline-block" data-kf="lc" data-id="'+p.id+'" value="'+kEsc(C.lc||'')+'"> <button class="kbtn" data-today="'+p.id+'">heute</button><div style="margin-top:3px">'+badge+'</div></td>'
+      +'<td data-l="Verantwortlich">'+plSel+'</td>'
+      +'<td class="kfull" data-l="Notiz"><input class="kand-in" data-kf="n" data-id="'+p.id+'" value="'+kEsc(C.n||'')+'" placeholder="Notiz"></td>'
       +'</tr>';
   }).join('');
-  html+='<div class="kwrap"><table class="kand-table"><thead><tr><th>Kandidat</th><th>Wechsel-W.</th><th>Rolle</th><th>Position</th><th>Kontaktdaten</th><th>Letzter Kontakt</th><th>Verantw.</th><th>Notiz</th></tr></thead><tbody>'+rows+'</tbody></table></div>';
+  html+='<div class="kwrap"><table class="kand-table"><thead><tr><th>Kandidat</th><th>Wechsel-W.</th><th>Rolle</th><th>Zielposition</th><th>Kontakt 🔒</th><th>Letzter Kontakt</th><th>Verantw.</th><th>Notiz</th></tr></thead><tbody>'+rows+'</tbody></table></div>';
   wrap.innerHTML=html; wireKand();
+}
+function kandAddResults(){
+  const box=document.getElementById('kandAddRes'); if(!box)return;
+  const q=_mvpNorm(kandAddQ); if(q.length<2){box.innerHTML='';box.style.display='none';return;}
+  const inPipe=new Set(kandList().map(p=>p.id));
+  const res=players.filter(p=>!inPipe.has(p.id)&&_mvpNorm(p.name).includes(q))
+    .map(p=>({p,t:scores(p).total,st:_mvpNorm(p.name).startsWith(q)||_mvpNorm(p.name.split(' ').slice(-1)[0]).startsWith(q)?1:0}))
+    .sort((a,b)=>b.st-a.st||b.t-a.t).slice(0,8);
+  box.innerHTML=res.length?res.map(({p,t})=>'<button type="button" class="kaddit" data-addid="'+p.id+'"><b>'+kEsc(p.name)+'</b>'+(p.own?' 🟢':'')+'<div class="kand-sub">'+kEsc(p.club||'')+' · '+kEsc(p.pos||'–')+' · '+(p.isJugend?'Jugend':kEsc(p.liga||''))+' · MScore '+fmt(t,1)+'</div></button>').join('')
+    :'<div class="kand-sub" style="padding:10px">Kein Treffer (oder schon in der Pipeline).</div>';
+  box.style.display='block';
+  box.querySelectorAll('[data-addid]').forEach(b=>b.onclick=()=>{
+    const id=b.dataset.addid,p=players.find(x=>x.id===id);
+    if(p)p.star=true; crmSet(id,{f:1,px:undefined}); kandAddQ=''; renderKandidaten();
+    kToast('✓ '+(p?p.name:'Spieler')+' in die Pipeline aufgenommen');
+  });
+}
+function kandRemove(id){
+  const p=players.find(x=>x.id===id), C=crmOf({id}), prev={f:C.f,pl:C.pl,w:C.w,s:C.s,px:C.px};
+  const upd={f:undefined,pl:undefined,w:undefined,px:1}; if(C.s==='att')upd.s=undefined;
+  if(p)p.star=false; crmSet(id,upd); const tRem=(CRM[id]&&CRM[id]._t&&CRM[id]._t.px)||0; renderKandidaten();
+  kToast((p?p.name:'Spieler')+' aus der Pipeline genommen','Rückgängig',()=>{ const T=(CRM[id]&&CRM[id]._t)||{}, back={}; Object.keys(prev).forEach(k=>{ if((T[k]||0)===tRem)back[k]=prev[k]; }); if(p&&('f' in back))p.star=!!prev.f; crmSet(id,back); renderKandidaten(); });
 }
 function wireKand(){
   const w=document.getElementById('kandWrap'); if(!w)return;
   const s=document.getElementById('kandSearch'); if(s){s.oninput=e=>{kandQ=e.target.value;};s.onchange=e=>{kandQ=e.target.value;renderKandidaten();};s.onkeydown=e=>{if(e.key==='Enter'){kandQ=e.target.value;renderKandidaten();}};}
   const pl=document.getElementById('kandPl'); if(pl)pl.onchange=e=>{kandFP=e.target.value;renderKandidaten();};
   const dc=document.getElementById('kandDueChk'); if(dc)dc.onchange=e=>{kandDue=e.target.checked;renderKandidaten();};
+  const ad=document.getElementById('kandAdd');
+  if(ad){ ad.oninput=e=>{kandAddQ=e.target.value;kandAddResults();}; ad.onfocus=()=>kandAddResults();
+    ad.onkeydown=e=>{ if(e.key==='Escape'){kandAddQ='';ad.value='';kandAddResults();} if(e.key==='Enter'){const f=document.querySelector('#kandAddRes [data-addid]');if(f)f.click();} };
+    if(kandAddQ){kandAddResults();} }
+  const db=document.getElementById('kDigBtn'); if(db)db.onclick=()=>{kandPanel=kandPanel==='digest'?'':'digest';renderKandidaten();};
+  const kb=document.getElementById('kKeyBtn'); if(kb)kb.onclick=()=>{kandPanel=kandPanel==='key'?'':'key';kandKeyMsg='';renderKandidaten();setTimeout(()=>{const i=document.getElementById('kKeyIn');if(i)i.focus();},0);};
+  const pc=document.getElementById('kpClose'); if(pc)pc.onclick=()=>{kandPanel='';renderKandidaten();};
+  const ko=document.getElementById('kKeyOk'), ki=document.getElementById('kKeyIn');
+  if(ko&&ki){ko.onclick=()=>tkSetPass(ki.value);ki.onkeydown=e=>{if(e.key==='Enter')tkSetPass(ki.value);};ki.oninput=e=>{if(ki.type==='text')kandKeyDraft=e.target.value;};}
+  const kg=document.getElementById('kKeyGen'); if(kg&&ki)kg.onclick=()=>{ki.value=tkGenerate();kandKeyDraft=ki.value;ki.focus();ki.select();};
+  const kc=document.getElementById('kKeyCopy'); if(kc&&ki)kc.onclick=()=>{if(ki.value)kCopy(ki.value);};
+  const kf=document.getElementById('kKeyForget'); if(kf)kf.onclick=tkForget;
+  const pa=document.getElementById('kplAdd'), pn=document.getElementById('kplNew');
+  const addPl=()=>{const n=(pn.value||'').replace(/[^\p{L}\p{N} .\-]/gu,'').trim().replace(/\s+/g,' ').slice(0,30); if(!n)return; if(!PLANNERS_DEFAULT.includes(n)&&!metaPlanners().includes(n)){const u={};u['pl:'+n]=1;crmSet(META_ID,u);} kandPlDraft=''; renderKandidaten(); kToast('✓ '+n+' als Kaderplaner ergänzt');};
+  if(pa&&pn){pa.onclick=addPl;pn.onkeydown=e=>{if(e.key==='Enter')addPl();};pn.oninput=e=>{kandPlDraft=e.target.value;};}
+  w.querySelectorAll('[data-plrm]').forEach(b=>b.onclick=()=>{const u={};u['pl:'+b.dataset.plrm]=undefined;crmSet(META_ID,u);renderKandidaten();});
+  const dcx=document.getElementById('kdContacts'); if(dcx)dcx.onchange=e=>{kandDigestContacts=e.target.checked;renderKandidaten();};
+  w.querySelectorAll('[data-kdcopy]').forEach(b=>b.onclick=()=>kCopy(kandDigestCache[+b.dataset.kdcopy]||''));
   w.querySelectorAll('[data-kf]').forEach(el=>{el.onchange=()=>{
     const id=el.dataset.id,kf=el.dataset.kf;let v=el.value;
     if(kf==='w')v=v?+v:'';
-    const upd={};upd[kf]=(v===''||v==null)?undefined:v;
+    const upd={};upd[kf]=(v===''||v==null)?undefined:(typeof v==='string'?v.trim():v);
     if(kf==='lc'&&v)upd.c=1;
-    crmSet(id,upd);renderKandidaten();
+    crmSet(id,upd);kandSoftRender();
   };});
-  w.querySelectorAll('[data-today]').forEach(b=>{b.onclick=()=>{crmSet(b.dataset.today,{lc:todayISO(),c:1});renderKandidaten();};});
-  w.querySelectorAll('[data-open]').forEach(el=>{el.onclick=()=>{try{openModal(el.dataset.open);}catch(e){}};});
+  w.querySelectorAll('[data-kc]').forEach(el=>{el.onchange=()=>kandSaveContact(el.dataset.kc,el.value);});
+  w.querySelectorAll('[data-today]').forEach(b=>{b.onclick=()=>{crmSet(b.dataset.today,{lc:todayISO(),c:1});renderKandidaten();kToast('✓ Kontakt heute eingetragen');};});
+  w.querySelectorAll('[data-krm]').forEach(b=>{b.onclick=()=>kandRemove(b.dataset.krm);});
+  w.querySelectorAll('[data-open]').forEach(el=>{el.onclick=()=>{try{startPlayer(el.dataset.open);}catch(e){}};});
 }
+
 /* ===== Kaderplan-Board: druckbare Kaderplanung (Stamm/Backup/Ziel je Position) auf LINEUP+SHADOW ===== */
 let kpShowZiel=true;
 function kpCellOwn(p,want){
@@ -1262,15 +1611,16 @@ function renderKaderplan(){
       if(!st){status='<span class="kp-st off">✕ offen</span>';open++;}
       else if(!b){status='<span class="kp-st thin">⚠ kein Backup</span>';thin++;}
       else{status='<span class="kp-st ok">✓ besetzt</span>';ok++;}
-      body+='<tr'+(!st?' class="kp-open"':'')+'><td class="kp-pos">'+role+'</td>'
-        +'<td>'+kpCellOwn(st,null)+'</td>'
-        +'<td>'+kpCellOwn(b,want)+'</td>'
-        +(kpShowZiel?'<td>'+kpCellExt(z,want)+'</td>':'')
-        +'<td>'+status+'</td></tr>';
+      body+='<tr'+(!st?' class="kp-open"':'')+'><td class="kp-pos" data-l="Pos">'+role+'</td>'
+        +'<td data-l="Stammspieler">'+kpCellOwn(st,null)+'</td>'
+        +'<td class="kp-sub" data-l="Backup">'+kpCellOwn(b,want)+'</td>'
+        +(kpShowZiel?'<td class="kp-sub" data-l="🎯 Ziel">'+kpCellExt(z,want)+'</td>':'')
+        +'<td class="kp-stc" data-l="Status">'+status+'</td></tr>';
     });
   });
   const d=new Date(),dstr=String(d.getDate()).padStart(2,'0')+'.'+String(d.getMonth()+1).padStart(2,'0')+'.'+d.getFullYear();
-  let html='<div class="sechead">📋 Kaderplan <small style="color:var(--ink3)">Formation '+LINEUP.formation+' · Stand '+dstr+'</small></div>';
+  let html='<div class="kp-print-only"><div style="font-size:20px;font-weight:800">SV/BSC Mörlenbach – Kaderplanung</div><div style="font-size:11px;color:#555;margin-top:2px">Formation '+LINEUP.formation+' · Stand '+dstr+' · Stammspieler + Backup = aktueller Kader · 🎯 Ziel = Wunsch/Transferziel nächste Saison</div></div>';
+  html+='<div class="sechead">📋 Kaderplan <small style="color:var(--ink3)">Formation '+LINEUP.formation+' · Stand '+dstr+'</small></div>';
   html+='<div class="card" style="padding:8px 10px;margin-bottom:8px"><div class="kp-head">'
     +'<div class="kp-sum"><span class="kchip" style="background:rgba(47,210,122,.15);color:#5fe09b">'+ok+' besetzt</span>'
     +'<span class="kchip" style="background:rgba(255,179,71,.15);color:#ffb347">'+thin+' ohne Backup</span>'
@@ -1280,7 +1630,8 @@ function renderKaderplan(){
     +'<button class="kbtn kp-noprint" id="kpFill">⚡ Backups &amp; Ziele auto-füllen</button>'
     +'<button class="kbtn kp-noprint" id="kpPrint">🖨️ Als PDF / drucken</button></div>'
     +'<div class="kp-noprint" style="font-size:11px;color:var(--ink3);margin-top:4px">„Stammspieler" + „Backup" = so sieht der Kader jetzt aus · „🎯 Ziel" = Wunsch/Transferziel nächste Saison. Formation &amp; Startelf im Tab ⚽ Aufstellung setzen; Backup/Ziel je Position dort in der Schattenelf editierbar. Positions-Tags (✓/◐/~) zeigen Mehrfachpositionen.</div></div>';
-  html+='<div class="kwrap"><table class="kp-table"><thead><tr><th>Pos</th><th>Stammspieler (jetzt)</th><th>Backup (jetzt)</th>'+(kpShowZiel?'<th>🎯 Ziel nächste Saison</th>':'')+'<th>Status</th></tr></thead><tbody>'+body+'</tbody></table></div>';
+  html+='<div class="kwrap"><table class="kp-table"><thead><tr><th>Pos</th><th>Stammspieler (jetzt)</th><th>Backup (jetzt)</th>'+(kpShowZiel?'<th>🎯 Ziel nächste Saison</th>':'')+'<th>Status</th></tr></thead><tbody>'+body+'</tbody></table></div>'
+    +'<div class="kand-sub" style="margin-top:8px">Zahl = MScore (0–100) · Positions-Tags: ✓ Hauptposition · ◐ Nebenposition · ~ möglich · Ziel-Spieler mit Verein.</div>';
   wrap.innerHTML=html; wireKaderplan();
 }
 function wireKaderplan(){
@@ -1290,18 +1641,128 @@ function wireKaderplan(){
   const pr=document.getElementById('kpPrint'); if(pr)pr.onclick=()=>{try{window.print();}catch(e){}};
   w.querySelectorAll('[data-open]').forEach(el=>{el.onclick=()=>{try{startPlayer(el.dataset.open);}catch(e){}};});
 }
-/* ===== FuPa MVP-Wert: team-relativer Leistungswert (0-100), fliesst als +-6% Modifikator in den MScore ===== */
-function _mvpNorm(s){s=(s||'').toLowerCase();s=s.split('ä').join('ae').split('ö').join('oe').split('ü').join('ue').split('ß').join('ss');try{s=s.normalize('NFKD').replace(/[̀-ͯ]/g,'');}catch(e){}return s.replace(/[^a-z]/g,'');}
+/* ===== FuPa-MVP (Saison 26/27): team-relativer Leistungswert 0–100 aus der FuPa-Spielerstatistik =====
+   Fließt als ±6 %-Modifikator in den MScore (50 % = neutral), siehe scores(). Quelle: CRM[pid].mv/.mvd
+   (in der App gepflegt, geräteübergreifend) – sonst der Start-Datensatz MVP_SEED (Stand 22.09.2026). */
+function _mvpNorm(s){s=(s||'').toLowerCase();s=s.split('ä').join('ae').split('ö').join('oe').split('ü').join('ue').split('ß').join('ss');try{s=s.normalize('NFKD').replace(/[\u0300-\u036f]/g,'');}catch(e){}return s.replace(/[^a-z]/g,'');}
 const MVP_SEED={
  'juliusfries':82,'florianseltenreich':78,'simongoderbauer':100,'paulbartmann':76,
  'andrewalter':78,'nicogarotti':78,'svenschill':66,'lukasgoderbauer':70,'juliangoderbauer':71
 };
+const MVP_SEED_DATE='2026-09-22';
 let _mvpSeeded=false, mvpSeedHits=0;
 function applyMvpSeed(){ if(_mvpSeeded)return; _mvpSeeded=true; mvpSeedHits=0;
   players.forEach(p=>{ if(!p.own)return; const k=_mvpNorm(p.name); if(MVP_SEED[k]!=null){ p.mvp=MVP_SEED[k]; mvpSeedHits++; } });
 }
+function mvpOf(p){
+  let C=null; try{C=CRM[p.id];}catch(e){C=null;}
+  if(C&&typeof C.mv==='number')return {v:C.mv,d:C.mvd||null,src:'app'};
+  if(typeof p.mvp==='number')return {v:p.mvp,d:MVP_SEED_DATE,src:'seed'};
+  return null;
+}
+function mvpFactor(v){return 0.94+0.12*(v/100);}
 
-function renderAll(){try{applyMvpSeed();}catch(e){}renderHome();renderList();renderGems();renderJugend();renderShortlist();renderDB();fillCompareSelects();updateCompare();try{renderLineup();}catch(e){}try{renderKandidaten();}catch(e){}try{renderKaderplan();}catch(e){}}
+/* ---------- Pflege-Maske (Tab Datenbank): Team wählen → Werte von der FuPa-Spielerstatistik eintragen ---------- */
+let mvpTeam=null, mvpDraft={}, mvpDirty=false, mvpOpen=false, mvpMsg='', mvpDate=null, mvpPasteOpen=false, mvpPasteText='';
+const MVP_POS_ORDER={TW:0,IV:1,AV:2,ZM:3,OM:4,'Flügel':5,ST:6};
+function mvpClubs(){
+  const cnt={}; players.forEach(p=>{if(p.isJugend||!p.club)return;cnt[p.club]=(cnt[p.club]||0)+1;});
+  const own=[...new Set(players.filter(p=>p.own&&!p.isJugend&&p.club).map(p=>p.club))];
+  const rest=Object.keys(cnt).filter(c=>!own.includes(c)).sort((a,b)=>a.localeCompare(b,'de'));
+  return {own,rest,cnt};
+}
+function mvpTeamPlayers(){return players.filter(p=>p.club===mvpTeam&&!p.isJugend).sort((a,b)=>((MVP_POS_ORDER[a.pos]??9)-(MVP_POS_ORDER[b.pos]??9))||(a.name||'').localeCompare(b.name||'','de'));}
+function mvpPreviewCell(p,raw){
+  const s=scores(p);
+  if(p.adjTo!=null)return '<span class="kand-sub">Insider-Rating '+fmt(s.total,1)+' (fix)</span>';
+  const v=String(raw==null?'':raw).trim();
+  const nt=v===''||isNaN(+v)?s.mvpBase:Math.min(100,s.mvpBase*mvpFactor(clamp(+v,0,100)));
+  const d=Math.round((nt-s.total)*10)/10;
+  return fmt(s.total,1)+(Math.abs(d)>=0.1?' → <b>'+fmt(nt,1)+'</b> <span class="'+(d>0?'up':'dn')+'">'+(d>0?'+':'')+fmt(d,1)+'</span>':'');
+}
+function renderMvpCard(force){
+  const el=document.getElementById('mvpCard'); if(!el)return;
+  if(mvpDirty&&!force)return; /* nicht mitten in der Eingabe neu zeichnen */
+  const {own,rest,cnt}=mvpClubs();
+  if(!mvpTeam||(!own.includes(mvpTeam)&&!rest.includes(mvpTeam)))mvpTeam=own[0]||rest[0];
+  if(!mvpDate)mvpDate=todayISO();
+  const team=mvpTeamPlayers();
+  const withMvp=players.filter(p=>!p.isJugend&&mvpOf(p)).length;
+  const lastD=team.map(p=>{const m=mvpOf(p);return m&&m.d;}).filter(Boolean).sort().pop();
+  const opt=c=>'<option value="'+kEsc(c)+'"'+(c===mvpTeam?' selected':'')+'>'+kEsc(c)+' ('+cnt[c]+')</option>';
+  const rows=team.map(p=>{
+    const m=mvpOf(p), raw=(p.id in mvpDraft)?mvpDraft[p.id]:(m?m.v:'');
+    return '<tr><td><b>'+kEsc(p.name)+'</b>'+(p.own?' 🟢':'')+'<div class="kand-sub">'+kEsc(p.pos||'–')+(m?' · jetzt '+m.v+' % ('+kEsc(fmtD(m.d))+')':'')+'</div></td>'
+      +'<td><input class="mvin" type="number" min="0" max="100" step="1" inputmode="numeric" data-mv="'+p.id+'" value="'+kEsc(raw)+'" placeholder="–"></td>'
+      +'<td class="mvprev" data-mvprev="'+p.id+'">'+mvpPreviewCell(p,raw)+'</td></tr>';
+  }).join('');
+  el.innerHTML='<details id="mvpDet"'+(mvpOpen?' open':'')+'><summary>📥 FuPa-MVP nach dem Spieltag eintragen <span class="kand-sub" style="font-weight:600">· '+withMvp+' Spieler mit MVP-Wert · fließt mit max. ±6 % ins MScore</span></summary>'
+    +'<p class="kand-sub" style="margin:8px 0">So geht\'s: In der FuPa-App das Team öffnen → <b>Spielerstatistik</b> → Spalte <b>MVP</b>. Werte hier eintippen (0–100) und speichern – alle Ratings rechnen sofort neu, auf allen Geräten. Leeres Feld = kein MVP-Wert.</p>'
+    +'<div class="kctrl"><label class="kand-sub">Team</label><select id="mvpTeamSel">'+(own.length?'<optgroup label="Eigene Teams">'+own.map(opt).join('')+'</optgroup>':'')+'<optgroup label="Alle Teams">'+rest.map(opt).join('')+'</optgroup></select>'
+    +'<label class="kand-sub">Stand</label><input type="date" id="mvpDateIn" value="'+kEsc(mvpDate)+'">'
+    +(lastD?'<span class="kand-sub">zuletzt gepflegt: '+kEsc(fmtD(lastD))+'</span>':'')+'</div>'
+    +'<details id="mvpPasteDet" style="margin-top:8px"'+(mvpPasteOpen?' open':'')+'><summary class="kand-sub" style="font-size:12.5px">📋 Oder: Text von der FuPa-Seite einfügen und Werte automatisch erkennen</summary>'
+    +'<textarea id="mvpPaste" placeholder="Auf fupa.net die Spielerstatistik des Teams markieren, kopieren und hier einfügen…">'+kEsc(mvpPasteText)+'</textarea>'
+    +'<div class="kctrl" style="margin-top:6px"><button class="kbtn" id="mvpParseBtn">Werte erkennen</button><span class="kand-sub">Erkannte Werte erscheinen unten zum Prüfen – gespeichert wird erst mit „Speichern".</span></div></details>'
+    +'<div style="overflow-x:auto"><table class="mvtbl"><thead><tr><th>Spieler</th><th>MVP %</th><th>MScore → neu</th></tr></thead><tbody>'+(rows||'<tr><td colspan="3" class="kand-sub">Keine Spieler für dieses Team erfasst.</td></tr>')+'</tbody></table></div>'
+    +'<div class="kctrl" style="margin-top:10px"><button class="btn" id="mvpSaveBtn">💾 Speichern &amp; neu bewerten</button>'+(mvpDirty?'<button class="kbtn" id="mvpResetBtn">Verwerfen</button>':'')+'<span class="kand-sub" id="mvpMsgEl" style="color:'+(/^✓/.test(mvpMsg)?'#5fe09b':'var(--ink3)')+'">'+kEsc(mvpMsg)+'</span></div>'
+    +'</details>';
+  const det=document.getElementById('mvpDet'); det.ontoggle=()=>{mvpOpen=det.open;};
+  const pdet=document.getElementById('mvpPasteDet'); pdet.ontoggle=()=>{mvpPasteOpen=pdet.open;};
+  document.getElementById('mvpTeamSel').onchange=e=>{ if(mvpDirty&&!confirmDiscard())return renderMvpCard(true); mvpTeam=e.target.value; mvpDraft={}; mvpDirty=false; mvpMsg=''; renderMvpCard(true); };
+  document.getElementById('mvpDateIn').onchange=e=>{mvpDate=e.target.value||todayISO();};
+  el.querySelectorAll('[data-mv]').forEach(inp=>{inp.oninput=()=>{
+    mvpDraft[inp.dataset.mv]=inp.value; mvpDirty=true;
+    const p=players.find(x=>x.id===inp.dataset.mv), c=el.querySelector('[data-mvprev="'+inp.dataset.mv+'"]'); if(p&&c)c.innerHTML=mvpPreviewCell(p,inp.value);
+  };});
+  document.getElementById('mvpPaste').oninput=e=>{mvpPasteText=e.target.value;};
+  document.getElementById('mvpParseBtn').onclick=()=>{ const n=mvpParse(document.getElementById('mvpPaste').value); mvpMsg=n?(n+' Wert'+(n>1?'e':'')+' erkannt – bitte kurz prüfen und speichern.'):'Keine Werte erkannt – bitte Namen/Zahlen prüfen oder direkt eintippen.'; mvpPasteOpen=!n; if(n)mvpPasteText=''; renderMvpCard(true); };
+  document.getElementById('mvpSaveBtn').onclick=mvpSave;
+  const rb=document.getElementById('mvpResetBtn'); if(rb)rb.onclick=()=>{mvpDraft={};mvpDirty=false;mvpMsg='';renderMvpCard(true);};
+}
+function confirmDiscard(){try{return window.confirm('Nicht gespeicherte MVP-Eingaben verwerfen?');}catch(e){return true;}}
+function mvpParse(text){
+  /* Erkennt je Spieler den MVP-Wert in kopiertem FuPa-Text: vollständiger Name (mind. Vor- + Nachname),
+     danach die erste Zahl 0–100 – "2/2" (Elfmeter) wird übersprungen, "2." (nächster Platz) oder "–" beendet die Zeile. */
+  const toks=String(text||'').split(/\s+/).filter(Boolean), nt=toks.map(_mvpNorm); let found=0;
+  const team=mvpTeamPlayers(), cnt={};
+  team.forEach(p=>{const f=_mvpNorm(p.name);cnt[f]=(cnt[f]||0)+1;});
+  team.forEach(p=>{
+    const parts=String(p.name||'').split(/\s+/).map(_mvpNorm).filter(Boolean);
+    if(parts.length<2||cnt[_mvpNorm(p.name)]>1)return;          /* Einzelnamen / doppelte Namen: lieber von Hand */
+    for(let i=0;i<=nt.length-parts.length;i++){
+      let ok=true; for(let j=0;j<parts.length;j++){ if(nt[i+j]!==parts[j]){ok=false;break;} } if(!ok)continue;
+      let val=null;
+      for(let k=i+parts.length;k<Math.min(toks.length,i+parts.length+8);k++){
+        const raw=toks[k];
+        if(/^\d+\.$/.test(raw)||/^[–—-]$/.test(raw))break;       /* nächster Platz oder "kein Wert" */
+        if(/[\/:]/.test(raw))continue;                             /* 2/2, 90:00 */
+        const m=raw.replace(/%$/,'').match(/^(\d{1,3})(?:[.,](\d+))?$/);
+        if(m){ const v=Math.round(parseFloat(m[1]+(m[2]?'.'+m[2]:''))); if(v>=0&&v<=100)val=v; break; }
+        if(/[a-zäöüß]{2,}/i.test(raw))break;                        /* Text → nächster Name */
+      }
+      if(val!=null){ mvpDraft[p.id]=String(val); found++; break; }   /* sonst nächstes Vorkommen prüfen */
+    }
+  });
+  if(found)mvpDirty=true;
+  return found;
+}
+function mvpSave(){
+  const date=mvpDate||todayISO(); let n=0;
+  for(const id in mvpDraft){
+    const p=players.find(x=>x.id===id); if(!p)continue;
+    const raw=String(mvpDraft[id]).trim(), cur=mvpOf(p);
+    if(raw===''){ if(cur&&cur.src==='app'){crmSet(id,{mv:undefined,mvd:undefined});n++;} continue; }
+    const v=clamp(Math.round(+raw),0,100); if(isNaN(v))continue;
+    if(cur&&cur.src==='app'&&cur.v===v&&cur.d===date)continue;
+    crmSet(id,{mv:v,mvd:date}); n++;
+  }
+  mvpDraft={}; mvpDirty=false;
+  mvpMsg=n?('✓ '+n+' MVP-Wert'+(n>1?'e':'')+' gespeichert – alle Ratings sind neu berechnet.'):'Keine Änderungen zu speichern.';
+  renderAll(); renderMvpCard(true);
+}
+
+function renderAll(){try{applyMvpSeed();}catch(e){}renderHome();renderList();renderGems();renderJugend();renderShortlist();renderDB();fillCompareSelects();updateCompare();try{renderLineup();}catch(e){}try{renderKandidaten();}catch(e){}try{renderKaderplan();}catch(e){}try{renderMvpCard();}catch(e){}}
 
 /* ================= MODAL ================= */
 function nrm(s){return (s||'').toLowerCase().replace(/ä/g,'ae').replace(/ö/g,'oe').replace(/ü/g,'ue').replace(/ß/g,'ss').replace(/\s+/g,' ').trim();}
@@ -1345,8 +1806,10 @@ function wscore(p){
   if(p.alter!=null&&p.alter<=19&&!p.isJugend)add(5,'U20 — sucht den nächsten Entwicklungsschritt');
   if(p.pressStats&&p.pressStats.wechsel)add(7,'Wechsel-Historie in der Presse — grundsätzlich mobil');
   if(p.status&&/verletzt/i.test(p.status))add(-8,'Aktuell verletzt gemeldet');
+  const _sc=scores(p);
+  if(_sc.mvp!=null){ if(_sc.mvp>=90)add(-6,'FuPa-MVP '+_sc.mvp+' % – Schlüsselspieler seines Teams, der Verein wird ihn halten wollen'); else if(_sc.mvp<=55)add(5,'FuPa-MVP nur '+_sc.mvp+' % – eher Randfigur, bei uns winkt mehr Verantwortung'); }
   w=clamp(Math.round(w),3,97);
-  const k=Math.round((scores(p).total*0.55+w*0.45)*10)/10;
+  const k=Math.round((_sc.total*0.55+w*0.45)*10)/10;
   f.sort((a,b)=>Math.abs(b[0])-Math.abs(a[0]));
   return {w,k,f};
 }
@@ -1475,10 +1938,10 @@ function openModal(id){
       <button class="crmb" data-lat="w">Winterpause (Jan. 27)</button>
       <button class="crmb" data-lat="s">Sommer 27 (nächste Saison)</button>
       <button class="crmb" data-lat="2">Sommer 28 (in 2 Jahren)</button>
-      <input type="date" id="latdate" value="${C.u||''}" title="individuelles Datum"></div>
+      <input type="date" id="latdate" value="${kEsc(C.u||'')}" title="individuelles Datum"></div>
       <p class="note" style="margin:2px 0 0">Bis dahin taucht er in keinen Vorschlägen auf — am Stichtag ploppt er auf der Startseite als Wiedervorlage wieder hoch.</p>`:''}
     ${C.s==='no'?`<p class="note" style="margin:2px 0 0">Ausgeblendet: taucht in keinen Vorschlägen mehr auf (Datenbank &amp; Suche zeigen ihn weiter, Startseite listet ihn unter „Ausgeblendet").</p>`:''}
-    ${C.n?`<div class="crmnote">📝 ${C.n}</div>`:''}`;})()}
+    ${C.n?`<div class="crmnote">📝 ${kEsc(C.n)}</div>`:''}`;})()}
     ${p.info?`<div class="infobox">💡 ${p.info}</div>`:''}
     ${p.adjWhy?`<div class="infobox" style="border-color:rgba(77,163,255,.4)">🎯 ${p.adjWhy}<br><b>Rating manuell auf ${p.adjTo} gesetzt</b>${s.adjBase!=null?` <i style="color:var(--ink3)">(reines Daten-Modell: ${s.adjBase})</i>`:``}</div>`:''}
     ${g.length?`<div class="gembox">${g.map(x=>`💎 <b>${x.k}</b>: ${x.t}`).join('<br>')}</div>`:''}
@@ -1493,7 +1956,7 @@ function openModal(id){
         ${p.kaderDoc?`<div><span>Startelf 25/26 (dok.)</span><b>${p.kaderStarts} von ${p.kaderDoc} Spielen</b></div>`:''}
         ${p.starts2425!=null?`<div><span>Startelf 24/25 (dok.)</span><b>${p.starts2425} von ${p.docPrev||8} Spielen</b></div>`:''}
         ${p.sds?`<div><span>Elf der Woche (FuPa)</span><b>${p.sds}× nominiert</b></div>`:''}
-        ${typeof p.mvp==='number'?`<div><span>FuPa-MVP-Wert</span><b>${p.mvp} % <i style="color:var(--ink3);font-weight:600">(team-relativ)</i></b></div>`:''}
+        ${s.mvp!=null?`<div><span>FuPa-MVP 26/27</span><b>${s.mvp} % <i style="color:var(--ink3);font-weight:600">(team-relativ${s.mvpD?' · Stand '+fmtD(s.mvpD):''})</i></b></div>`:''}
         ${prevLine}
         <div><span>Formtrend</span><b>${s.tratio!=null?(s.tratio>=1.15?'▲ steigend':s.tratio<=0.85?'▼ fallend':'≈ stabil'):'–'}</b></div>
         <div><span>Liga-Gewicht</span><b>× ${wOf(p).toFixed(2)}</b></div>
@@ -1563,7 +2026,8 @@ function openModal(id){
           <div class="sl"><label>${{tempo:'Tempo',technik:'Technik',zweikampf:'Zweikampf',spielint:'Spielintelligenz',mentalitaet:'Mentalität'}[k]}</label>
           <input type="range" min="1" max="10" value="${p.scout[k]}" data-sc="${k}"><output>${p.scout[k]}</output></div>`).join('')}
       </div>
-      <div class="field" style="margin-top:12px"><label>Notizen</label><textarea id="e_note">${p.note||''}</textarea></div>
+      <div class="field" style="margin-top:12px"><label>Notizen</label><textarea id="e_note">${kEsc(p.note||'')}</textarea></div>
+      <div class="field" style="margin-top:10px"><label>FuPa-MVP 26/27 in % (0–100, aus der FuPa-Spielerstatistik · leer = keiner)</label><input type="number" id="e_mvp" min="0" max="100" step="1" inputmode="numeric" value="${(()=>{const m=mvpOf(p);return m?m.v:'';})()}" placeholder="–"></div>
       <div class="btnrow" style="margin-top:12px">
         <button class="btn" id="saveP">Speichern</button>
         <button class="btn ghost" id="starP">${p.star?'★ Von Shortlist entfernen':'☆ Auf die Shortlist'}</button>
@@ -1617,7 +2081,10 @@ function openModal(id){
     p.pos=$('#e_pos').value;
     p.einsaetze=$('#e_eins').value?+$('#e_eins').value:null;
     p.assists=$('#e_ass').value?+$('#e_ass').value:null;
-    p.note=$('#e_note').value.trim();p._noteLocal=true;crmSet(p.id,{n:p.note||undefined});
+    {const _nn=$('#e_note').value.trim(); if(_nn!==(p.note||'')){p.note=_nn;p._noteLocal=true;crmSet(p.id,{n:_nn||undefined});}}
+    {const _mvIn=document.getElementById('e_mvp'); if(_mvIn){const raw=_mvIn.value.trim(), cur=mvpOf(p);
+      if(raw===''){ if(cur&&cur.src==='app')crmSet(p.id,{mv:undefined,mvd:undefined}); }
+      else { const nv=clamp(Math.round(+raw),0,100); if(!isNaN(nv)&&!(cur&&cur.v===nv))crmSet(p.id,{mv:nv,mvd:todayISO()}); } }}
     document.querySelectorAll('[data-sc]').forEach(inp=>{p.scout[inp.dataset.sc]=+inp.value;});
     p.scouted=true;
     $('#overlay').classList.remove('open');renderAll();
@@ -1736,6 +2203,7 @@ function goTab(tab){
   if(tab==='cmp')updateCompare();
   if(tab==='kandidaten')renderKandidaten();
   if(tab==='kaderplan')renderKaderplan();
+  try{const _a=document.querySelector('.tabbar .ti.active');if(_a&&_a.scrollIntoView)_a.scrollIntoView({inline:'center',block:'nearest'});}catch(e){}
   if(tab==='sxi'){try{renderLineup();}catch(e){}}
   try{window.scrollTo({top:0});}catch(e){}
 }
@@ -1836,46 +2304,180 @@ function crmOf(p){return CRM[p.id]||{};}
 function crmHidden(p){const C=crmOf(p);if(C.s==='no')return true;if(C.s==='lat'&&C.u&&C.u>todayISO())return true;return false;}
 function crmDue(p){const C=crmOf(p);return C.s==='lat'&&(!C.u||C.u<=todayISO());}
 function fmtD(iso){if(!iso)return '';const [y,m,d]=iso.split('-');return d+'.'+m+'.'+y.slice(2);}
+/* ===== Sync v2: feldweises Zusammenführen statt Überschreiben =====
+   - Jeder CRM-Eintrag trägt _t = {feld: Zeitstempel}; Aufstellung/Schattenelf tragen gemeinsam "lt".
+   - Vor jedem Speichern wird der Online-Stand geholt und pro Feld der jüngere Wert übernommen.
+     OHNE gültigen Online-Stand wird NIE geschrieben (sonst könnte ein Handy mit Funkloch alles überschreiben).
+   - Nach dem Speichern wird nachgeprüft, ob der Server alles hat; sonst wird erneut gesendet.
+   - Zeitstempel als "hybride Uhr": nie kleiner als alles schon Gesehene → falsch gehende Handy-Uhren schaden nicht.
+   - Eingehende Werte werden geprüft (Datumsformat, Zahlenbereiche, Längen) – Schutz vor eingeschleustem Code. */
+let SYNC_ST='idle', _pendingRefresh=false, _hlc=0, _lineupT=0, _lastLineupSer=null, _pushTries=0, _verifyT=null, _kvChanged=false, _lineupAdopted=false;
+const SYNC_BAD_KEYS={'__proto__':1,'constructor':1,'prototype':1};
+const SYNC_DATE=/^\d{4}-\d{2}-\d{2}$/;
+function hlcNow(){ _hlc=Math.max(Date.now(),_hlc+1); return _hlc; }
+function hlcSeen(t){ if(typeof t==='number'&&isFinite(t)&&t<=Date.now()+86400000&&t>_hlc)_hlc=t; }
+function syncTime(t){ t=+t||0; return (isFinite(t)&&t>0&&t<=Date.now()+86400000)?t:0; } /* Stempel aus der Zukunft ignorieren */
+function crmValid(id,k,v){
+  if(SYNC_BAD_KEYS[k]||v===null||v===undefined)return false;
+  switch(k){
+    case 'lc': case 'u': case 'mvd': return typeof v==='string'&&SYNC_DATE.test(v);
+    case 'mv': return typeof v==='number'&&isFinite(v)&&v>=0&&v<=100;
+    case 'w': return v===1||v===2||v===3||v===4;
+    case 's': return v==='att'||v==='no'||v==='lat';
+    case 'f': case 'c': case 'x': case 'px': return v===1||v===true;
+    case 'tp': return typeof v==='string'&&v.length<=12;
+    case 'k': case 'n': case 'rl': case 'pl': case 'kv': return typeof v==='string'&&v.length<=4000;
+    default:
+      if(id===META_ID&&k.slice(0,3)==='pl:')return v===1;
+      return (typeof v==='string'&&v.length<=4000)||(typeof v==='number'&&isFinite(v))||typeof v==='boolean';
+  }
+}
 function crmSet(id,upd){
-  const C=CRM[id]||{};
-  for(const k in upd){ if(upd[k]===undefined||upd[k]===null||upd[k]===false||upd[k]==='')delete C[k]; else C[k]=upd[k]; }
-  if(Object.keys(C).length)CRM[id]=C; else delete CRM[id];
+  if(SYNC_BAD_KEYS[id])return;
+  const C=Object.prototype.hasOwnProperty.call(CRM,id)?CRM[id]:{}; const T=(C._t&&typeof C._t==='object')?C._t:{}; const now=hlcNow();
+  for(const k in upd){ if(k==='_t'||SYNC_BAD_KEYS[k])continue;
+    if(upd[k]===undefined||upd[k]===null||upd[k]===false||upd[k]==='')delete C[k]; else C[k]=upd[k];
+    T[k]=now; }
+  C._t=T; CRM[id]=C;
   if(_remoteDone)lineupSync(); else _crmDirty=true;
 }
 function crmApply(){ /* synchronisierte Sterne & Notizen auf die Spieler-Objekte spiegeln */
   players.forEach(p=>{const C=CRM[p.id];if(!C)return;
-    if(C.f)p.star=true;
+    if(C._t&&Object.prototype.hasOwnProperty.call(C._t,'f'))p.star=!!C.f; else if(C.f)p.star=true;
     if(C.n!=null&&!p._noteLocal)p.note=C.n;});
 }
+function crmMerge(remote){
+  let changed=false;
+  if(!remote||typeof remote!=='object'||Array.isArray(remote))return false;
+  for(const id of Object.keys(remote)){
+    if(SYNC_BAD_KEYS[id])continue;
+    const R=remote[id]; if(!R||typeof R!=='object'||Array.isArray(R))continue;
+    const RT=(R._t&&typeof R._t==='object'&&!Array.isArray(R._t))?R._t:{};
+    const had=Object.prototype.hasOwnProperty.call(CRM,id);
+    const L=had?CRM[id]:{};
+    const LT=(L._t&&typeof L._t==='object')?L._t:{};
+    const keys=new Set([...Object.keys(R),...Object.keys(L),...Object.keys(RT)]); keys.delete('_t');
+    keys.forEach(k=>{
+      if(SYNC_BAD_KEYS[k])return;
+      const rHas=Object.prototype.hasOwnProperty.call(R,k), lHas=Object.prototype.hasOwnProperty.call(L,k);
+      if(rHas&&!crmValid(id,k,R[k]))return;                       /* ungültiger/manipulierter Wert: ignorieren */
+      const rt=syncTime(RT[k]), lt=+LT[k]||0;
+      if(id===META_ID&&k==='kv'){                                 /* Prüfwert des Team-Schlüssels: der ERSTE gewinnt, Löschen zählt nicht */
+        if(!rHas)return;
+        if(!lHas||(L.kv!==R.kv&&rt>0&&(lt===0||rt<lt))){ L.kv=R.kv; LT.kv=rt; changed=true; _kvChanged=true; }
+        return;
+      }
+      hlcSeen(rt);
+      const same=rHas&&lHas&&JSON.stringify(R[k])===JSON.stringify(L[k]);
+      const differ=(rHas!==lHas)||(rHas&&!same);
+      if(rt>lt||(rt===lt&&differ)){                                /* jüngerer Stand gewinnt; Gleichstand mit Unterschied → Server */
+        if(!differ){ if(rt>lt)LT[k]=rt; return; }
+        if(rHas)L[k]=R[k]; else delete L[k];
+        LT[k]=Math.max(rt,lt); changed=true;
+      }
+    });
+    if(Object.keys(LT).length)L._t=LT;
+    if(!had&&Object.keys(L).length)CRM[id]=L;
+  }
+  return changed;
+}
+function lineupSer(){ try{return JSON.stringify({formation:LINEUP.formation,slots:LINEUP.slots,shadow:SHADOW});}catch(e){return null;} }
+function syncSer(){ return JSON.stringify({formation:LINEUP.formation,slots:LINEUP.slots,shadow:SHADOW,crm:CRM,lt:_lineupT}); }
+async function syncFetch(){
+  const r=await fetch(SYNCU+'?getl=1',{cache:'no-store'}); const d=await r.json();
+  if(!d||typeof d!=='object'||Array.isArray(d))throw new Error('ungültiger Online-Stand');
+  return d;
+}
+function syncAdoptRemote(d){ /* Online-Stand einarbeiten; true = lokal hat sich etwas geändert */
+  let ch=false;
+  if(d.crm&&crmMerge(d.crm))ch=true;
+  const rlt=syncTime(d.lt);
+  if(d.formation&&FORMATIONS[d.formation]&&d.slots&&typeof d.slots==='object'&&rlt>=_lineupT){
+    const slots={}; for(const k in d.slots){ if(players.some(p=>p.id===d.slots[k]))slots[+k]=d.slots[k]; }
+    const shadow=(d.shadow&&typeof d.shadow==='object'&&!Array.isArray(d.shadow))?d.shadow:SHADOW;
+    const ser=JSON.stringify({formation:d.formation,slots,shadow});
+    if(ser!==lineupSer()){ LINEUP={formation:d.formation,slots}; SHADOW=shadow; ch=true; _lineupAdopted=true; }
+    _lineupT=rlt; hlcSeen(rlt); _lastLineupSer=lineupSer();
+  }
+  return ch;
+}
+function syncState(st){
+  SYNC_ST=st;
+  const t={idle:'',pending:'⏳ speichert…',ok:'☁️ gespeichert',err:'⚠️ offline – wird nachgeholt'}[st]||'';
+  document.querySelectorAll('.ksync').forEach(el=>{el.textContent=t;el.style.display=t?'':'none';});
+}
 function lineupSync(){
-  let s; try{s=JSON.stringify({formation:LINEUP.formation,slots:LINEUP.slots,shadow:SHADOW,crm:CRM});}catch(e){return;}
+  const ls=lineupSer(); if(ls===null)return;
+  if(_lastLineupSer===null)_lastLineupSer=ls; else if(ls!==_lastLineupSer){ _lastLineupSer=ls; _lineupT=hlcNow(); }
+  let s; try{s=syncSer();}catch(e){return;}
   if(_lastSync===null){_lastSync=s;return;} /* erster Render: nur Stand merken, nicht speichern */
   if(s===_lastSync)return;
   _lastSync=s;
-  clearTimeout(_syncT);
-  _syncT=setTimeout(()=>{try{
-    const fd=new FormData();fd.append('lk','svbc-elf-4471');fd.append('lineup',s);
-    fetch(SYNCU,{method:'POST',mode:'no-cors',body:fd}).catch(()=>{});
-  }catch(e){}},1500);
+  clearTimeout(_syncT); clearTimeout(_verifyT); _pushTries=0;
+  syncState('pending');
+  _syncT=setTimeout(syncPush,1500);
 }
+async function syncPush(){
+  try{
+    const d=await syncFetch();                       /* ohne gültigen Online-Stand wird NICHT geschrieben */
+    if(syncAdoptRemote(d))crmAfterRemote();
+    const s=syncSer(); _lastSync=s;
+    const fd=new FormData();fd.append('lk','svbc-elf-4471');fd.append('lineup',s);
+    await fetch(SYNCU,{method:'POST',mode:'no-cors',body:fd});
+    clearTimeout(_verifyT); _verifyT=setTimeout(syncVerify,3500);
+  }catch(e){
+    _pushTries++; syncState('err');
+    clearTimeout(_syncT); _syncT=setTimeout(syncPush,Math.min(120000,15000*_pushTries));
+  }
+}
+function syncMissing(d){ /* fehlt dem Server etwas, das wir haben? */
+  const R=(d&&d.crm&&typeof d.crm==='object')?d.crm:{};
+  for(const id of Object.keys(CRM)){
+    const L=CRM[id], LT=(L&&L._t)||{}, RT=(R[id]&&R[id]._t)||{};
+    for(const k of Object.keys(LT)){ if(id===META_ID&&k==='kv')continue; if((+RT[k]||0)<LT[k])return true; }
+  }
+  return _lineupT>syncTime(d.lt);
+}
+async function syncVerify(){
+  try{
+    const d=await syncFetch();
+    if(syncAdoptRemote(d))crmAfterRemote();
+    if(syncMissing(d)){
+      if(_pushTries<3){ _pushTries++; syncState('pending'); clearTimeout(_syncT); _syncT=setTimeout(syncPush,600); }
+      else { syncState('err'); clearTimeout(_syncT); _syncT=setTimeout(()=>{_pushTries=0;syncPush();},60000); }
+    } else { _pushTries=0; syncState('ok'); }
+  }catch(e){ syncState('err'); clearTimeout(_syncT); _syncT=setTimeout(syncPush,20000); }
+}
+function crmIsTyping(){const ae=document.activeElement;return !!(ae&&/^(INPUT|TEXTAREA|SELECT)$/.test(ae.tagName)&&ae.type!=='checkbox');}
+function crmRefreshViews(){
+  if(_kvChanged){ _kvChanged=false; try{tkVerified=false;}catch(e){} }
+  try{crmApply();}catch(e){}
+  if(_lineupAdopted){ _lineupAdopted=false; try{renderLineup();}catch(e){} }
+  try{renderKandidaten();}catch(e){} try{renderKaderplan();}catch(e){} try{renderHome();}catch(e){} try{renderMvpCard();}catch(e){}
+}
+function crmAfterRemote(){ if(crmIsTyping()){_pendingRefresh=true;return;} crmRefreshViews(); }
+document.addEventListener('focusout',()=>{ if(!_pendingRefresh)return; setTimeout(()=>{ if(_pendingRefresh&&!crmIsTyping()){_pendingRefresh=false;crmRefreshViews();} },350); });
+/* App kommt wieder in den Vordergrund (z.B. am Handy): Änderungen der anderen Planer holen */
+document.addEventListener('visibilitychange',()=>{
+  if(document.visibilityState!=='visible'||!_remoteDone)return;
+  syncFetch().then(d=>{ if(syncAdoptRemote(d))crmAfterRemote(); }).catch(()=>{});
+});
 function lineupRemoteLoad(){
   if(_remoteLoaded)return; _remoteLoaded=true;
-  try{
-    fetch(SYNCU+'?getl=1').then(r=>r.json()).then(d=>{
-      if(d&&d.formation&&FORMATIONS[d.formation]&&d.slots){
-        LINEUP={formation:d.formation,slots:{}};
-        for(const k in d.slots){ if(players.some(p=>p.id===d.slots[k]))LINEUP.slots[+k]=d.slots[k]; }
-        if(d.shadow&&typeof d.shadow==='object')SHADOW=d.shadow;
-        if(d.crm&&typeof d.crm==='object'){ for(const id in d.crm){ if(!CRM[id])CRM[id]=d.crm[id]; } }
-        crmApply();
-        _lastSync=JSON.stringify({formation:LINEUP.formation,slots:LINEUP.slots,shadow:SHADOW,crm:CRM});
-        _remoteDone=true;
-        if(_crmDirty){_crmDirty=false;_lastSync='';lineupSync();}
-        renderAll();
-      } else { _remoteDone=true; if(_crmDirty){_crmDirty=false;lineupSync();} }
-    }).catch(()=>{_remoteDone=true;if(_crmDirty){_crmDirty=false;lineupSync();}});
-  }catch(e){}
+  syncFetch().then(d=>{
+    syncAdoptRemote(d); _lineupAdopted=false;
+    crmApply();
+    _lastLineupSer=lineupSer(); _lastSync=syncSer(); _remoteDone=true;
+    if(_crmDirty){_crmDirty=false;_lastSync='';lineupSync();}
+    renderAll();
+  }).catch(()=>{
+    /* Online-Stand nicht erreichbar: Bearbeiten ist erlaubt – geschrieben wird erst, wenn ein Abgleich klappt */
+    _remoteDone=true; syncState('err');
+    if(_crmDirty){_crmDirty=false;lineupSync();}
+    let tries=0; const retry=()=>{ if(++tries>5)return; setTimeout(()=>syncFetch().then(d=>{ if(syncAdoptRemote(d))crmAfterRemote(); if(SYNC_ST==='err')syncState('idle'); }).catch(retry),15000*tries); }; retry();
+  });
 }
+
 function xiVal(p){ /* Engine-Wert: Stärke + Trainer-Vertrauen − Disziplin-Risiko */
   let v=scores(p).total*0.75 + Math.min(12,(p.kaderStarts||0)*1.2);
   if(p.risiko&&/diszip/i.test(p.risiko))v-=12; /* nur echte Disziplin-Historie (mehrfach Rot), nicht eine einzelne Gelb-Rote */
@@ -2381,6 +2983,7 @@ function openSlotPicker(i,depth){
 renderWeights();
 initLineupSeed();
 renderAll();
+try{tkInit();}catch(e){}
 </script>
 </body>
 </html>
