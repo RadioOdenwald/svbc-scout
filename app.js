@@ -2100,7 +2100,7 @@ function openSlotPicker(i,depth){
 }
 
 /* ===== App-Modus: installierbar, offline-fest, aktualisiert sich selbst ===== */
-const APP_BUILD='20260923-1742-r8b', OUTBOX_KEY='svbcOutbox', APP_HIDE_KEY='svbcInstallHide';
+const APP_BUILD='r9-202609231611', OUTBOX_KEY='svbcOutbox', APP_HIDE_KEY='svbcInstallHide';
 let _appPrompt=null, _appNew=null, _obT=null;
 function appStandalone(){ try{ return !!(window.matchMedia&&matchMedia('(display-mode: standalone)').matches)||navigator.standalone===true; }catch(e){ return false; } }
 function appPlatform(){
@@ -2327,7 +2327,7 @@ function svTabAllowed(t){ if(t==='admin')return canManage(); if(t==='kandidaten'
     document.querySelectorAll('.sgrid [data-sheet]').forEach(b=>b.classList.toggle('active',b.dataset.sheet===tab));
     const inBar=!!document.querySelector('.tabbar .ti.active'); const mb=document.getElementById('tMore'); if(mb)mb.classList.toggle('on',!inBar);
     if(tab==='admin')svAdminRender();
-    try{ history.replaceState(null,'',location.pathname+(tab==='home'?'':'#'+tab)); }catch(e){}
+    try{ svHist(tab); }catch(e){}
     svSheet(false);
   }; }
 function svSheet(open){ const s=document.getElementById('moreSheet'), bg=document.getElementById('sheetBg'); if(!s)return; s.classList.toggle('open',!!open); bg.classList.toggle('open',!!open); }
@@ -3703,7 +3703,48 @@ const TRS=(function(){
     return {action:{type:'spiel',input:{datum:T.parseDate(t0,today),gegner:gm?gm[1].trim():null,heim,tore_wir:a,tore_gegner:b,spieler}},warn:tt>a?`Mehr Torschützen (${tt}) als eigene Tore (${a}) – bitte prüfen.`:null,ambig:T.ambiguous(text,idx,spieler.map(s=>s.player_id))};
   }
 
-  return {ROLES,EART,HSTAT,key,trainingScore,matchStats,teamForm,withWithout,loyaltyScore,retention,allTimeIndex,totals,nextMilestones,badges,parseEvent,parseMatch,eventArt,roleOf,hoursOf,MS_SP,MS_T};
+  /* ===== WhatsApp-Export (Mannschaftsgruppe) → Zu-/Absagen fürs Training =====
+     Zeilen wie „[23.09.26, 18:02:11] Tim Fries: Bin heute raus, Arbeit“ oder „23.09.26, 18:02 - Tim Fries: bin dabei 👍“ */
+  const WA=/^‎?\[?(\d{1,2})[./](\d{1,2})[./](\d{2,4}),?\s+(\d{1,2}):(\d{2})(?::\d{2})?\s*(?:[AP]M)?\]?\s*(?:-\s*)?([^:]{2,60}?):\s?(.*)$/;
+  function isWhatsApp(text){ const L=String(text||'').split(/\r?\n/).slice(0,60); return L.filter(l=>WA.test(l)).length>=3; }
+  function parseWhatsApp(text,people,today,days){
+    const idx=T.nameIndex(people), msgs=[]; let cur=null;
+    for(const line of String(text||'').split(/\r?\n/)){
+      const m=line.match(WA);
+      if(m){ const y=m[3].length===2?'20'+m[3]:m[3]; cur={d:`${y}-${m[2].padStart(2,'0')}-${m[1].padStart(2,'0')}`,h:+m[4],who:m[6].replace(/^~\s*/,'').trim(),t:m[7]}; msgs.push(cur); }
+      else if(cur&&line.trim())cur.t+='\n'+line;
+    }
+    const since=T.addDays(today,-(days||21)), byDay={};
+    let used=0;
+    for(const m of msgs){
+      if(m.d<since||m.d>today)continue;
+      const t=T.N(m.t); if(/weggelassen|omitted|geloescht|deleted|ausgeschlossen/.test(t))continue;
+      if(/\bwer (ist|kommt|kann|fehlt)|\?\s*$/.test(t.trim()))continue;              // Fragen („wer ist dabei?“) sind keine Zusagen
+      const who=T.findPlayers(T.N(m.who).replace(/[^a-z0-9 ]/g,' '),idx), sender=who.length===1?who[0]:null;
+      const named=T.findPlayers(t.replace(/[^a-z0-9 ]/g,' '),idx).filter(p=>!sender||p.id!==sender.id);
+      const absent=/(bin|komme|kann|schaff|pack)\w*\s+(es\s+)?(heute\s+|morgen\s+|leider\s+)*(nicht|net|nich)\b|absage|sage ab|nicht dabei|bin raus|fall(e)? aus|raus heute|heute raus|klappt nicht|wird nix|❌|👎/.test(t)||/❌|👎/.test(m.t);
+      const present=!absent&&(/bin dabei|bin da\b|komme\b|dabei\b|bin am start|👍|✅|💪/.test(t)||/👍|✅|💪/.test(m.t));
+      const late=/spaeter|verspaet|komme spaet|min spaeter|etwas spaet/.test(t);
+      if(!absent&&!present&&!late)continue;
+      let d=m.d; if(/\bmorgen\b/.test(t))d=T.addDays(m.d,1);
+      if(d>today)continue;
+      let grund='privat';
+      if(/verletz|zerrung|knie|bruch|umgeknickt/.test(t))grund='verletzt'; else if(/krank|grippe|erkaelt|fieber|magen|infekt/.test(t))grund='krank';
+      else if(/arbeit|schicht|arbeiten|dienst|job|meeting|termin auf der arbeit/.test(t))grund='arbeit'; else if(/urlaub|verreist|ferien/.test(t))grund='urlaub';
+      else if(/uni|schule|klausur|pruefung|vorlesung/.test(t))grund='uni'; else if(/familie|hochzeit|geburtstag|beerdigung|kind/.test(t))grund='familie';
+      else if(/zweite|2\. mannschaft/.test(t))grund='zweite';
+      const who2=named.length&&/(\bund\b|auch|kommt nicht|kommen nicht|kann nicht|ist raus|sind raus)/.test(t)?named:[];
+      const targets=[...(sender?[sender]:[]),...who2];
+      if(!targets.length)continue;
+      const D=byDay[d]=byDay[d]||{};
+      for(const p of targets){ D[p.id]=absent?{player_id:p.id,status:'weg',grund,notiz:m.t.slice(0,160)}:late?{player_id:p.id,status:'spaet'}:(D[p.id]&&D[p.id].status==='weg'?D[p.id]:{player_id:p.id,status:'da'}); }
+      used++;
+    }
+    const actions=Object.keys(byDay).sort().map(d=>({type:'training',input:{datum:d,typ:'training',spieler:Object.values(byDay[d]),rest_da:false}}));
+    return {actions,messages:msgs.length,used};
+  }
+
+  return {ROLES,EART,HSTAT,key,isWhatsApp,parseWhatsApp,trainingScore,matchStats,teamForm,withWithout,loyaltyScore,retention,allTimeIndex,totals,nextMilestones,badges,parseEvent,parseMatch,eventArt,roleOf,hoursOf,MS_SP,MS_T};
 })();
 
 /* =====================================================================
@@ -4087,23 +4128,26 @@ function trChatOpen(){
   const M=svModal(`<div class="trchat"><div class="trc-h"><div class="rm-ic co">${SVI('chat')}</div><div><h2 style="margin:0">Co-Trainer</h2><div class="msub" id="trcMode"></div></div></div>
     <div class="trc-log" id="trcLog"></div>
     <div class="trc-sug" id="trcSug"></div>
+    <div class="trc-att" id="trcAtt"></div>
     <form class="trc-in" id="trcForm"><textarea id="trcTxt" rows="1" placeholder="z.B. „Seltenreich und Garotti waren heute nicht da, Simon hat eine Zerrung“"></textarea>
+      <input type="file" id="trcFile" accept="image/*,.txt,.csv,.xlsx,.xlsm" multiple hidden>
+      <button type="button" class="iconbtn trc-clip" id="trcClip" title="Screenshot oder Datei (z.B. WhatsApp-Export)">📎</button>
       <button type="button" class="iconbtn trc-mic" id="trcMic" title="Sprechen">🎙️</button><button type="submit" class="btn" id="trcGo">Senden</button></form></div>`);
   M.classList.add('trchatmodal');
   trChatDraw(); trChatMode();
   const ta=document.getElementById('trcTxt');
   ta.addEventListener('input',()=>{ ta.style.height='auto'; ta.style.height=Math.min(140,ta.scrollHeight)+'px'; });
   ta.addEventListener('keydown',e=>{ if(e.key==='Enter'&&!e.shiftKey){ e.preventDefault(); document.getElementById('trcForm').requestSubmit(); } });
-  document.getElementById('trcForm').onsubmit=e=>{ e.preventDefault(); const v=ta.value.trim(); if(!v||TR.chatBusy)return; ta.value=''; ta.style.height='auto'; trChatSend(v); };
-  trMicSetup();
+  document.getElementById('trcForm').onsubmit=e=>{ e.preventDefault(); const v=ta.value.trim(); if((!v&&!trAttHas())||TR.chatBusy)return; ta.value=''; ta.style.height='auto'; trChatSend(v); };
+  trMicSetup(); trAttSetup();
   if(!TR.loaded)trLoad().then(()=>{ if(TR.chat.length===1&&TR.chat[0].local){ TR.chat[0].content=trGreeting(); trChatDraw(); } trChatMode(); });
   setTimeout(()=>ta.focus(),200);
 }
 function trChatMode(){ const el=document.getElementById('trcMode'); if(!el)return; const ai=TR.ai&&TR.ai.ready;
   el.innerHTML=ai?'KI-Modus · versteht freie Sätze und Fragen':'Einfacher Modus · Anwesenheit, Gründe, Verletzungen'+(isAdmin()?' · <a href="#" id="trcKey">KI einschalten</a>':'');
   const k=document.getElementById('trcKey'); if(k)k.onclick=e=>{ e.preventDefault(); closeOverlay(); goTab('admin'); setTimeout(()=>{ const c=document.getElementById('trAi'); if(c)c.scrollIntoView({behavior:'smooth'}); },500); };
-  const sug=document.getElementById('trcSug'); if(sug){ const S=['Heute fehlten …','Spiel: 3:1 gegen …','Kerwe-Aufbau: …','Wer ist aktuell verletzt?','Wie ist die Trainingsbeteiligung?'].concat(ai?['Wie siehst du die Elf fürs Wochenende?','Wer ist in den letzten Wochen auffällig?']:[]);
-    sug.innerHTML=S.map(s=>`<button type="button">${svEsc(s)}</button>`).join(''); sug.querySelectorAll('button').forEach(b=>b.onclick=()=>{ const ta=document.getElementById('trcTxt'); if(/…$/.test(b.textContent)){ ta.value=b.textContent.replace('…',''); ta.focus(); } else trChatSend(b.textContent); }); } }
+  const sug=document.getElementById('trcSug'); if(sug){ const S=['Heute fehlten …','📎 WhatsApp auswerten','Spiel: 3:1 gegen …','Kerwe-Aufbau: …','Wer ist aktuell verletzt?','Wie ist die Trainingsbeteiligung?'].concat(ai?['Wie siehst du die Elf fürs Wochenende?','Wer ist in den letzten Wochen auffällig?']:[]);
+    sug.innerHTML=S.map(s=>`<button type="button">${svEsc(s)}</button>`).join(''); sug.querySelectorAll('button').forEach(b=>b.onclick=()=>{ if(/^📎/.test(b.textContent)){ const c=document.getElementById('trcClip'); if(c)c.click(); return; } const ta=document.getElementById('trcTxt'); if(/…$/.test(b.textContent)){ ta.value=b.textContent.replace('…',''); ta.focus(); } else trChatSend(b.textContent); }); } }
 function trActSummary(a){
   const i=a.input||{};
   if(a.type==='training'){
@@ -4144,7 +4188,7 @@ async function trExec(a,rest){
 }
 function trChatDraw(){
   const L=document.getElementById('trcLog'); if(!L)return;
-  L.innerHTML=TR.chat.map((m,mi)=>`<div class="trm ${m.role==='user'?'me':'co'}"><div class="trm-t">${svEsc(m.content).replace(/\n/g,'<br>')}</div>
+  L.innerHTML=TR.chat.map((m,mi)=>`<div class="trm ${m.role==='user'?'me':'co'}"><div class="trm-t">${svEsc(m.content).replace(/\n/g,'<br>')}${(m.imgs||[]).length?`<div class="trm-img">${m.imgs.map(u=>`<img src="${svEsc(u)}" alt="">`).join('')}</div>`:''}${m.file?`<div class="trm-img">📎 ${svEsc(m.file)}</div>`:''}</div>
     ${(m.actions||[]).map((a,ai)=>`<div class="trc-act${a.done?' done':''}${a.skip?' skip':''}" data-ai="${mi}:${ai}">${trActSummary(a)}
       <div class="btnrow">${a.done?`<span class="ok">✓ ${svEsc(a.done)}</span>`:a.skip?'<span class="note">verworfen</span>':`<button class="btn sm" data-do>Eintragen</button><button class="btn ghost sm" data-skip>Verwerfen</button>`}</div></div>`).join('')}</div>`).join('')
     +(TR.chatBusy?'<div class="trm co"><div class="trm-t trtyping"><i></i><i></i><i></i></div></div>':'');
@@ -4154,17 +4198,29 @@ function trChatDraw(){
   L.scrollTop=L.scrollHeight;
 }
 async function trChatSend(text){
-  TR.chat.push({role:'user',content:text}); TR.chatBusy=true; trChatDraw();
+  const att=TR.att||{imgs:[],file:null}; TR.att={imgs:[],file:null}; trAttDraw();
+  if(!text)text=att.imgs.length?'Werte den Screenshot aus: Wer war beim Training dabei, wer hat abgesagt (mit Grund)? Bereite die Einträge vor.':att.file?'Werte diesen Verlauf aus: Wer hat fürs Training zu- oder abgesagt (mit Grund)? Bereite die Einträge vor.':'';
+  TR.chat.push({role:'user',content:text,imgs:att.imgs.map(i=>i.thumb),file:att.file&&att.file.name}); TR.chatBusy=true; trChatDraw();
   if(!TR.loaded)await trLoad();
   let reply=null;
+  if(att.imgs.length&&!(TR.ai&&TR.ai.ready)){
+    TR.chatBusy=false; TR.chat.push({role:'assistant',local:true,content:'Screenshots kann nur der KI-Co-Trainer lesen – der Admin schaltet ihn unter „Nutzer & Rollen“ ein.\nTipp: In WhatsApp den Gruppenchat exportieren (⋮ → Mehr → Chat exportieren → ohne Medien) und die Textdatei hier anhängen – die verstehe ich auch ohne KI.'}); trChatDraw(); return;
+  }
   if(TR.ai&&TR.ai.ready){
     try{ const hist=TR.chat.filter(m=>!m.local||m.role==='user').slice(-12).map(m=>({role:m.role,content:m.content+(m.actions&&m.actions.length?'\n[Vorschläge: '+m.actions.map(a=>a.type+(a.done?' – eingetragen':a.skip?' – verworfen':' – offen')).join(', ')+']':'')}));
-      const {data,error}=await SVB.sb.functions.invoke('coach',{body:{messages:hist}});
+      const body={messages:hist}; if(att.imgs.length)body.bilder=att.imgs.map(i=>({mt:i.mt,data:i.data})); if(att.file)body.datei={name:att.file.name,text:att.file.text};
+      const {data,error}=await SVB.sb.functions.invoke('coach',{body});
       if(error)throw error;
       if(data&&data.ok)reply={role:'assistant',content:data.text||(data.actions&&data.actions.length?'Hab ich so verstanden – passt das?':'…'),actions:data.actions||[]};
       else if(data&&data.error&&data.error!=='kein-schluessel')reply={role:'assistant',content:'⚠️ '+data.error+'\n\nIch versuche es im einfachen Modus:',local:true};
     }catch(e){ reply=null; }
   }
+  if((!reply||reply.local)&&att.file&&TRS.isWhatsApp(att.file.text)){
+    const W=TRS.parseWhatsApp(att.file.text,vrPeople(),trToday(),21);
+    reply={role:'assistant',local:true,actions:W.actions,content:W.actions.length?`Aus ${W.used} Nachrichten der letzten 3 Wochen habe ich Zu- und Absagen erkannt – bitte kurz prüfen:`:`Ich habe ${W.messages} Nachrichten gelesen, aber keine eindeutigen Zu- oder Absagen der letzten 3 Wochen gefunden.`};
+    TR.chatBusy=false; TR.chat.push(reply); trChatDraw(); return;
+  }
+  if((!reply||reply.local)&&att.file&&!text.trim())text=att.file.text.slice(0,2000);
   if(!reply||reply.local){
     const sq=trSquadLite(), PM=TRS.parseMatch(text,sq,trToday()), PE=PM?null:TRS.parseEvent(text,vrPeople(),trToday());
     const P=PM?{actions:[PM.action],ambig:PM.ambig,warn:PM.warn}:PE?{actions:[PE.action],ambig:PE.ambig}:TRC.parse(text,sq,trToday(),TR.st);
@@ -4175,6 +4231,33 @@ async function trChatSend(text){
     reply={role:'assistant',content,actions,local:true};
   }
   TR.chatBusy=false; TR.chat.push(reply); trChatDraw();
+}
+/* Anhänge: Screenshots (KI), WhatsApp-Export (.txt), Listen (.xlsx/.csv → Import) */
+function trAttHas(){ return !!(TR.att&&(TR.att.imgs.length||TR.att.file)); }
+function trAttDraw(){ const el=document.getElementById('trcAtt'); if(!el)return; const A=TR.att||{imgs:[],file:null};
+  el.innerHTML=A.imgs.map((i,k)=>`<span><img src="${svEsc(i.thumb)}" alt=""><button type="button" data-rmi="${k}" aria-label="Entfernen">✕</button></span>`).join('')+(A.file?`<span>📎 ${svEsc(A.file.name)} <button type="button" data-rmf aria-label="Entfernen">✕</button></span>`:'');
+  el.querySelectorAll('[data-rmi]').forEach(b=>b.onclick=()=>{ A.imgs.splice(+b.dataset.rmi,1); trAttDraw(); });
+  const f=el.querySelector('[data-rmf]'); if(f)f.onclick=()=>{ A.file=null; trAttDraw(); }; }
+function trImg(file){ return new Promise((res,rej)=>{ const u=URL.createObjectURL(file), im=new Image();
+  im.onload=()=>{ const mx=1568, k=Math.min(1,mx/Math.max(im.width,im.height)), c=document.createElement('canvas'); c.width=Math.round(im.width*k); c.height=Math.round(im.height*k);
+    c.getContext('2d').drawImage(im,0,0,c.width,c.height); URL.revokeObjectURL(u); let q=0.85, d=c.toDataURL('image/jpeg',q); while(d.length>1500000&&q>0.4){ q-=0.15; d=c.toDataURL('image/jpeg',q); }
+    const t=document.createElement('canvas'), tk=96/Math.max(c.width,c.height); t.width=Math.round(c.width*tk); t.height=Math.round(c.height*tk); t.getContext('2d').drawImage(c,0,0,t.width,t.height);
+    res({mt:'image/jpeg',data:d.split(',')[1],thumb:t.toDataURL('image/jpeg',0.7),name:file.name}); };
+  im.onerror=()=>{ URL.revokeObjectURL(u); rej(new Error('Bild konnte nicht gelesen werden')); }; im.src=u; }); }
+function trAttSetup(){
+  TR.att=TR.att||{imgs:[],file:null}; trAttDraw();
+  const inp=document.getElementById('trcFile'), b=document.getElementById('trcClip'); if(!inp||!b)return;
+  b.onclick=()=>inp.click();
+  inp.onchange=async()=>{ const files=[...inp.files]; inp.value='';
+    for(const f of files){
+      try{
+        if(/\.(xlsx|xlsm|csv)$/i.test(f.name)){ closeOverlay(); vrImport('training',f); return; }
+        if(/^image\//.test(f.type)||/\.(jpe?g|png|webp|gif|heic)$/i.test(f.name)){ if(TR.att.imgs.length>=4){ kToast('Höchstens 4 Bilder auf einmal'); continue; } TR.att.imgs.push(await trImg(f)); }
+        else if(/\.txt$/i.test(f.name)||f.type==='text/plain'){ if(f.size>5e6){ kToast('Datei zu groß'); continue; } const t=await f.text(); TR.att.file={name:f.name.slice(0,80),text:t.slice(-60000)}; }
+        else kToast('Dieser Dateityp geht nicht: '+f.name);
+      }catch(e){ kToast('⚠️ '+(e.message||e)); }
+    }
+    trAttDraw(); document.getElementById('trcTxt').focus(); };
 }
 /* Spracheingabe (Web Speech API – iPhone/Safari & Chrome) */
 function trMicSetup(){
@@ -4591,7 +4674,7 @@ function vrMatchName(raw,people){
   const w=sw.split(' '); if(w.length===2&&w[1].length<=2){ const c=people.filter(p=>{ const q=TRC.N(p.name).split(' '); return q[0]===w[0]&&q[q.length-1].startsWith(w[1].replace('.','')); }); if(c.length===1)return c[0].id; }
   return null;
 }
-function vrImport(kind0){
+function vrImport(kind0,file0){
   const people=vrPeople().concat((DATA&&DATA.jugend||[]).filter(j=>j.id&&j.name).map(j=>({id:j.id,name:j.name}))).filter((p,i,a)=>a.findIndex(q=>q.id===p.id)===i);
   const S={kind:kind0||'training',rows:null,sheets:null,sheet:null,wb:null,hdr:0,nameCol:null,layout:null,map:{},codes:{},cols:{},busy:false,fileName:''};
   svModal(`<div class="mhead"><div class="rm-ic" style="width:46px;height:46px">${SVI('upload')}</div><div><h2 style="margin:0">Listen importieren</h2><div class="msub">Excel, CSV oder einfach Zellen aus Excel/Google Sheets einfügen</div></div></div><div id="vrIm"></div>`);
@@ -4692,6 +4775,7 @@ function vrImport(kind0){
       }catch(e){ S.busy=false; draw(); kToast('⚠️ '+(e.message||e)); } };
   };
   draw();
+  if(file0)load(file0);
 }
 
 /* ---------- Start ---------- */
@@ -4711,6 +4795,244 @@ function vrImport(kind0){
     }
     { const _ta=trAfter; trAfter=function(){ const x=_ta.apply(this,arguments); try{ if(document.querySelector('#panel-verein.active'))vrRender(); vrHomeCard(); }catch(e){} return x; }; }
     const h=(location.hash||'').slice(1); if(h==='verein'||h==='radar')setTimeout(()=>goTab(h),60);
+    return r; }; }
+
+/* =====================================================================
+   SV/BSC Scout · Runde 9: Zurück-Taste wie in einer richtigen App
+   - Seitenwechsel landen im Verlauf → „Zurück“ führt zur vorherigen Seite
+   - Offene Fenster (Spielerprofil, Co-Trainer, Editoren) und das Mehr-Menü schließen sich mit „Zurück“
+   - Auf der Übersicht beendet erst ein doppeltes „Zurück“ die App
+   ===================================================================== */
+const SVH={ready:false,pop:false,ignore:0,layer:null,exitAt:0};
+const svUrl=t=>location.pathname+(t==='home'?'':'#'+t);
+function svCurTab(){ const p=document.querySelector('main .panel.active'); return p?p.id.replace('panel-',''):'home'; }
+function svHist(tab){
+  const st={sv:'tab',tab};
+  if(!SVH.ready||SVH.pop){ try{ history.replaceState(SVH.ready?st:history.state,'',svUrl(tab)); }catch(e){} return; }
+  const cur=history.state;
+  if(cur&&cur.sv==='layer'){                                        // Seitenwechsel aus Fenster/Menü heraus: dessen Eintrag wird zur neuen Seite
+    SVH.layer=null; try{ history.replaceState(st,'',svUrl(tab)); }catch(e){}
+    const ov=document.getElementById('overlay'); if(ov&&ov.classList.contains('open'))closeOverlay();
+    return; }
+  if(cur&&cur.sv==='tab'&&cur.tab===tab)return;
+  try{ history.pushState(st,'',svUrl(tab)); }catch(e){}
+}
+function svLayerOpened(kind){ if(!SVH.ready||SVH.layer)return; SVH.layer=kind; try{ history.pushState({sv:'layer',kind},'',location.href); }catch(e){} }
+function svLayerClosed(kind){ if(!SVH.ready||SVH.layer!==kind)return; SVH.layer=null; if(history.state&&history.state.sv==='layer'){ SVH.ignore++; try{ history.back(); }catch(e){ SVH.ignore--; } } }
+function svOnPop(e){
+  if(SVH.ignore>0){ SVH.ignore--; return; }
+  const st=e.state||{};
+  if(SVH.layer){
+    const k=SVH.layer; SVH.layer=null;
+    if(k==='modal'){
+      if(typeof NAV!=='undefined'&&Array.isArray(NAV)&&NAV.length&&typeof navBack==='function'&&document.getElementById('mback')){ navBack(); SVH.layer='modal'; try{ history.pushState({sv:'layer',kind:'modal'},'',location.href); }catch(x){} }
+      else closeOverlay();
+    } else svSheet(false);
+    return;
+  }
+  if(st.sv==='tab'){ SVH.pop=true; try{ goTab(st.tab); }finally{ SVH.pop=false; } return; }
+  // ganz unten im Verlauf
+  if(svCurTab()!=='home'){ SVH.pop=true; try{ goTab('home'); }finally{ SVH.pop=false; } try{ history.pushState({sv:'tab',tab:'home'},'',svUrl('home')); }catch(x){} return; }
+  if(Date.now()-SVH.exitAt<2200){ SVH.ignore=0; try{ history.back(); }catch(x){} return; }
+  SVH.exitAt=Date.now(); kToast('Zum Beenden nochmal zurück');
+  try{ history.pushState({sv:'tab',tab:'home'},'',svUrl('home')); }catch(x){}
+}
+function svHistInit(){
+  if(SVH.ready)return;
+  const t=svCurTab();
+  try{ history.replaceState({sv:'base'},'',location.pathname+location.hash); history.pushState({sv:'tab',tab:t},'',svUrl(t)); }catch(e){ return; }
+  SVH.ready=true;
+  window.addEventListener('popstate',svOnPop);
+  const watch=(id,kind)=>{ const el=document.getElementById(id); if(!el)return; let was=el.classList.contains('open');
+    new MutationObserver(()=>{ const now=el.classList.contains('open'); if(now===was)return; was=now; if(now)svLayerOpened(kind); else svLayerClosed(kind); }).observe(el,{attributes:true,attributeFilter:['class']}); };
+  watch('overlay','modal'); watch('moreSheet','sheet');
+}
+{ const _si4=svInit; svInit=function(){ const r=_si4.apply(this,arguments); setTimeout(svHistInit,120); return r; }; }
+
+/* =====================================================================
+   SV/BSC Scout · Runde 9: Jede Rolle bekommt ihr eigenes Cockpit
+   - Tab-Leiste und Seitenleiste je Rolle (Scouting immer vorne)
+   - Übersicht: Rollen-Cockpit mit Schnellaktionen, wichtigsten Meldungen und KI-Lagebild
+   - Scouting-Seite: Radar-Streifen ganz oben
+   - Nutzungsprotokoll (Zeit, Bereiche) – Auswertung ausschließlich für den Admin
+   ===================================================================== */
+const SV_TABBAR={trainer:['home','training','elf','scout'],planer:['home','scout','kandidaten','kaderplan'],vorstand:['home','scout','verein','kandidaten'],
+  admin:['home','scout','training','kandidaten'],viewer:['home','scout','kaderplan','verein']};
+const SV_TBL={home:['home','Home'],scout:['search','Scouting'],training:['activity','Training'],elf:['pitch','Aufstellung'],kandidaten:['kand','Kandidaten'],
+  kaderplan:['plan','Kaderplan'],verein:['trophy','Verein'],radar:['radar','Radar'],sxi:['layers','Schattenelf'],db:['db','Datenbank'],gems:['gem','Rohdiamanten'],
+  jugend:['sprout','Jugend'],cmp:['chart','Vergleich'],play:['book','Playbook'],model:['sliders','Modell'],admin:['shield','Nutzer & Rollen']};
+const SV_SIDE={trainer:['Übersicht','Kaderplanung','Scouting','Verein','Wissen','Verwaltung']};
+const SV_TAB_ORDER={trainer:['training','elf','kaderplan','kandidaten','sxi']};
+
+function svBuildTabbar(){
+  const bar=document.getElementById('tabbar'), more=document.getElementById('tMore'); if(!bar||!more)return;
+  bar.querySelectorAll('.ti').forEach(b=>b.remove());
+  (SV_TABBAR[svRole()]||SV_TABBAR.viewer).filter(t=>svTabAllowed(t)).forEach(t=>{
+    const [ic,l]=SV_TBL[t], b=document.createElement('button'); b.className='ti'; b.dataset.tab=t;
+    b.innerHTML=SVI(ic)+svEsc(l)+(['training','kandidaten','radar'].includes(t)?`<span class="cnt" data-cnt="${t}" style="display:none"></span>`:'');
+    b.onclick=()=>goTab(t); bar.insertBefore(b,more); });
+  const cur=svCurTab(); bar.querySelectorAll('.ti').forEach(b=>b.classList.toggle('active',b.dataset.tab===cur));
+  more.classList.toggle('on',!bar.querySelector('.ti.active'));
+}
+function svOrderSide(){
+  const nav=document.querySelector('.snav'); if(!nav)return;
+  const order=SV_SIDE[svRole()]; const groups=[]; let g=null;
+  [...nav.children].forEach(el=>{ if(el.classList.contains('sgrp')){ g={name:el.textContent.trim(),els:[el]}; groups.push(g); } else if(g)g.els.push(el); });
+  if(order)groups.sort((a,b)=>(order.indexOf(a.name)+100*(order.indexOf(a.name)<0))-(order.indexOf(b.name)+100*(order.indexOf(b.name)<0)));
+  const to=SV_TAB_ORDER[svRole()];
+  groups.forEach(gr=>{ if(to&&gr.name==='Kaderplanung'){ const [h,...btns]=gr.els; btns.sort((a,b)=>{ const ia=to.indexOf(a.dataset.tab), ib=to.indexOf(b.dataset.tab); return (ia<0?99:ia)-(ib<0?99:ib); }); gr.els=[h,...btns]; } gr.els.forEach(el=>nav.appendChild(el)); });
+}
+
+/* ---------- Nutzung: Zeit & Bereiche (nur für den Admin sichtbar) ---------- */
+const SVUS={secs:0,last:Date.now(),views:{},started:false};
+function svUseTick(force){ const now=Date.now(); if(force||document.visibilityState==='visible')SVUS.secs+=Math.min(90,Math.max(0,(now-SVUS.last)/1000)); SVUS.last=now; }
+async function svUseFlush(){
+  svUseTick(); const s=Math.round(SVUS.secs), v=SVUS.views; if(s<5&&!Object.keys(v).length)return;
+  SVUS.secs=0; SVUS.views={};
+  try{ const {error}=await SVB.sb.rpc('usage_ping',{p_secs:Math.min(300,s),p_views:v}); if(error)throw error; }
+  catch(e){ SVUS.secs+=s; Object.entries(v).forEach(([k,n])=>SVUS.views[k]=(SVUS.views[k]||0)+n); }
+}
+function svUseView(tab){
+  if(!/^[a-z]{2,20}$/.test(tab))return; SVUS.views[tab]=(SVUS.views[tab]||0)+1;
+  try{ const c=JSON.parse(localStorage.getItem('svbc-views')||'{}'); c[tab]=(c[tab]||0)+1; localStorage.setItem('svbc-views',JSON.stringify(c)); }catch(e){}
+}
+function svUseStart(){
+  if(SVUS.started)return; SVUS.started=true; SVUS.last=Date.now();
+  setInterval(()=>svUseTick(),30000); setInterval(svUseFlush,120000);
+  document.addEventListener('visibilitychange',()=>{ if(document.visibilityState==='hidden'){ svUseTick(true); svUseFlush(); } else SVUS.last=Date.now(); });
+  window.addEventListener('pagehide',()=>{ svUseTick(true); svUseFlush(); });
+}
+function svTopTabs(n,skip){
+  let c={}; try{ c=JSON.parse(localStorage.getItem('svbc-views')||'{}'); }catch(e){}
+  const tot=Object.values(c).reduce((a,b)=>a+b,0); if(tot<12)return [];
+  return Object.entries(c).filter(([t])=>t!=='home'&&SV_TBL[t]&&svTabAllowed(t)&&!(skip||[]).includes(t)).sort((a,b)=>b[1]-a[1]).slice(0,n).map(([t])=>t);
+}
+
+/* ---------- Rollen-Cockpit auf der Übersicht ---------- */
+function svInsights(){
+  const r=svRole(), out=[], team=canTraining();
+  const add=(prio,lvl,t,d,go)=>out.push({prio,lvl,t,d,go});
+  const W={trainer:{tr:1,inj:1,md:2,radar:4,kand:6,ms:3,risk:2,form:3,help:7,use:9},planer:{tr:5,inj:6,md:7,radar:1,kand:1,ms:6,risk:4,form:5,help:8,use:9},
+    vorstand:{tr:3,inj:5,md:6,radar:2,kand:3,ms:2,risk:1,form:1,help:2,use:9},admin:{tr:3,inj:5,md:6,radar:2,kand:3,ms:3,risk:2,form:2,help:4,use:1},viewer:{ms:1,form:2}}[r]||{};
+  try{ if(team&&TR.loaded){ trAlerts().filter(a=>a.lvl!=='info').slice(0,3).forEach(a=>add(W.tr,a.lvl,a.t,a.d,()=>goTab('training')));
+    const inj=trSquad().filter(p=>trInjury(p.id)); if(inj.length)add(W.inj,'info',`${inj.length} verletzt`,inj.slice(0,4).map(p=>p.name.split(' ').pop()).join(', '),()=>{ TR.view='injuries'; goTab('training'); }); } }catch(e){}
+  try{ if(canScout()){ const s=rdSeen(); VR.radar.filter(x=>x.lvl==='hoch'&&(x.created_at>s||x.stand>=TRC.addDays(trToday(),-4))).slice(0,2).forEach(x=>add(W.radar,'mittel','📡 '+x.titel,x.detail||'',()=>goTab('radar')));
+    const n=VR.radar.filter(x=>x.created_at>s).length; if(n>2)add(W.radar+0.5,'info',`${n} neue Radar-Meldungen`,'Torserien, Überflieger, junge Talente',()=>goTab('radar')); } }catch(e){}
+  try{ if(r!=='viewer'){ const due=kandList().filter(kandIsDue).length; if(due)add(W.kand,due>3?'mittel':'info',`${due} Kandidaten-Kontakt${due>1?'e':''} fällig`,'Zeit für einen Anruf',()=>goTab('kandidaten')); } }catch(e){}
+  try{ if(VR.at.length){ const ms=vrRanks().L.filter(x=>{ const p=x.pid&&trP(x.pid); return p&&p.own&&!p.verzicht; }).map(x=>({p:trP(x.pid),m:TRS.nextMilestones(x.tot).find(m=>(m.lab==='Spiele'&&m.rest<=3)||(m.lab==='Tore'&&m.rest<=2))})).filter(o=>o.m);
+    ms.slice(0,2).forEach(o=>add(W.ms,'info',`🎉 ${o.p.name}: noch ${o.m.rest} bis ${o.m.ziel} ${o.m.lab}`,'Ehrung vorbereiten?',()=>openModal(o.p.id))); } }catch(e){}
+  try{ if(team&&TR.loaded&&VR.evLoaded){ const risk=vrKader(false).map(p=>({p,rt:vrScores(p).rt})).filter(x=>x.rt.lvl).sort((a,b)=>b.rt.risk-a.rt.risk);
+    risk.slice(0,2).forEach(x=>add(W.risk,x.rt.lvl,`Bindungsrisiko: ${x.p.name}`,x.rt.why.join(' · '),()=>vrWhy(x.p.id))); } }catch(e){}
+  try{ if(TR.loaded){ const f=TRS.teamForm(TR.st); if(f.n>=3)add(W.form,f.winless>=3?'mittel':'info',`Form: ${f.res.slice(0,5).join(' ')}`,`${f.ppg.toFixed(2)} Punkte/Spiel · ${f.tf}:${f.ta} Tore${f.clean>=2?` · ${f.clean}× zu Null in Folge`:''}`,()=>goTab('training')); } }catch(e){}
+  try{ if(team&&VR.evLoaded&&VR.ev.length){ const hs=vrHelpStats(VR_SEASON_START), never=vrKader(false).filter(p=>!hs.has(p.id)).length; if(never>=5)add(W.help,'info',`${never} Spieler der Ersten haben diese Saison noch nie geholfen`,'„Wer ist dran?“ verteilt die nächsten Dienste fair',()=>{ VR.view='events'; goTab('verein'); }); } }catch(e){}
+  try{ if(isAdmin()&&SVA.use){ const U=SVA.use, flag=U.filter(u=>u.flagN>0), heavy=U.filter(u=>u.ai24>=40), idle=U.filter(u=>u.active&&u.role!=='viewer'&&u.role!=='admin'&&(!u.last_seen||Date.now()-new Date(u.last_seen)>14*864e5));
+    if(flag.length||heavy.length)add(W.use,'hoch',`⚠️ Co-Trainer: auffällige Nutzung`,[...heavy.map(u=>u.name+' ('+u.ai24+' Fragen/24 h)'),...flag.map(u=>u.name+' ('+u.flagN+'× abseits)')].join(' · '),()=>svUseOpen());
+    if(idle.length)add(W.use+0.5,'mittel',`${idle.length} Teammitglied${idle.length>1?'er':''} seit 14+ Tagen nicht in der App`,idle.map(u=>u.name||u.email).join(', '),()=>svUseOpen()); } }catch(e){}
+  return out.filter(x=>x.prio!=null).sort((a,b)=>a.prio-b.prio||({hoch:0,mittel:1,info:2}[a.lvl]-{hoch:0,mittel:1,info:2}[b.lvl])).slice(0,6);
+}
+const SV_ACTIONS={
+  trainer:[['activity','Training erfassen',()=>trSessionEditor(trToday())],['plus','Spiel erfassen',()=>trSessionEditor(trToday(),null,'spiel')],['chat','Co-Trainer',()=>trChatOpen()],['pitch','Aufstellung',()=>goTab('elf')]],
+  planer:[['radar','Radar',()=>goTab('radar')],['search','Scouting',()=>goTab('scout')],['kand','Kandidaten',()=>goTab('kandidaten')],['layers','Schattenelf',()=>goTab('sxi')]],
+  vorstand:[['trophy','Rankings & Verein',()=>goTab('verein')],['radar','Radar',()=>goTab('radar')],['plan','Kaderplan',()=>goTab('kaderplan')],['kand','Kandidaten',()=>goTab('kandidaten')]],
+  admin:[['user','Nutzung',()=>svUseOpen()],['radar','Radar',()=>goTab('radar')],['activity','Training',()=>goTab('training')],['kand','Kandidaten',()=>goTab('kandidaten')]],
+  viewer:[['search','Scouting',()=>goTab('scout')],['plan','Kaderplan',()=>goTab('kaderplan')],['trophy','Allzeit & Legenden',()=>{ VR.view='allzeit'; goTab('verein'); }]]};
+const SV_ROLE_HEAD={trainer:'Dein Trainer-Cockpit',planer:'Dein Kaderplanungs-Cockpit',vorstand:'Dein Vorstands-Cockpit',admin:'Admin-Cockpit',viewer:'Überblick'};
+const SVA={use:null,brief:null,briefBusy:false};
+function svCockpit(){
+  const host=document.getElementById('svHello'); if(!host)return;
+  let el=document.getElementById('svCockpit'); if(!el){ el=document.createElement('div'); el.id='svCockpit'; host.after(el); }
+  const r=svRole(), acts=SV_ACTIONS[r]||SV_ACTIONS.viewer, ins=svInsights(), top=svTopTabs(4,[...acts.map(a=>''),'home']);
+  const ai=canTraining()&&TR.ai&&TR.ai.ready;
+  el.innerHTML=`<div class="card svcock"><div class="svc-h"><h3>${svEsc(SV_ROLE_HEAD[r]||'Cockpit')}</h3>${ai?`<button class="btn ghost sm" id="svBriefBtn">${SVI('chat')} KI-Lagebild</button>`:''}</div>
+    <div class="svc-acts">${acts.map((a,i)=>`<button class="svc-a" data-act="${i}">${SVI(a[0])}<span>${svEsc(a[1])}</span></button>`).join('')}</div>
+    ${SVA.brief?`<div class="svc-brief"><b>${SVI('chat')} Lagebild des Co-Trainers</b><div>${svEsc(SVA.brief.text).replace(/\n/g,'<br>')}</div><small>${svEsc(SVA.brief.when||'')}</small></div>`:''}
+    <div class="svc-ins">${ins.length?ins.map((x,i)=>`<button class="svc-i l-${x.lvl}" data-ins="${i}"><b>${svEsc(x.t)}</b><span>${svEsc(x.d)}</span></button>`).join(''):'<div class="note">Alles ruhig – keine dringenden Punkte.</div>'}</div>
+    ${top.length?`<div class="svc-top"><span>Oft genutzt:</span>${top.map(t=>`<button data-top="${t}">${SVI(SV_TBL[t][0])}${svEsc(SV_TBL[t][1])}</button>`).join('')}</div>`:''}</div>`;
+  el.querySelectorAll('[data-act]').forEach(b=>b.onclick=()=>acts[+b.dataset.act][2]());
+  el.querySelectorAll('[data-ins]').forEach(b=>b.onclick=()=>{ const x=ins[+b.dataset.ins]; if(x&&x.go)x.go(); });
+  el.querySelectorAll('[data-top]').forEach(b=>b.onclick=()=>goTab(b.dataset.top));
+  const bb=document.getElementById('svBriefBtn'); if(bb)bb.onclick=svBrief;
+  svHomeOrder();
+}
+async function svBrief(){
+  if(SVA.briefBusy)return; SVA.briefBusy=true; const b=document.getElementById('svBriefBtn'); if(b){ b.disabled=true; b.textContent='Denkt nach …'; }
+  try{ const {data,error}=await SVB.sb.functions.invoke('coach',{body:{mode:'lagebild'}}); if(error)throw error;
+    if(!data||!data.ok)throw new Error(data&&data.error==='kein-schluessel'?'KI ist nicht eingerichtet':(data&&data.error)||'keine Antwort');
+    SVA.brief={text:data.text,when:(data.cached?'von heute ':'')+new Date().toLocaleTimeString('de-DE',{hour:'2-digit',minute:'2-digit'})+' Uhr'}; }
+  catch(e){ kToast('⚠️ '+(e.message||e)); }
+  SVA.briefBusy=false; svCockpit();
+}
+function svHomeOrder(){
+  const host=document.getElementById('svHello'); if(!host)return;
+  const ord={trainer:['svCockpit','trHome','vrHome','svRemind'],planer:['svCockpit','vrHome','svRemind','trHome'],vorstand:['svCockpit','vrHome','trHome','svRemind'],
+    admin:['svCockpit','vrHome','trHome','svRemind'],viewer:['svCockpit']}[svRole()]||['svCockpit'];
+  let after=host; ord.forEach(id=>{ const el=document.getElementById(id); if(el&&el.parentNode===host.parentNode){ if(after.nextSibling!==el)after.after(el); after=el; } });
+}
+
+/* ---------- Scouting-Seite: Radar ganz oben ---------- */
+function svScoutStrip(){
+  const P=document.getElementById('panel-scout'); if(!P||!canScout())return;
+  let el=document.getElementById('rdStrip'); if(!el){ el=document.createElement('div'); el.id='rdStrip'; P.prepend(el); }
+  const R=VR.radar.filter(r=>r.lvl!=='info').slice(0,3), n=VR.radar.filter(r=>r.created_at>rdSeen()).length;
+  el.innerHTML=`<div class="card rdstrip"><div class="svc-h"><h3>${SVI('radar')} Radar${n?` <span class="pill on">${n} neu</span>`:''}</h3><div class="btnrow"><button class="btn sm" data-rs="radar">Alle Meldungen</button><button class="btn ghost sm" data-rs="chancen">Moneyball-Chancen</button></div></div>
+    ${R.length?R.map(rdItem).join(''):'<div class="note">Noch keine Meldungen – das Radar wertet jedes Daten-Update aus.</div>'}</div>`;
+  el.querySelectorAll('[data-rs]').forEach(b=>b.onclick=()=>{ VR.rf=b.dataset.rs==='chancen'?'chancen':'alle'; goTab('radar'); });
+  el.querySelectorAll('[data-svp]').forEach(x=>x.onclick=()=>openModal(x.dataset.svp));
+  el.querySelectorAll('[data-star]').forEach(b=>b.style.display='none');
+}
+
+/* ---------- Admin: Nutzung & Aktivität (nur Admin) ---------- */
+async function svUseLoad(){ if(!isAdmin())return null; try{ const {data,error}=await SVB.sb.rpc('admin_usage',{p_days:30}); if(error)throw error; SVA.use=data||[]; }catch(e){ console.warn('Nutzung',e); } return SVA.use; }
+const svMin=s=>{ s=+s||0; if(s<60)return s?'<1 Min.':'–'; const m=Math.round(s/60); return m<60?m+' Min.':(Math.floor(m/60)+' h '+(m%60?m%60+' Min.':'')); };
+const svAgo2=d=>{ if(!d)return 'nie'; const x=(Date.now()-new Date(d))/1000; if(x<3600)return 'vor '+Math.max(1,Math.round(x/60))+' Min.'; if(x<86400)return 'vor '+Math.round(x/3600)+' Std.'; const t=Math.round(x/86400); return t===1?'gestern':'vor '+t+' Tagen'; };
+function svUseTop(v,n){ return Object.entries(v||{}).sort((a,b)=>b[1]-a[1]).slice(0,n).map(([k,c])=>(SV_TBL[k]?SV_TBL[k][1]:k)+' '+c+'×').join(', '); }
+async function svUseCard(P){
+  if(!P||!isAdmin()||P.querySelector('#svUse'))return;
+  const el=document.createElement('div'); el.className='card'; el.id='svUse'; el.innerHTML='<div class="empty">Lade Nutzung …</div>'; P.appendChild(el);
+  const U=await svUseLoad()||[];
+  const warn=U.filter(u=>u.ai24>=40||u.flagN>0), idle=U.filter(u=>u.active&&u.role!=='viewer'&&u.role!=='admin'&&(!u.last_seen||Date.now()-new Date(u.last_seen)>14*864e5));
+  el.innerHTML=`<div class="adm-head"><div><h3 style="margin:0;display:flex;gap:8px;align-items:center">${SVI('user')} Nutzung &amp; Aktivität <span class="pill wait">nur für dich</span></h3>
+      <p style="margin:6px 0 0;font-size:13.5px">Zeit in der App, aktive Tage, meistgenutzte Bereiche und Fragen an den Co-Trainer (30 Tage). Sieht außer dir niemand – auch nicht der Vorstand.</p></div></div>
+    ${warn.length?`<div class="tra l-hoch"><span class="tra-av team">${SVI('bell')}</span><div class="tra-b"><b>Auffällige KI-Nutzung</b><span>${warn.map(u=>`${svEsc(u.name||u.email)}: ${u.ai24} Fragen in 24 h${u.flagN?`, ${u.flagN}× Themen außerhalb des Vereins`:''}`).join(' · ')}</span></div></div>`:''}
+    ${idle.length?`<div class="tra l-mittel"><span class="tra-av team">${SVI('clock')}</span><div class="tra-b"><b>Länger nicht in der App</b><span>${idle.map(u=>`${svEsc(u.name||u.email)} (${svEsc(SVB.ROLE_T[u.role]||u.role)}, ${svAgo2(u.last_seen)})`).join(' · ')}</span></div></div>`:''}
+    <div class="trtw"><table class="trtab svuse"><thead><tr><th>Mitglied</th><th>Zuletzt</th><th>Zeit 7 T</th><th>Zeit 30 T</th><th>Aktive Tage</th><th>Meistgenutzt</th><th>Co-Trainer</th></tr></thead><tbody>
+    ${U.map(u=>`<tr data-use="${svEsc(u.id)}" class="${u.active?'':'off'}"><td><b>${svEsc(u.name||u.email)}</b><br><small>${svEsc(SVB.ROLE_T[u.role]||u.role)}${u.active?'':' · gesperrt'}</small></td><td>${svAgo2(u.last_seen)}</td><td>${svMin(u.secs7)}</td><td>${svMin(u.secsN)}</td><td>${u.daysN}</td>
+      <td><small>${svEsc(svUseTop(u.views,3)||'–')}</small></td><td>${u.aiN}${u.flagN?` <b class="bad">⚠ ${u.flagN}</b>`:''}${u.ai24>=40?' <b class="bad">viel</b>':''}</td></tr>`).join('')}</tbody></table></div>
+    <div class="note">Tipp: Antippen zeigt Details inkl. der letzten Fragen an den Co-Trainer. Die Mitglieder werden in „Mein Konto“ darauf hingewiesen, dass die Nutzung protokolliert wird.</div>`;
+  el.querySelectorAll('[data-use]').forEach(r=>r.onclick=()=>svUseDetail(r.dataset.use));
+}
+function svUseDetail(id){
+  const u=(SVA.use||[]).find(x=>x.id===id); if(!u)return;
+  svModal(`<div class="mhead"><div class="uav r-${svEsc(u.role)}" style="width:46px;height:46px;border-radius:14px">${svEsc(svIni(u.name||u.email))}</div><div><h2 style="margin:0">${svEsc(u.name||u.email)}</h2><div class="msub">${svEsc(SVB.ROLE_T[u.role]||u.role)} · zuletzt ${svAgo2(u.last_seen)}</div></div></div>
+    <div class="trkpi" style="margin-top:14px"><div><b>${svMin(u.secs7)}</b><span>Zeit 7 Tage</span></div><div><b>${svMin(u.secsN)}</b><span>Zeit 30 Tage</span></div><div><b>${u.daysN}</b><span>aktive Tage</span></div><div><b>${u.aiN}</b><span>Co-Trainer-Fragen</span></div></div>
+    <div class="sbsec"><h4>Bereiche (30 Tage)</h4><div class="vrchips">${Object.entries(u.views||{}).sort((a,b)=>b[1]-a[1]).map(([k,c])=>`<span>${svEsc(SV_TBL[k]?SV_TBL[k][1]:k)} <small>${c}×</small></span>`).join('')||'<span class="note">keine Daten</span>'}</div></div>
+    <div class="sbsec"><h4>Letzte Fragen an den Co-Trainer</h4>${(u.fragen||[]).length?`<div class="svq">${u.fragen.map(f=>`<div class="${f.flagged?'flag':''}"><em>${new Date(f.at).toLocaleString('de-DE',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'})}${f.modus!=='chat'?' · '+svEsc(f.modus):''}${f.bilder?' · 🖼 '+f.bilder:''}${f.datei?' · 📎 '+svEsc(f.datei):''}</em>${svEsc(f.frage||'–')}${f.flagged?`<b>⚠ abseits: ${svEsc(f.grund||'')}</b>`:''}</div>`).join('')}</div>`:'<div class="note">Noch keine.</div>'}</div>`);
+}
+function svUseOpen(){ goTab('admin'); setTimeout(()=>{ const c=document.getElementById('svUse'); if(c)c.scrollIntoView({behavior:'smooth'}); },600); }
+{ const _ar2=svAdminRender; svAdminRender=async function(){ const r=await _ar2.apply(this,arguments); try{ await svUseCard(document.getElementById('panel-admin')); }catch(e){ console.warn(e); } return r; }; }
+
+/* ---------- Mein Konto: Transparenz ---------- */
+{ const _acc2=svAccount; svAccount=function(){
+    const r=_acc2.apply(this,arguments);
+    const M=document.getElementById('modal'), app=M&&[...M.querySelectorAll('.editsec')].pop(); if(!app)return r;
+    const sec=document.createElement('div'); sec.className='editsec';
+    sec.innerHTML=`<h4>Datenschutz &amp; Nutzung</h4><p class="note" style="margin:0">Damit die App fair und sicher bleibt, werden Nutzungszeit, aufgerufene Bereiche und Fragen an den Co-Trainer protokolliert. Einsehen kann das ausschließlich der Admin. <span id="svMyUse"></span></p>`;
+    app.after(sec);
+    SVB.sb.rpc('my_usage').then(({data})=>{ const s=document.getElementById('svMyUse'); if(s&&data)s.textContent=`Deine letzten 30 Tage: ${svMin(data.secs30)} in der App, ${data.ai30} Co-Trainer-Fragen.`; }).catch(()=>{});
+    return r; }; }
+
+/* ---------- Start ---------- */
+{ const _gt4=goTab; goTab=function(tab){ const r=_gt4.apply(this,arguments); try{ svUseView(svCurTab()); if(tab==='scout')svScoutStrip(); if(tab==='home')svCockpit(); }catch(e){} return r; }; }
+{ const _va=vrAfter; vrAfter=function(){ const r=_va.apply(this,arguments); try{ if(document.querySelector('#panel-home.active'))svCockpit(); if(document.querySelector('#panel-scout.active'))svScoutStrip(); }catch(e){} return r; }; }
+{ const _ta3=trAfter; trAfter=function(){ const r=_ta3.apply(this,arguments); try{ if(document.querySelector('#panel-home.active'))svCockpit(); }catch(e){} return r; }; }
+{ const _si5=svInit; svInit=function(){
+    const r=_si5.apply(this,arguments);
+    try{ svBuildTabbar(); svOrderSide(); }catch(e){ console.warn('Navigation',e); }
+    { const _rh5=renderHome; renderHome=function(){ const x=_rh5.apply(this,arguments); try{ svCockpit(); }catch(e){} return x; }; }
+    try{ svCockpit(); }catch(e){}
+    svUseStart(); svUseView(svCurTab());
+    if(isAdmin())svUseLoad().then(()=>{ try{ if(document.querySelector('#panel-home.active'))svCockpit(); }catch(e){} });
+    try{ trBadge(); svBadges(); vrBadge(); }catch(e){}
     return r; }; }
 
 /* ================= INIT ================= */
