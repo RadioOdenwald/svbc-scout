@@ -1161,7 +1161,7 @@ window.addEventListener('beforeinstallprompt',e=>{
 const KAND_DUE_DAYS=21;
 let PLANNERS=['Dome','Nico'];
 const WPROB={1:{t:'gering',c:'#8fa3c7'},2:{t:'mittel',c:'#ffd60a'},3:{t:'hoch',c:'#ffb347'},4:{t:'sehr hoch',c:'#5fe09b'}};
-const KPOS=['TW','IV','LV','RV','DM','ZM','OM','LM','RM','ST'];
+const KPOS=['TW','IV','AV','ZM','OM','Flügel','ST'];
 let kandFP='',kandDue=false,kandQ='';
 function kEsc(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
 function daysSince(iso){if(!iso)return null;const d=new Date(iso+'T00:00:00'),n=new Date(todayISO()+'T00:00:00');return Math.round((n-d)/86400000);}
