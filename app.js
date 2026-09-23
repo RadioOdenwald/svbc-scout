@@ -2100,7 +2100,7 @@ function openSlotPicker(i,depth){
 }
 
 /* ===== App-Modus: installierbar, offline-fest, aktualisiert sich selbst ===== */
-const APP_BUILD='r11-202609231904', OUTBOX_KEY='svbcOutbox', APP_HIDE_KEY='svbcInstallHide';
+const APP_BUILD='r11b-202609231933', OUTBOX_KEY='svbcOutbox', APP_HIDE_KEY='svbcInstallHide';
 let _appPrompt=null, _appNew=null, _obT=null;
 function appStandalone(){ try{ return !!(window.matchMedia&&matchMedia('(display-mode: standalone)').matches)||navigator.standalone===true; }catch(e){ return false; } }
 function appPlatform(){
@@ -5959,6 +5959,12 @@ function kbBotCard(){
       <div class="kbform"><div class="field"><label>Superchat Kanal-ID</label><input id="kbA_ch" value="${svEsc(c.sc_channel||'')}" placeholder="mc_…" maxlength="60"></div><div class="field"><label>Vorlagen-ID (WhatsApp-Vorlage mit 1 Text-Variable)</label><input id="kbA_tp" value="${svEsc(c.sc_template||'')}" placeholder="tn_…" maxlength="60"></div>
         ${c.darf_schluessel?`<div class="field kbwide"><label>Superchat API-Schlüssel ${c.schluessel?'<small>– hinterlegt ✓ (wird nie angezeigt)</small>':''}</label><input id="kbA_k" type="password" autocomplete="off" placeholder="${c.schluessel?'leer lassen = behalten':'Schlüssel aus Superchat → Einstellungen → API'}"></div>`:`<div class="field kbwide"><div class="note" style="margin:0">Den Superchat-Schlüssel hinterlegt der Admin. ${c.schluessel?'Ist hinterlegt ✓':'Noch nicht hinterlegt.'}</div></div>`}</div>
       <div class="note">Nachrichten außerhalb eines offenen Chats brauchen bei WhatsApp eine genehmigte Vorlage, z.B. „SV/BSC Kabine: {{1}}“ (Kategorie „Utility“). Die App setzt den Text mit Link in die Variable ein.</div></div>
+    <div class="sbsec"><h4>Spieler einzeln per WhatsApp <small>${c.nummern||0} Nummern hinterlegt · diesen Monat ${c.monat||0} von max. ${c.max_monat||400} Nachrichten</small></h4>
+      <label class="kbchk"><input type="checkbox" id="kbA_ee"${c.einzeln_erinnern?' checked':''}> Am Trainingstag nur die, die noch nicht geantwortet haben, persönlich erinnern <small>(günstig: meist 3–8 Nachrichten)</small></label>
+      <label class="kbchk"><input type="checkbox" id="kbA_ei"${c.einzeln_einladen?' checked':''}> Jedem Spieler seinen persönlichen Link schicken <small>(ca. 30 Nachrichten je Training)</small></label>
+      <div class="note">Jeder Spieler hat einen persönlichen Link: kein Namen-Suchen, ein Klick, nur für sich selbst. Meta berechnet je Vorlagen-Nachricht rund 4–5 Cent. Spieler können sich auf ihrer Seite selbst abmelden. Vorher kurz in der Mannschaft ankündigen.</div>
+      <div class="field" style="margin-top:8px"><label>Vorlagen-ID für Spieler <small>– „Hallo {{1}}, {{2}} ist Training. Bist du dabei? Hier abstimmen: {{3}} …“ (Vorname, wann, Link)</small></label><input id="kbA_tps" value="${svEsc(c.sc_template_spieler||'')}" placeholder="tn_… (leer = Trainer-Vorlage mit Freitext)" maxlength="60"></div>
+      <button class="btn ghost sm" id="kbA_pl" style="margin-top:8px">${SVI('users')} Handynummern & persönliche Links</button></div>
     <div class="btnrow sbact"><button class="btn" id="kbA_save">Speichern</button>${ready?`<button class="btn ghost" id="kbA_test">${SVI('chat')} Testnachricht</button>`:''}<button class="btn ghost" id="kbA_run">${SVI('refresh')} Jetzt prüfen</button></div></div>`;
 }
 function kbBotWire(B){
@@ -5972,11 +5978,36 @@ function kbBotWire(B){
     const k=document.getElementById('kbA_k'); if(k&&k.value.trim())p.sc_key=k.value.trim();
     if(p.aktiv&&!p.tage.length){ kToast('Bitte mindestens einen Trainingstag wählen'); return false; }
     const {error}=await SVB.sb.rpc('kabine_bot_set',{p}); if(error){ kToast('⚠️ '+error.message); return false; }
+    const ee=document.getElementById('kbA_ee'), ei=document.getElementById('kbA_ei'); if(ee&&ei){ const r2=await SVB.sb.rpc('kabine_bot_einzeln',{p_einladen:ei.checked,p_erinnern:ee.checked,p_template:(document.getElementById('kbA_tps')||{value:''}).value.trim()}); if(r2.error){ kToast('⚠️ '+r2.error.message); return false; } }
     const r=await SVB.sb.rpc('kabine_bot_get'); KB.bot=r.data; if(!quiet)kToast('✓ Automatik gespeichert'); kbViewLink(B); return true; };
   document.getElementById('kbA_save').onclick=()=>save();
+  const pl=document.getElementById('kbA_pl'); if(pl)pl.onclick=()=>kbSpielerLinks();
   const call=async(body,btn)=>{ btn.disabled=true; try{ const {data,error}=await SVB.sb.functions.invoke('kabine-bot',{body}); if(error){ let t=error.message; try{ const x=await error.context.json(); if(x&&x.error)t=x.error; }catch(_){} throw new Error(t); } return data; }finally{ btn.disabled=false; } };
   const tb=document.getElementById('kbA_test'); if(tb)tb.onclick=async()=>{ try{ const d=await call({mode:'test'},tb); if(!d.ok&&d.error)throw new Error(d.error); kToast((d.ergebnis||[]).map(x=>x.name+(x.ok?' ✓':' ✗ '+(x.fehler||''))).join(' · ')||'Gesendet'); }catch(e){ kToast('⚠️ '+e.message); } };
   document.getElementById('kbA_run').onclick=async e=>{ const bt=e.currentTarget; if(!(await save(true)))return; try{ const d=await call({},document.getElementById('kbA_run')||bt); await kbLoad(true); kToast(d.aktiv===false?'Automatik ist aus':(d.log&&d.log.length?d.log.join(' · '):'Alles aktuell – nichts zu tun')); }catch(err){ kToast('⚠️ '+err.message); } };
+}
+
+/* ---------- Handynummern & persönliche Links ---------- */
+async function kbSpielerLinks(){
+  const all=kbSquadAll();
+  svModal(`<div class="mhead"><div class="rm-ic" style="width:46px;height:46px">${SVI('users')}</div><div><h2 style="margin:0">Handynummern & persönliche Links</h2><div class="msub">Nur fürs Team sichtbar · Nummern werden nur für die Abstimmungs-Nachrichten genutzt</div></div></div><div id="kbPl"><div class="empty">Lade …</div></div>`);
+  const {data,error}=await SVB.sb.rpc('kabine_spieler_get',{p_ids:all.map(p=>({id:p.id,name:p.name}))});
+  const E=document.getElementById('kbPl'); if(!E)return; if(error){ E.innerHTML=`<div class="note">${svEsc(error.message)}</div>`; return; }
+  const M=new Map((data||[]).map(x=>[x.id,x])), url=t=>kbBase()+'team.html#k='+t;
+  E.innerHTML=`<div class="kbpls">${all.map(p=>{ const x=M.get(p.id)||{}; return `<div class="kbplr"><b>${svEsc(p.name)}${p.kader===2?' <small>II</small>':''}${x.optout?' <span class="trpill mid">abgemeldet</span>':''}</b>
+      <input data-tel="${svEsc(p.id)}" value="${svEsc(x.tel||'')}" placeholder="Handy" inputmode="tel" maxlength="20">
+      <button class="btn ghost sm" data-cp="${svEsc(p.id)}" title="Persönlichen Link kopieren">${SVI('copy')}</button><button class="btn ghost sm" data-wa="${svEsc(p.id)}" title="Selbst per WhatsApp schicken">${SVI('share')}</button></div>`; }).join('')}</div>
+    <div class="note">Tipp ohne Kosten: Mit ${SVI('share')} schickst du einem Spieler seinen persönlichen Link einmal selbst per WhatsApp – er speichert ihn und stimmt künftig mit einem Klick ab.</div>
+    <div class="btnrow sbact"><button class="btn" id="kbPlS">Nummern speichern</button><button class="btn ghost" id="kbPlC">Schließen</button></div>`;
+  E.querySelectorAll('[data-cp]').forEach(b=>b.onclick=()=>{ const x=M.get(b.dataset.cp); if(x)kbCopy(url(x.token)); });
+  E.querySelectorAll('[data-wa]').forEach(b=>b.onclick=()=>{ const x=M.get(b.dataset.wa), p=trP(b.dataset.wa); if(!x)return; const tel=(E.querySelector(`[data-tel="${b.dataset.wa}"]`).value||'').replace(/[^0-9+]/g,'').replace(/^00/,'+').replace(/^0/,'+49').replace(/^\+/,'');
+    const t=`Hi ${p.name.split(' ')[0]}, das ist dein persönlicher Kabinen-Link vom SV/BSC: Abstimmungen fürs Training mit einem Klick (und die Mannschaftskasse). Bitte speichern und nicht weitergeben: ${url(x.token)}`;
+    window.open((tel?'https://wa.me/'+tel:'https://wa.me/')+'?text='+encodeURIComponent(t),'_blank','noopener'); });
+  document.getElementById('kbPlC').onclick=()=>closeOverlay();
+  document.getElementById('kbPlS').onclick=async()=>{ const rows=[]; E.querySelectorAll('[data-tel]').forEach(i=>{ const id=i.dataset.tel, x=M.get(id)||{}; if((i.value||'').trim()!==(x.tel||''))rows.push({id,name:(trP(id)||{}).name||id,tel:i.value.trim()}); });
+    if(!rows.length){ closeOverlay(); return; }
+    const {error}=await SVB.sb.rpc('kabine_spieler_set',{p:rows}); if(error)return kToast('⚠️ '+error.message);
+    closeOverlay(); kToast(`✓ ${rows.length} Nummer${rows.length>1?'n':''} gespeichert`); const r=await SVB.sb.rpc('kabine_bot_get'); KB.bot=r.data; if(KB.view==='link')kbRender(); };
 }
 
 /* ================= INIT ================= */

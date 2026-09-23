@@ -13,7 +13,7 @@
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <link rel="icon" type="image/png" href="favicon-64.png">
-<meta name="app-build" content="r11-202609231904">
+<meta name="app-build" content="r11b-202609231933">
 <title>SV/BSC Scout</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js" async></script>
 <style>
@@ -1454,6 +1454,11 @@ body:has(#overlay.open) .trfab{display:none;}
 .kbsw span{width:42px;height:24px;border-radius:99px;background:rgba(148,163,196,.25);position:relative;transition:.2s;} .kbsw span:after{content:'';position:absolute;top:3px;left:3px;width:18px;height:18px;border-radius:50%;background:#fff;transition:.2s;}
 .kbsw input:checked+span{background:var(--ok);} .kbsw input:checked+span:after{left:21px;}
 .kbemp{display:grid;grid-template-columns:1fr 1.3fr;gap:8px;margin-bottom:8px;} .kbemp input{padding:10px 12px;border-radius:10px;background:var(--surface3);border:1px solid var(--line);color:var(--ink);font:inherit;min-width:0;}
+.kbpls{max-height:55vh;overflow:auto;margin:6px 0;}
+.kbplr{display:grid;grid-template-columns:1fr 150px auto auto;gap:8px;align-items:center;padding:6px 0;border-top:1px solid var(--line2);} .kbplr:first-child{border-top:0;}
+.kbplr input{padding:9px 10px;border-radius:10px;background:var(--surface3);border:1px solid var(--line);color:var(--ink);font:inherit;min-width:0;}
+@media(max-width:560px){ .kbplr{grid-template-columns:1fr 1fr auto auto;} }
+.kbbot .kbchk{display:flex;gap:8px;align-items:flex-start;margin:6px 0;font-size:13.5px;color:var(--ink);} .kbbot .kbchk small{color:var(--ink3);}
 
 </style>
 <style id="v3gate">
@@ -2090,9 +2095,9 @@ a.kbtn{text-decoration:none;display:inline-block}
 
 
 <div class="overlay" id="overlay"><div class="modal" id="modal"></div></div>
-<script>window.SVBC_CFG={"url": "https://lvaukuzgcwgqipxwzabo.supabase.co", "anon": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imx2YXVrdXpnY3dncWlweHd6YWJvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTAxNTYwMTcsImV4cCI6MjEwNTczMjAxN30.jYZF8q8-SyCaWykM0wwcK58EzfTbO2VASKz1NIv1xbo", "build": "r11-202609231904", "dataBytes": 3053230};</script>
-<script src="vendor/supabase.js?v=r11-202609231904"></script>
-<script src="icons.js?v=r11-202609231904"></script>
-<script src="boot.js?v=r11-202609231904"></script>
+<script>window.SVBC_CFG={"url": "https://lvaukuzgcwgqipxwzabo.supabase.co", "anon": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imx2YXVrdXpnY3dncWlweHd6YWJvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTAxNTYwMTcsImV4cCI6MjEwNTczMjAxN30.jYZF8q8-SyCaWykM0wwcK58EzfTbO2VASKz1NIv1xbo", "build": "r11b-202609231933", "dataBytes": 3053230};</script>
+<script src="vendor/supabase.js?v=r11b-202609231933"></script>
+<script src="icons.js?v=r11b-202609231933"></script>
+<script src="boot.js?v=r11b-202609231933"></script>
 </body>
 </html>

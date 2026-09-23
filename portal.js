@@ -20,7 +20,7 @@
   }
   async function load(){
     if(!KEY||KEY.length<24){ app.innerHTML=`<div class="card empty"><h2>Link fehlt</h2><p class="note">Bitte den Kabinen-Link aus der WhatsApp-Gruppe öffnen.</p></div>`; return; }
-    try{ S=await rpc('portal_state',{p_key:KEY}); render(); }
+    try{ S=await rpc('portal_state',{p_key:KEY}); if(S.ich){ ME={id:S.ich.id,name:S.ich.name||'Du',fest:true}; ls.set('kab_me',JSON.stringify(ME)); } render(); }
     catch(e){ app.innerHTML=`<div class="card err empty"><h2>Link ungültig</h2><p class="note">${esc(e.message)}</p></div>`; if(/ungültig|erneuert/.test(e.message))ls.del('kab_k'); }
   }
   function roster(){
@@ -29,7 +29,7 @@
     return [...m.entries()].map(([id,name])=>({id,name})).sort((a,b)=>a.name.localeCompare(b.name,'de'));
   }
   function meBtn(){ const b=$('#me'); if(!ME){ b.style.display='none'; return; } b.style.display=''; const ini=ME.name.split(' ').map(w=>w[0]).slice(0,2).join('');
-    b.innerHTML=`<i>${esc(ini)}</i>${esc(ME.name.split(' ')[0])}`; b.onclick=()=>{ if(confirm('Nicht '+ME.name+'? Namen neu wählen.')){ ME=null; ls.del('kab_me'); render(); } }; }
+    b.innerHTML=`<i>${esc(ini)}</i>${esc(ME.name.split(' ')[0])}`; b.onclick=()=>{ if(ME.fest){ toast('Das ist dein persönlicher Link – nur für dich.'); return; } if(confirm('Nicht '+ME.name+'? Namen neu wählen.')){ ME=null; ls.del('kab_me'); render(); } }; }
   function render(){
     meBtn();
     const R=roster();
@@ -48,7 +48,8 @@
   }
   function polls(B){
     const P=(S.polls||[]).filter(p=>p.datum>=S.heute).sort((a,b)=>(a.id===FOCUS?-1:b.id===FOCUS?1:0)||(a.datum<b.datum?-1:a.datum>b.datum?1:0));
-    if(!P.length){ B.innerHTML='<div class="card empty"><h2>Gerade nichts offen</h2><p class="note">Sobald der Trainer eine Abstimmung anlegt, steht sie hier.</p></div>'; return; }
+    const wa=S.ich&&S.ich.whatsapp?`<div class="card wa"><b>WhatsApp-Erinnerungen</b><span>${S.ich.optout?'Aus – du bekommst keine Nachrichten.':'An – du bekommst den Link zum Training und ggf. eine Erinnerung.'}</span><button class="btn2" id="waT">${S.ich.optout?'Wieder einschalten':'Ausschalten'}</button></div>`:'';
+    if(!P.length){ B.innerHTML='<div class="card empty"><h2>Gerade nichts offen</h2><p class="note">Sobald der Trainer eine Abstimmung anlegt, steht sie hier.</p></div>'+wa; waWire(); return; }
     B.innerHTML=P.map(p=>{ const T=p.teilnehmer||[], V=new Map((p.votes||[]).map(v=>[v.p,v])), mine=V.get(ME.id), inL=T.some(t=>t.id===ME.id);
       const g={zu:[],vllt:[],ab:[],offen:[]}; T.forEach(t=>{ const v=V.get(t.id); (v?g[v.a]:g.offen).push(t.name); }); const n=T.length||1, pc=x=>Math.round(x/n*100);
       const closed=p.geschlossen;
@@ -61,11 +62,13 @@
         <div class="bar"><i class="ok" style="width:${pc(g.zu.length)}%"></i><i class="mid" style="width:${pc(g.vllt.length)}%"></i><i class="bad" style="width:${pc(g.ab.length)}%"></i></div>
         <div class="cnt"><span><b>${g.zu.length}</b> dabei</span><span><b>${g.vllt.length}</b> vielleicht</span><span><b>${g.ab.length}</b> nicht</span><span><b>${g.offen.length}</b> offen</span></div>
         <details><summary>Wer hat was gesagt?</summary>${[['zu','ok','Dabei'],['vllt','mid','Vielleicht'],['ab','bad','Können nicht'],['offen','','Noch keine Antwort']].map(([k,c,t])=>g[k].length?`<h3>${t}</h3><div class="who">${g[k].map(x=>`<span class="${c}">${esc(x)}</span>`).join('')}</div>`:'').join('')}</details></div>`; }).join('');
+    B.insertAdjacentHTML('beforeend',wa); waWire();
     B.querySelectorAll('[data-a]').forEach(b=>b.onclick=()=>vote(b.dataset.poll,b.dataset.a));
     B.querySelectorAll('[data-g]').forEach(b=>b.onclick=()=>{ const p=S.polls.find(x=>x.id===b.dataset.poll), v=(p.votes||[]).find(x=>x.p===ME.id); vote(p.id,'ab',b.dataset.g,v&&v.n); });
     B.querySelectorAll('[data-n]').forEach(i=>{ let t=null; i.oninput=()=>{ clearTimeout(t); t=setTimeout(()=>{ const p=S.polls.find(x=>x.id===i.dataset.poll), v=(p.votes||[]).find(x=>x.p===ME.id); vote(p.id,'ab',v&&v.g,i.value,true); },900); }; });
     if(FOCUS){ const el=document.getElementById('p-'+FOCUS); if(el&&!window.__kabScrolled){ window.__kabScrolled=1; el.scrollIntoView({block:'start'}); } }
   }
+  function waWire(){ const b=$('#waT'); if(!b)return; b.onclick=async()=>{ try{ const an=!!S.ich.optout; await rpc('portal_whatsapp',{p_key:KEY,p_an:an}); S.ich.optout=!an; toast(an?'✓ WhatsApp-Erinnerungen an':'✓ Keine WhatsApp-Nachrichten mehr'); render(); }catch(e){ toast('⚠️ '+e.message); } }; }
   async function vote(poll,a,g,n,quiet){
     if(busy)return; busy=true;
     try{ await rpc('portal_vote',{p_key:KEY,p_poll:poll,p_player:ME.id,p_antwort:a,p_grund:g||null,p_notiz:n||null});
