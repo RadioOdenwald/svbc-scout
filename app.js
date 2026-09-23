@@ -2100,7 +2100,7 @@ function openSlotPicker(i,depth){
 }
 
 /* ===== App-Modus: installierbar, offline-fest, aktualisiert sich selbst ===== */
-const APP_BUILD='r11b-202609231933', OUTBOX_KEY='svbcOutbox', APP_HIDE_KEY='svbcInstallHide';
+const APP_BUILD='r11c-202609231959', OUTBOX_KEY='svbcOutbox', APP_HIDE_KEY='svbcInstallHide';
 let _appPrompt=null, _appNew=null, _obT=null;
 function appStandalone(){ try{ return !!(window.matchMedia&&matchMedia('(display-mode: standalone)').matches)||navigator.standalone===true; }catch(e){ return false; } }
 function appPlatform(){
@@ -5946,7 +5946,7 @@ const KB_WD=[[1,'Mo'],[2,'Di'],[3,'Mi'],[4,'Do'],[5,'Fr'],[6,'Sa'],[0,'So']];
 function kbBotCard(){
   const c=KB.bot; if(!c)return '<div class="card"><div class="note">Automatik nicht verfügbar.</div></div>';
   const emp=(c.empfaenger||[]).concat([{name:'',tel:''},{name:'',tel:''}]).slice(0,Math.max(2,(c.empfaenger||[]).length+1)).slice(0,5);
-  const ready=c.schluessel&&c.sc_channel&&c.sc_template&&(c.empfaenger||[]).length;
+  const ready=c.versand&&c.sc_channel&&c.sc_template&&(c.empfaenger||[]).length;
   return `<div class="card kbbot"><div class="vrat-h"><h3 class="trh" style="margin:0">${SVI('clock')} Automatik fürs Training</h3><label class="kbsw"><input type="checkbox" id="kbA_on"${c.aktiv?' checked':''}><span></span>${c.aktiv?'an':'aus'}</label></div>
     <p class="note" style="margin-top:6px">Die App legt die Abstimmung für jedes Training selbst an${ready?' und schickt den Link per WhatsApp an die Trainer – die leiten ihn nur noch in die Gruppe weiter':''}. Am Trainingstag kommt eine Liste, wer noch nicht geantwortet hat. Spieler können ihre Antwort bis zum Training jederzeit ändern.</p>
     <div class="kbform"><div class="field kbwide"><label>Trainingstage</label><div class="chips">${KB_WD.map(([n,t])=>`<button type="button" class="pchip${(c.tage||[]).includes(n)?' on':''}" data-wd="${n}">${t}</button>`).join('')}</div></div>
@@ -5957,13 +5957,13 @@ function kbBotCard(){
     <div class="sbsec"><h4>WhatsApp an die Trainer <small>über Superchat${ready?' · eingerichtet ✓':''}</small></h4>
       ${emp.map((e,i)=>`<div class="kbemp"><input data-en="${i}" placeholder="Name, z.B. Nico" value="${svEsc(e.name||'')}" maxlength="40"><input data-et="${i}" placeholder="Handy, z.B. 0171 1234567" value="${svEsc(e.tel||'')}" inputmode="tel" maxlength="20"></div>`).join('')}
       <div class="kbform"><div class="field"><label>Superchat Kanal-ID</label><input id="kbA_ch" value="${svEsc(c.sc_channel||'')}" placeholder="mc_…" maxlength="60"></div><div class="field"><label>Vorlagen-ID (WhatsApp-Vorlage mit 1 Text-Variable)</label><input id="kbA_tp" value="${svEsc(c.sc_template||'')}" placeholder="tn_…" maxlength="60"></div>
-        ${c.darf_schluessel?`<div class="field kbwide"><label>Superchat API-Schlüssel ${c.schluessel?'<small>– hinterlegt ✓ (wird nie angezeigt)</small>':''}</label><input id="kbA_k" type="password" autocomplete="off" placeholder="${c.schluessel?'leer lassen = behalten':'Schlüssel aus Superchat → Einstellungen → API'}"></div>`:`<div class="field kbwide"><div class="note" style="margin:0">Den Superchat-Schlüssel hinterlegt der Admin. ${c.schluessel?'Ist hinterlegt ✓':'Noch nicht hinterlegt.'}</div></div>`}</div>
+        <div class="field kbwide"><div class="note" style="margin:0">${c.versand==='n8n'?'✓ Versand läuft über euren n8n-Server – der Superchat-Zugang liegt dort, nicht in der App.':c.versand==='direkt'?'Versand direkt über Superchat.':'Versand noch nicht verbunden – wird über euren n8n-Server eingerichtet (wie die Geburtstagsgrüße).'}</div></div></div>
       <div class="note">Nachrichten außerhalb eines offenen Chats brauchen bei WhatsApp eine genehmigte Vorlage, z.B. „SV/BSC Kabine: {{1}}“ (Kategorie „Utility“). Die App setzt den Text mit Link in die Variable ein.</div></div>
     <div class="sbsec"><h4>Spieler einzeln per WhatsApp <small>${c.nummern||0} Nummern hinterlegt · diesen Monat ${c.monat||0} von max. ${c.max_monat||400} Nachrichten</small></h4>
       <label class="kbchk"><input type="checkbox" id="kbA_ee"${c.einzeln_erinnern?' checked':''}> Am Trainingstag nur die, die noch nicht geantwortet haben, persönlich erinnern <small>(günstig: meist 3–8 Nachrichten)</small></label>
       <label class="kbchk"><input type="checkbox" id="kbA_ei"${c.einzeln_einladen?' checked':''}> Jedem Spieler seinen persönlichen Link schicken <small>(ca. 30 Nachrichten je Training)</small></label>
       <div class="note">Jeder Spieler hat einen persönlichen Link: kein Namen-Suchen, ein Klick, nur für sich selbst. Meta berechnet je Vorlagen-Nachricht rund 4–5 Cent. Spieler können sich auf ihrer Seite selbst abmelden. Vorher kurz in der Mannschaft ankündigen.</div>
-      <div class="field" style="margin-top:8px"><label>Vorlagen-ID für Spieler <small>– „Hallo {{1}}, {{2}} ist Training. Bist du dabei? Hier abstimmen: {{3}} …“ (Vorname, wann, Link)</small></label><input id="kbA_tps" value="${svEsc(c.sc_template_spieler||'')}" placeholder="tn_… (leer = Trainer-Vorlage mit Freitext)" maxlength="60"></div>
+      <div class="field" style="margin-top:8px"><label>Vorlagen-ID für Spieler <small>– „Hallo {{1}}, kommst du {{2}} ins Training? Hier abstimmen: {{3}} Danke dir!“ (Vorname, wann, Link)</small></label><input id="kbA_tps" value="${svEsc(c.sc_template_spieler||'')}" placeholder="tn_… (leer = Trainer-Vorlage mit Freitext)" maxlength="60"></div>
       <button class="btn ghost sm" id="kbA_pl" style="margin-top:8px">${SVI('users')} Handynummern & persönliche Links</button></div>
     <div class="btnrow sbact"><button class="btn" id="kbA_save">Speichern</button>${ready?`<button class="btn ghost" id="kbA_test">${SVI('chat')} Testnachricht</button>`:''}<button class="btn ghost" id="kbA_run">${SVI('refresh')} Jetzt prüfen</button></div></div>`;
 }
@@ -5975,7 +5975,6 @@ function kbBotWire(B){
     const e=document.getElementById('kbA_e').value;
     const p={aktiv:document.getElementById('kbA_on').checked,tage:[...tage],zeit:document.getElementById('kbA_z').value.trim(),ort:document.getElementById('kbA_o').value,vorlauf:+document.getElementById('kbA_v').value,stunde:+document.getElementById('kbA_s').value,
       erinnerung:!!e,erinnerung_stunde:e?+e:(+c.erinnerung_stunde||12),empfaenger:emp,sc_channel:document.getElementById('kbA_ch').value.trim(),sc_template:document.getElementById('kbA_tp').value.trim(),app_url:kbBase()};
-    const k=document.getElementById('kbA_k'); if(k&&k.value.trim())p.sc_key=k.value.trim();
     if(p.aktiv&&!p.tage.length){ kToast('Bitte mindestens einen Trainingstag wählen'); return false; }
     const {error}=await SVB.sb.rpc('kabine_bot_set',{p}); if(error){ kToast('⚠️ '+error.message); return false; }
     const ee=document.getElementById('kbA_ee'), ei=document.getElementById('kbA_ei'); if(ee&&ei){ const r2=await SVB.sb.rpc('kabine_bot_einzeln',{p_einladen:ei.checked,p_erinnern:ee.checked,p_template:(document.getElementById('kbA_tps')||{value:''}).value.trim()}); if(r2.error){ kToast('⚠️ '+r2.error.message); return false; } }
@@ -5993,7 +5992,7 @@ async function kbSpielerLinks(){
   svModal(`<div class="mhead"><div class="rm-ic" style="width:46px;height:46px">${SVI('users')}</div><div><h2 style="margin:0">Handynummern & persönliche Links</h2><div class="msub">Nur fürs Team sichtbar · Nummern werden nur für die Abstimmungs-Nachrichten genutzt</div></div></div><div id="kbPl"><div class="empty">Lade …</div></div>`);
   const {data,error}=await SVB.sb.rpc('kabine_spieler_get',{p_ids:all.map(p=>({id:p.id,name:p.name}))});
   const E=document.getElementById('kbPl'); if(!E)return; if(error){ E.innerHTML=`<div class="note">${svEsc(error.message)}</div>`; return; }
-  const M=new Map((data||[]).map(x=>[x.id,x])), url=t=>kbBase()+'team.html#k='+t;
+  const M=new Map((data||[]).map(x=>[x.id,x])), url=t=>((KB.bot&&KB.bot.link_url)||kbBase())+t;
   E.innerHTML=`<div class="kbpls">${all.map(p=>{ const x=M.get(p.id)||{}; return `<div class="kbplr"><b>${svEsc(p.name)}${p.kader===2?' <small>II</small>':''}${x.optout?' <span class="trpill mid">abgemeldet</span>':''}</b>
       <input data-tel="${svEsc(p.id)}" value="${svEsc(x.tel||'')}" placeholder="Handy" inputmode="tel" maxlength="20">
       <button class="btn ghost sm" data-cp="${svEsc(p.id)}" title="Persönlichen Link kopieren">${SVI('copy')}</button><button class="btn ghost sm" data-wa="${svEsc(p.id)}" title="Selbst per WhatsApp schicken">${SVI('share')}</button></div>`; }).join('')}</div>
