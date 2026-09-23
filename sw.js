@@ -2,7 +2,7 @@
    - App-Seite: erst Netz (max. 4 s), sonst gespeicherte Version → startet auch im Funkloch
    - Icons/Wappen/Chart-Bibliothek: aus dem Speicher, im Hintergrund aufgefrischt
    - Sync (Make) und version.json laufen NIE über den Speicher */
-const BUILD = '20260923-1209';
+const BUILD = '20260923-1243';
 const CACHE = 'svbc-scout-' + BUILD;
 const SHELL = ['./', './manifest.webmanifest', './icon-192.png', './icon-512.png', './apple-touch-icon.png', './favicon-64.png', './crest.svg',
   './fonts/inter-var.woff2', './fonts/barlowc-700.woff2', './vendor/supabase.js?v=' + BUILD, './icons.js?v=' + BUILD, './boot.js?v=' + BUILD, './app.js?v=' + BUILD];
@@ -69,3 +69,29 @@ self.addEventListener('fetch', e => {
 });
 
 self.addEventListener('message', e => { if (e.data === 'skipWaiting') self.skipWaiting(); });
+
+/* ---------- Erinnerungen (Push) ---------- */
+self.addEventListener('push', e => {
+  let d = {};
+  try { d = e.data ? e.data.json() : {}; } catch (_) { d = { body: e.data ? e.data.text() : '' }; }
+  const title = String(d.title || 'SV/BSC Scout').slice(0, 120);
+  const opts = { body: String(d.body || '').slice(0, 400), icon: './icon-192.png', badge: './favicon-64.png', tag: d.tag || 'svbc-scout',
+    renotify: true, data: { url: d.url || './#kandidaten' }, lang: 'de' };
+  e.waitUntil((async () => {
+    await self.registration.showNotification(title, opts);
+    try { if (self.navigator && self.navigator.setAppBadge) { if (d.n > 0) await self.navigator.setAppBadge(d.n); else await self.navigator.clearAppBadge(); } } catch (_) {}
+  })());
+});
+self.addEventListener('notificationclick', e => {
+  e.notification.close();
+  const scope = self.registration.scope;
+  let target = scope;
+  try { const u = new URL((e.notification.data && e.notification.data.url) || './#kandidaten', scope); if (u.origin === new URL(scope).origin) target = u.href; } catch (_) {}
+  e.waitUntil((async () => {
+    const list = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
+    for (const c of list) {
+      if (c.url.startsWith(scope)) { try { await c.focus(); c.postMessage({ svbcGo: target.split('#')[1] || 'kandidaten' }); return; } catch (_) {} }
+    }
+    await self.clients.openWindow(target);
+  })());
+});

@@ -529,7 +529,7 @@ function kandDigestText(pl){
     if(ok.length)t+='✅ Im Plan: '+ok.map(p=>p.name+' ('+daysSince(crmOf(p).lc)+' T)').join(', ')+'\n';
     return t;
   };
-  let t='⚽ SV/BSC Kaderplanung · Digest '+ds+'\n(überfällig = länger als '+KAND_DUE_DAYS+' Tage kein Kontakt)\n\n';
+  let t='⚽ SV/BSC Kaderplanung · Digest '+ds+'\n(überfällig = Erinnerung je Kandidat überschritten, Standard '+KAND_DUE_DAYS+' Tage)\n\n';
   if(pl!=null){ t+=sec(pl,all.filter(p=>(crmOf(p).pl||'')===pl)); return t.trim(); }
   const groups={}; all.forEach(p=>{const k=crmOf(p).pl||'';(groups[k]=groups[k]||[]).push(p);});
   Object.keys(groups).sort((a,b)=>(a===''?1:0)-(b===''?1:0)||a.localeCompare(b,'de')).forEach(k=>{t+=sec(k||null,groups[k])+'\n';});
@@ -580,7 +580,7 @@ function renderKandidaten(){
   const planners=kandPlanners();
   const all=kandList();
   let list=all;
-  if(kandFP)list=list.filter(p=>(crmOf(p).pl||'')===kandFP);
+  if(kandFP)list=list.filter(p=>kandFP==='__me'?svIsMine(crmOf(p).pl):(crmOf(p).pl||'')===kandFP);
   if(kandDue)list=list.filter(kandIsDue);
   if(kandQ){const q=_mvpNorm(kandQ);list=list.filter(p=>_mvpNorm(p.name+' '+(p.club||'')).includes(q));}
   list=list.slice().sort((a,b)=>{
@@ -597,7 +597,7 @@ function renderKandidaten(){
   let html='<div class="card" style="padding:10px 12px;margin-bottom:8px">'
     +'<div class="kctrl">'
     +'<input id="kandSearch" class="kand-in" style="max-width:190px" placeholder="🔎 In Pipeline suchen…" value="'+kEsc(kandQ)+'" autocomplete="off">'
-    +'<select id="kandPl" class="kand-in" style="max-width:160px">'+opt(planners,kandFP,'Alle Planer')+'</select>'
+    +'<select id="kandPl" class="kand-in" style="max-width:160px">'+svPlOpts(opt(planners,kandFP,'Alle Planer'))+'</select>'
     +'<label style="display:flex;align-items:center;gap:5px;font-size:12px;color:var(--ink)"><input type="checkbox" id="kandDueChk"'+(kandDue?' checked':'')+'> nur überfällig</label>'
     +'<span style="flex:1"></span>'
     +'<span class="kchip" style="background:rgba(255,70,70,.15);color:#ff8a8a">'+dueCount+' überfällig</span>'
@@ -619,16 +619,16 @@ function renderKandidaten(){
       +(W?'<div class="kand-sub" style="margin-top:2px" title="Modell-Wechselbereitschaft: '+kEsc(wreason(W,3))+'">Modell: '+W.w+'/100</div>':'');
     const posSel='<select class="kand-in" data-kf="tp" data-id="'+p.id+'">'+opt(KPOS,C.tp,(p.pos?p.pos+' (akt.)':'Pos'))+'</select>';
     const plSel='<select class="kand-in" data-kf="pl" data-id="'+p.id+'">'+opt(planners,C.pl,'—')+'</select>';
-    const badge=due?(ds===null?'<span class="kchip" style="background:#ff5b5b22;color:#ff8a8a">nie kontaktiert</span>':'<span class="kchip" style="background:#ff5b5b22;color:#ff8a8a">überfällig · '+ds+' T</span>'):'<span class="kand-sub">vor '+ds+' T · fällig in '+(KAND_DUE_DAYS-ds+1)+' T</span>';
+    const badge=due?(ds===null?'<span class="kchip" style="background:#ff5b5b22;color:#ff8a8a">nie kontaktiert</span>':'<span class="kchip" style="background:#ff5b5b22;color:#ff8a8a">überfällig · '+ds+' T</span>'):'<span class="kand-sub">vor '+ds+' T · fällig in '+(kandIv(p)-ds+1)+' T</span>';
     const mv=s.mvp!=null?' <span class="kchip" style="background:rgba(47,210,122,.14);color:#5fe09b" title="FuPa-MVP (team-relativ)">MVP '+s.mvp+'</span>':'';
     return '<tr class="'+(due?'due':'')+'">'
       +'<td class="kfull" data-l="Kandidat"><div style="display:flex;align-items:flex-start;gap:6px"><div style="flex:1;min-width:0"><span class="kand-name" data-open="'+p.id+'">'+kEsc(p.name)+'</span>'+mv
         +'<div class="kand-sub">'+kEsc(p.club||'')+(p.pos?' · '+kEsc(p.pos):'')+(p.alter?' · '+p.alter+' J':'')+' · MScore '+fmt(s.total,1)+'</div></div><button class="kx" data-krm="'+p.id+'" title="Aus der Pipeline nehmen">✕</button></div></td>'
       +'<td data-l="Wechsel-W.">'+wsel+'</td>'
-      +'<td data-l="Rolle"><input class="kand-in" data-kf="rl" data-id="'+p.id+'" value="'+kEsc(C.rl||'')+'" placeholder="z.B. Stammspieler"></td>'
+      +'<td data-l="Rolle"><input class="kand-in" data-kf="rl" data-id="'+p.id+'" value="'+kEsc(C.rl||'')+'" placeholder="z.B. Stammspieler" list="kRoleList"></td>'
       +'<td data-l="Zielposition">'+posSel+'</td>'
       +'<td class="kfull" data-l="Kontakt 🔒">'+kandContactCell(p,C)+'</td>'
-      +'<td class="kfull" data-l="Letzter Kontakt" style="white-space:nowrap"><input type="date" class="kand-in" style="width:128px;display:inline-block" data-kf="lc" data-id="'+p.id+'" value="'+kEsc(C.lc||'')+'"> <button class="kbtn" data-today="'+p.id+'">heute</button><div style="margin-top:3px">'+badge+'</div></td>'
+      +'<td class="kfull" data-l="Letzter Kontakt" style="white-space:nowrap"><input type="date" class="kand-in" style="width:128px;display:inline-block" data-kf="lc" data-id="'+p.id+'" value="'+kEsc(C.lc||'')+'"> <button class="kbtn" data-today="'+p.id+'">heute</button><div style="margin-top:3px">'+badge+'</div>'+kandIvSel(p,C)+'</td>'
       +'<td data-l="Verantwortlich">'+plSel+'</td>'
       +'<td class="kfull" data-l="Notiz"><input class="kand-in" data-kf="n" data-id="'+p.id+'" value="'+kEsc(C.n||'')+'" placeholder="Notiz"></td>'
       +'</tr>';
@@ -683,7 +683,7 @@ function wireKand(){
   w.querySelectorAll('[data-kdcopy]').forEach(b=>b.onclick=()=>kCopy(kandDigestCache[+b.dataset.kdcopy]||''));
   w.querySelectorAll('[data-kf]').forEach(el=>{el.onchange=()=>{
     const id=el.dataset.id,kf=el.dataset.kf;let v=el.value;
-    if(kf==='w')v=v?+v:'';
+    if(kf==='w'||kf==='ri')v=v?+v:'';
     const upd={};upd[kf]=(v===''||v==null)?undefined:(typeof v==='string'?v.trim():v);
     if(kf==='lc'&&v)upd.c=1;
     crmSet(id,upd);kandSoftRender();
@@ -2100,7 +2100,7 @@ function openSlotPicker(i,depth){
 }
 
 /* ===== App-Modus: installierbar, offline-fest, aktualisiert sich selbst ===== */
-const APP_BUILD='20260923-1209', OUTBOX_KEY='svbcOutbox', APP_HIDE_KEY='svbcInstallHide';
+const APP_BUILD='20260923-1243', OUTBOX_KEY='svbcOutbox', APP_HIDE_KEY='svbcInstallHide';
 let _appPrompt=null, _appNew=null, _obT=null;
 function appStandalone(){ try{ return !!(window.matchMedia&&matchMedia('(display-mode: standalone)').matches)||navigator.standalone===true; }catch(e){ return false; } }
 function appPlatform(){
@@ -2216,11 +2216,12 @@ const svEsc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt
 const svIni=n=>String(n||'?').trim().split(/\s+/).map(w=>w[0]).slice(0,2).join('').toUpperCase()||'?';
 const svFirst=n=>String(n||'').trim().split(/\s+/)[0]||'';
 function svRole(){ return SVU.role||'viewer'; }
-function canEdit(){ const r=svRole(); return r==='admin'||r==='planer'; }
+function canEdit(){ const r=svRole(); return r==='admin'||r==='vorstand'||r==='planer'; }
 function canNotes(){ return canEdit()||svRole()==='trainer'; }
 function canContacts(){ return canEdit(); }
 function isAdmin(){ return svRole()==='admin'; }
-const SV_TRAINER_FIELDS={n:1,f:1,mv:1,mvd:1,x:1};
+function canManage(){ const r=svRole(); return r==='admin'||r==='vorstand'; }
+const SV_TRAINER_FIELDS={n:1,f:1,mv:1,mvd:1,x:1,ps:1,ps2:1,ph:1,gb:1,al:1,fu:1,gr:1,sc:1};
 function canWriteField(k){ if(canEdit())return true; if(svRole()==='trainer')return !!SV_TRAINER_FIELDS[k]; return false; }
 let _svDeniedT=0;
 function svDenied(t){ const n=Date.now(); if(n-_svDeniedT<2500)return; _svDeniedT=n; try{kToast('🔒 '+(t||'Dafür fehlt dir die Berechtigung – das machen die Kaderplaner.'));}catch(e){} }
@@ -2315,7 +2316,7 @@ const SV_PAGES={home:['Übersicht','Dein Lagebild für die Kaderplanung'],scout:
   sxi:['Schattenelf','Backups und Wunschspieler je Position'],gems:['Rohdiamanten','Unterschätzte Spieler mit Potenzial'],
   jugend:['Jugend','Nachwuchs-Radar im Umkreis'],cmp:['Vergleich','Spieler direkt gegenüberstellen'],
   play:['Playbook','Wie datenbasierte Klubs Kader bauen'],model:['Modell','So rechnet der Scout'],admin:['Nutzer & Rollen','Wer hat Zugang – und was darf wer']};
-function svTabAllowed(t){ if(t==='admin')return isAdmin(); if(t==='kandidaten')return svRole()!=='viewer'; return true; }
+function svTabAllowed(t){ if(t==='admin')return canManage(); if(t==='kandidaten')return svRole()!=='viewer'; return true; }
 { const _gt=goTab; goTab=function(tab){
     if(!tab||!svTabAllowed(tab)||!document.getElementById('panel-'+tab))tab='home';
     _gt(tab);
@@ -2463,15 +2464,17 @@ function svAccount(){
 /* ---------- Admin: Nutzer & Rollen ---------- */
 const SV_ROLE_INFO={
   admin:{t:'Admin',d:'Voller Zugriff und Nutzerverwaltung',yes:['Alles sehen & bearbeiten','Kontaktdaten','Leute einladen & Rollen vergeben'],no:[]},
-  planer:{t:'Kaderplaner',d:'Die operative Kaderplanung',yes:['Kandidaten & Kontakte pflegen','Kaderplan & Aufstellung','Notizen, MVP, Merkliste'],no:['Nutzerverwaltung']},
-  trainer:{t:'Trainer / Scout',d:'Bewerten und einschätzen',yes:['Alles ansehen','Notizen & MVP eintragen','Merkliste'],no:['Kontaktdaten','Kaderplanung ändern']},
-  viewer:{t:'Vorstand / Gast',d:'Nur lesen – z.B. für den Vorstand',yes:['Kaderplan & Aufstellung ansehen','Scouting & Datenbank'],no:['Kontaktdaten & Notizen','Änderungen']}
+  vorstand:{t:'Vorstand',d:'Alles wie die Kaderplaner – plus einladen',yes:['Alles sehen & bearbeiten','Kandidaten, Kontakte & Aufstellung','Leute einladen (bis Kaderplaner)'],no:['Rollen ändern, sperren, löschen']},
+  planer:{t:'Kaderplaner',d:'Die operative Kaderplanung',yes:['Kandidaten & Kontakte pflegen','Kaderplan & Aufstellung','Positionen & Spielerdaten','Notizen, MVP, Merkliste'],no:['Nutzerverwaltung']},
+  trainer:{t:'Trainer / Scout',d:'Bewerten und einschätzen',yes:['Alles ansehen','Positionen & Spielerdaten ändern','Notizen, Eye-Test & MVP','Merkliste'],no:['Kontaktdaten','Kaderplanung ändern']},
+  viewer:{t:'Gast',d:'Nur lesen – z.B. für Gäste und Sponsoren',yes:['Kaderplan & Aufstellung ansehen','Scouting & Datenbank'],no:['Kontaktdaten & Notizen','Änderungen']}
 };
 let SV_USERS=[], _svDel=null;
 async function svAdminLoad(){ const {data,error}=await SVB.sb.rpc('admin_list'); if(error)throw error; SV_USERS=data||[]; }
-function svRoleOpts(cur){ return ['admin','planer','trainer','viewer'].map(r=>`<option value="${r}"${r===cur?' selected':''}>${svEsc(SV_ROLE_INFO[r].t)}</option>`).join(''); }
+const SV_ROLES=['admin','vorstand','planer','trainer','viewer'], SV_VORSTAND_INVITE=['planer','trainer','viewer'];
+function svRoleOpts(cur,list){ return (list||SV_ROLES).map(r=>`<option value="${r}"${r===cur?' selected':''}>${svEsc(SV_ROLE_INFO[r].t)}</option>`).join(''); }
 async function svAdminRender(reload){
-  const P=document.getElementById('panel-admin'); if(!P||!isAdmin())return;
+  const P=document.getElementById('panel-admin'); if(!P||!canManage())return; const ADM=isAdmin();
   if(!P.dataset.init){ P.dataset.init='1'; P.innerHTML='<div class="card"><div class="empty">Lade Nutzer …</div></div>'; reload=true; }
   if(reload){ try{ await svAdminLoad(); }catch(e){ P.innerHTML='<div class="card"><div class="empty">Nutzer konnten nicht geladen werden: '+svEsc(SVB.errText(e))+'</div></div>'; return; } }
   const act=SV_USERS.filter(u=>u.active), wait=SV_USERS.filter(u=>u.active&&!u.pw_set&&!u.last_sign_in_at), off=SV_USERS.filter(u=>!u.active);
@@ -2479,35 +2482,35 @@ async function svAdminRender(reload){
   const draft=P._draft||{name:'',email:'',role:'planer'};
   P.innerHTML=`
   <div class="card">
-    <div class="adm-head"><div><h3 style="margin:0">Person einladen</h3><p style="margin:6px 0 0;font-size:13.5px">Du bekommst einen persönlichen Link – den schickst du per WhatsApp oder Mail. Wer ihn öffnet, legt sein Passwort fest und ist drin.</p></div></div>
+    <div class="adm-head"><div><h3 style="margin:0">Person einladen</h3><p style="margin:6px 0 0;font-size:13.5px">Du bekommst einen persönlichen Link – den schickst du per WhatsApp oder Mail. Wer ihn öffnet, legt sein Passwort fest und ist drin.${ADM?'':' Als Vorstand kannst du Kaderplaner, Trainer und Gäste einladen – Rollen ändern, sperren und löschen macht der Admin.'}</p></div></div>
     <form class="invite" id="svInv" autocomplete="off">
       <div><label for="svInvName">Name</label><input id="svInvName" class="search" placeholder="z.B. Erwin Müller" value="${svEsc(draft.name)}" required></div>
       <div><label for="svInvMail">E-Mail</label><input id="svInvMail" class="search" type="email" placeholder="name@beispiel.de" value="${svEsc(draft.email)}" required></div>
-      <div><label for="svInvRole">Rolle</label><select id="svInvRole">${svRoleOpts(draft.role)}</select></div>
+      <div><label for="svInvRole">Rolle</label><select id="svInvRole">${svRoleOpts(draft.role,ADM?SV_ROLES:SV_VORSTAND_INVITE)}</select></div>
       <button class="btn" id="svInvGo" type="submit" style="height:46px">${SVI('plus')} Einladen</button>
     </form>
     <div id="svInvOut"></div>
   </div>
   <div class="card">
     <div class="adm-head"><h3 style="margin:0">Team</h3>
-      <div class="adm-stats"><div class="adm-stat"><b>${act.length}</b><span>aktiv</span></div><div class="adm-stat"><b>${cnt('planer')+cnt('admin')}</b><span>Planer & Admins</span></div><div class="adm-stat"><b>${wait.length}</b><span>Einladung offen</span></div>${off.length?`<div class="adm-stat"><b>${off.length}</b><span>gesperrt</span></div>`:''}</div></div>
+      <div class="adm-stats"><div class="adm-stat"><b>${act.length}</b><span>aktiv</span></div><div class="adm-stat"><b>${cnt('planer')+cnt('admin')+cnt('vorstand')}</b><span>mit Schreibrechten</span></div><div class="adm-stat"><b>${wait.length}</b><span>Einladung offen</span></div>${off.length?`<div class="adm-stat"><b>${off.length}</b><span>gesperrt</span></div>`:''}</div></div>
     <div class="ulist">${SV_USERS.map(u=>{
-      const me=u.id===SVU.id, pend=!u.pw_set&&!u.last_sign_in_at;
+      const me=u.id===SVU.id, pend=!u.pw_set&&!u.last_sign_in_at, canLink=ADM||(pend&&u.active&&SV_VORSTAND_INVITE.includes(u.role));
       const st=!u.active?'<span class="pill off">gesperrt</span>':pend?'<span class="pill wait">Einladung offen</span>':'<span class="pill on">aktiv</span>';
       const seen=u.last_seen?'zuletzt aktiv '+svAgo(u.last_seen):pend?'eingeladen '+svAgo(u.created_at):'noch nicht aktiv';
       return `<div class="urow${u.active?'':' off'}" data-u="${svEsc(u.id)}">
         <div class="uav r-${svEsc(u.role)}">${svEsc(svIni(u.name||u.email))}</div>
         <div class="nm"><b>${svEsc(u.name||'–')}${me?' <span style="color:var(--ink3);font-weight:600">(du)</span>':''}</b><span>${svEsc(u.email)}</span></div>
         <div class="st">${st}<br>${svEsc(seen)}${u.invited_by_name?' · von '+svEsc(u.invited_by_name):''}</div>
-        <select data-role="${svEsc(u.id)}"${me?' disabled title="Deine eigene Rolle kannst du nicht ändern"':''}>${svRoleOpts(u.role)}</select>
+        ${ADM?`<select data-role="${svEsc(u.id)}"${me?' disabled title="Deine eigene Rolle kannst du nicht ändern"':''}>${svRoleOpts(u.role)}</select>`:`<span class="rolechip r-${svEsc(u.role)}" style="justify-self:start"><i></i>${svEsc((SV_ROLE_INFO[u.role]||{}).t||u.role)}</span>`}
         <div class="acts">${me?'':`
-          <button class="iconbtn" data-link="${svEsc(u.id)}" title="${pend?'Neuen Einladungslink erstellen':'Neuen Anmelde-Link erstellen'}">${SVI('link')}</button>
-          <button class="iconbtn" data-act="${svEsc(u.id)}" title="${u.active?'Zugang sperren':'Zugang wieder freigeben'}">${SVI(u.active?'ban':'check')}</button>
-          <button class="iconbtn danger" data-del="${svEsc(u.id)}" title="Zugang löschen">${SVI('trash')}</button>`}</div>
+          ${canLink?`<button class="iconbtn" data-link="${svEsc(u.id)}" title="${pend?'Neuen Einladungslink erstellen':'Neuen Anmelde-Link erstellen'}">${SVI('link')}</button>`:''}
+          ${ADM?`<button class="iconbtn" data-act="${svEsc(u.id)}" title="${u.active?'Zugang sperren':'Zugang wieder freigeben'}">${SVI(u.active?'ban':'check')}</button>
+          <button class="iconbtn danger" data-del="${svEsc(u.id)}" title="Zugang löschen">${SVI('trash')}</button>`:''}`}</div>
       </div>`; }).join('')}</div>
   </div>
   <div class="sechead">Was darf wer?</div>
-  <div class="rolegrid">${['admin','planer','trainer','viewer'].map(r=>{ const R=SV_ROLE_INFO[r]; return `<div class="rolecard"><span class="rolechip r-${r}"><i></i>${svEsc(R.t)}</span><h4>${svEsc(R.d)}</h4><ul>${R.yes.map(x=>`<li>${svEsc(x)}</li>`).join('')}${R.no.map(x=>`<li class="no">${svEsc(x)}</li>`).join('')}</ul></div>`; }).join('')}</div>`;
+  <div class="rolegrid">${SV_ROLES.map(r=>{ const R=SV_ROLE_INFO[r]; return `<div class="rolecard"><span class="rolechip r-${r}"><i></i>${svEsc(R.t)}</span><h4>${svEsc(R.d)}</h4><ul>${R.yes.map(x=>`<li>${svEsc(x)}</li>`).join('')}${R.no.map(x=>`<li class="no">${svEsc(x)}</li>`).join('')}</ul></div>`; }).join('')}</div>`;
   const $$=s=>P.querySelector(s);
   ['svInvName','svInvMail','svInvRole'].forEach(id=>$$('#'+id).addEventListener('input',()=>{ P._draft={name:$$('#svInvName').value,email:$$('#svInvMail').value,role:$$('#svInvRole').value}; }));
   $$('#svInv').onsubmit=async e=>{
@@ -2561,7 +2564,7 @@ function svLinkBox(link,name,role,kind){
 function svInit(){
   document.body.classList.add('role-'+svRole()); if(!canEdit())document.body.classList.add('ro');
   document.querySelectorAll('[data-tab="kandidaten"],[data-sheet="kandidaten"]').forEach(b=>{ if(svRole()==='viewer')b.style.display='none'; });
-  document.querySelectorAll('[data-tab="admin"],[data-sheet="admin"],.adm-only').forEach(b=>{ if(!isAdmin())b.style.display='none'; });
+  document.querySelectorAll('[data-tab="admin"],[data-sheet="admin"],.adm-only').forEach(b=>{ if(!canManage())b.style.display='none'; });
   document.querySelectorAll('.tabbar .ti[data-tab="elf"]').forEach(b=>{ b.style.display=svRole()==='viewer'?'':'none'; });
   const R=SVB.ROLE_T[svRole()]||'', nm=SVU.name||SVU.email||'';
   document.querySelectorAll('[data-me-name]').forEach(el=>el.textContent=nm);
@@ -2664,7 +2667,7 @@ function svSeasonProfile(pid){
 /* ---------- Datenstand & Update (Admin) ---------- */
 function svFmtDate(s){ try{ return new Date(s).toLocaleDateString('de-DE',{day:'2-digit',month:'2-digit',year:'numeric'}); }catch(e){ return s||''; } }
 async function svDataCard(P){
-  if(!P||!isAdmin())return;
+  if(!P||!canManage())return;
   let rows=[]; try{ const {data}=await SVB.sb.from('data_updates').select('at,ok,source,version,summary').order('at',{ascending:false}).limit(6); rows=data||[]; }catch(e){}
   const last=rows.find(r=>r.ok), lastSt=last&&last.summary||{};
   const el=document.createElement('div'); el.className='card'; el.id='svData';
@@ -2685,6 +2688,271 @@ async function svDataCard(P){
   };
 }
 { const _ar0=svAdminRender; svAdminRender=async function(){ const r=await _ar0.apply(this,arguments); try{ await svDataCard(document.getElementById('panel-admin')); }catch(e){} return r; }; }
+
+/* =====================================================================
+   SV/BSC Scout · Runde 5
+   - Positionen & Spielerdaten fürs ganze Team (auch Trainer) – statt nur auf einem Gerät
+   - „Meine Kandidaten“: wer bin ich in der Spalte „Verantwortlich“?
+   - Erinnerungs-Intervall je Kandidat, Erinnerungskarte auf der Übersicht, App-Symbol-Zähler
+   - Push-Erinnerungen aufs Handy (Web Push)
+   ===================================================================== */
+Object.assign(SV_FIELD,{ps:'Position',ps2:'Nebenposition',ph:'Position',gb:'Geburtsdatum',al:'Alter',fu:'Starker Fuß',gr:'Größe',sc:'Eye-Test',ri:'Erinnerung'});
+
+/* ---------- Wer bin ich in der Spalte „Verantwortlich“? (gleiche Regeln wie der Erinnerungs-Dienst) ---------- */
+const SV_ALIAS={dome:['dominik','dome'],nico:['nico','nicolas','nicola'],ervin:['ervin','erwin'],tobi:['tobias','tobi'],lukas:['lukas','luke']};
+const SV_PLANNERS=['Dome','Nico','Ervin'];
+let SV_TEAM=[];
+function svK(s){ return String(s||'').toLowerCase().replace(/ä/g,'ae').replace(/ö/g,'oe').replace(/ü/g,'ue').replace(/ß/g,'ss').normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]/g,''); }
+function svKeysOf(u){ if(u&&u.pl_name)return [svK(u.pl_name)]; const nm=String((u&&u.name)||'').trim(), first=svK(nm.split(/\s+/)[0]), full=svK(nm);
+  const k=new Set([full,first].filter(Boolean)); for(const a in SV_ALIAS) if(first&&SV_ALIAS[a].includes(first))k.add(a); return [...k]; }
+function svPlOf(u,pl){ const p=svK(pl); if(!p)return false; if(svKeysOf(u).includes(p))return true; if(u&&u.pl_name)return false;
+  const first=svK(String((u&&u.name)||'').trim().split(/\s+/)[0]); return p.length>=4&&first.length>p.length&&first.startsWith(p); }
+function svIsMine(pl){ return svPlOf(SVU,pl); }
+function kandPlanners(){
+  const m=new Map(); const add=n=>{ n=String(n||'').trim(); const k=svK(n); if(k&&!m.has(k))m.set(k,n); };
+  SV_PLANNERS.forEach(add); try{ PLANNERS_DEFAULT.forEach(add); metaPlanners().forEach(add); }catch(e){}
+  SV_TEAM.forEach(u=>{ if(u.pl_name)add(u.pl_name); });
+  try{ kandList().forEach(p=>add(crmOf(p).pl)); }catch(e){}
+  if(canEdit()&&![...m.values()].some(svIsMine))add(SVU.pl_name||svFirst(SVU.name));
+  return [...m.values()];
+}
+function svMyPlName(){ return kandPlanners().find(svIsMine)||SVU.pl_name||svFirst(SVU.name)||''; }
+function svPlOpts(html){ const me='<option value="__me"'+(kandFP==='__me'?' selected':'')+'>Meine Kandidaten</option>'; const i=html.indexOf('</option>'); return i<0?me+html:html.slice(0,i+9)+me+html.slice(i+9); }
+
+/* ---------- Erinnerungs-Intervall je Kandidat ---------- */
+const SV_IV=[7,14,21,30,45,60];
+function kandIv(p){ const v=+crmOf(p).ri; return v>=3&&v<=120?v:KAND_DUE_DAYS; }
+function kandIsDue(p){ const ds=daysSince(crmOf(p).lc); return ds===null||ds>kandIv(p); }
+function kandIvSel(p,C){
+  return '<select class="kand-in kiv" data-kf="ri" data-id="'+p.id+'" title="Erinnern, wenn der letzte Kontakt länger her ist als …">'
+    +'<option value="">⏰ nach '+KAND_DUE_DAYS+' T (Standard)</option>'
+    +SV_IV.filter(n=>n!==KAND_DUE_DAYS).map(n=>'<option value="'+n+'"'+(+C.ri===n?' selected':'')+'>⏰ nach '+n+' Tagen</option>').join('')+'</select>';
+}
+function svMyCands(){ try{ return kandList().filter(p=>svIsMine(crmOf(p).pl)); }catch(e){ return []; } }
+function svMyDue(){ return svMyCands().filter(kandIsDue); }
+function svBadges(){
+  try{
+    const all=kandList(), mine=svMyCands(), myDue=mine.filter(kandIsDue).length, due=all.filter(kandIsDue).length;
+    const n=mine.length?myDue:due;
+    document.querySelectorAll('[data-cnt="kandidaten"]').forEach(el=>{ el.textContent=n; el.style.display=n&&svRole()!=='viewer'?'':'none'; el.title=mine.length?'deine fälligen Kontakte':'fällige Kontakte'; });
+    if('setAppBadge' in navigator){ if(myDue)navigator.setAppBadge(myDue).catch(()=>{}); else navigator.clearAppBadge().catch(()=>{}); }
+  }catch(e){}
+}
+
+/* ---------- Erinnerungskarte auf der Übersicht ---------- */
+function svRemindRender(){
+  const host=document.getElementById('svHello'); if(!host)return;
+  let el=document.getElementById('svRemind'); if(!el){ el=document.createElement('div'); el.id='svRemind'; host.after(el); }
+  if(svRole()==='viewer'){ el.innerHTML=''; return; }
+  const mine=svMyCands(); if(!mine.length){ el.innerHTML=''; return; }
+  const due=mine.filter(kandIsDue).sort((a,b)=>(daysSince(crmOf(b).lc)??1e9)-(daysSince(crmOf(a).lc)??1e9)||(crmOf(b).w||0)-(crmOf(a).w||0));
+  const row=p=>{ const C=crmOf(p), ds=daysSince(C.lc), v=canContacts()?kandContactPlain(p):'', ph=v?kandPhone(v):null;
+    const w=C.w&&WPROB[C.w]?' · Wechsel <b style="color:'+WPROB[C.w].c+'">'+WPROB[C.w].t+'</b>':'';
+    return `<div class="rm-row">${avaHtml(p)}<div class="rm-n"><b data-svp="${svEsc(p.id)}">${svEsc(p.name)}</b><span>${svEsc(p.club||'')} · <em>${ds===null?'noch nie kontaktiert':'letzter Kontakt vor '+ds+' Tagen'}</em>${w}</span></div>
+      <div class="rm-a">${ph?`<a class="iconbtn" href="tel:${svEsc(ph.tel)}" title="Anrufen">${SVI('phone')}</a><a class="iconbtn" href="https://wa.me/${svEsc(ph.wa)}" target="_blank" rel="noopener" title="WhatsApp">${SVI('chat')}</a>`:''}
+      ${canEdit()?`<button class="btn sm" data-done="${svEsc(p.id)}">${SVI('check')} Kontakt heute</button>`:''}</div></div>`; };
+  el.innerHTML=`<div class="card remind${due.length?' hot':''}">
+    <div class="rm-h"><div class="rm-ic">${SVI(due.length?'bell':'check')}</div>
+      <div class="rm-t"><h3>${due.length?(due.length===1?'1 Kontakt ist fällig':due.length+' Kontakte sind fällig'):'Alle deine Kontakte sind im Plan'}</h3>
+      <p>Deine Kandidaten als „${svEsc(svMyPlName())}“ · ${mine.length} in der Pipeline</p></div>
+      <span class="rm-push" id="svPushHome"></span></div>
+    ${due.slice(0,5).map(row).join('')}
+    ${due.length>5?`<p class="rm-more">… und ${due.length-5} weitere</p>`:''}
+    <div class="rm-f"><button class="btn ghost" data-go-me>Meine Kandidaten öffnen →</button></div></div>`;
+  el.querySelectorAll('[data-svp]').forEach(a=>a.onclick=()=>openModal(a.dataset.svp));
+  el.querySelectorAll('[data-done]').forEach(b=>b.onclick=()=>{ const p=players.find(x=>x.id===b.dataset.done); crmSet(b.dataset.done,{lc:todayISO(),c:1}); kToast('✓ Kontakt mit '+(p?p.name:'Spieler')+' eingetragen'); svAfterKand(); });
+  el.querySelector('[data-go-me]').onclick=()=>{ kandFP='__me'; kandDue=false; goTab('kandidaten'); try{renderKandidaten();}catch(e){} };
+  svPushChip(document.getElementById('svPushHome'));
+}
+function svAfterKand(){ try{renderKandidaten();}catch(e){} svRemindRender(); try{svTiles();}catch(e){} svBadges(); }
+
+/* ---------- Push-Erinnerungen ---------- */
+function svPushSupported(){ return 'serviceWorker' in navigator&&'PushManager' in window&&'Notification' in window; }
+function svIsIOS(){ return /iPad|iPhone|iPod/.test(navigator.userAgent)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1); }
+function svStandalone(){ try{ return navigator.standalone===true||matchMedia('(display-mode: standalone)').matches; }catch(e){ return false; } }
+function svB64ToU8(s){ s=s.replace(/-/g,'+').replace(/_/g,'/'); s+='='.repeat((4-s.length%4)%4); const b=atob(s), u=new Uint8Array(b.length); for(let i=0;i<b.length;i++)u[i]=b.charCodeAt(i); return u; }
+function svU8ToB64(u){ let s=''; new Uint8Array(u).forEach(c=>s+=String.fromCharCode(c)); return btoa(s).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,''); }
+function svDeviceName(){ const u=navigator.userAgent; const d=/iPhone/.test(u)?'iPhone':/iPad/.test(u)||svIsIOS()&&/Mac/.test(u)?'iPad':/Android/.test(u)?'Android':/Mac/.test(u)?'Mac':/Windows/.test(u)?'Windows':'Gerät';
+  const b=/Edg\//.test(u)?'Edge':/Firefox\//.test(u)?'Firefox':/Chrome\//.test(u)?'Chrome':/Safari\//.test(u)?'Safari':''; return (d+(b?' · '+b:'')).slice(0,60); }
+async function svPushState(){
+  if(svIsIOS()&&!svStandalone())return 'ios-install';
+  if(!svPushSupported())return 'unsupported';
+  if(Notification.permission==='denied')return 'denied';
+  try{ const reg=await navigator.serviceWorker.getRegistration(); const sub=reg&&await reg.pushManager.getSubscription(); if(!sub)return 'off';
+    const {data}=await SVB.sb.from('push_subs').select('endpoint').eq('endpoint',sub.endpoint).maybeSingle(); return data?'on':'off'; }catch(e){ return 'off'; }
+}
+async function svPushTest(){
+  const {data,error}=await SVB.sb.functions.invoke('reminders',{body:{action:'test'}});
+  if(error)throw new Error('Test-Mitteilung ging nicht raus');
+  if(data&&data.ok===false)throw new Error(data.error||'Test-Mitteilung ging nicht raus');
+  return data;
+}
+async function svPushOn(){
+  const st=await svPushState();
+  if(st==='ios-install'){ svPushHelp('ios'); return false; }
+  if(st==='unsupported'){ kToast('Dieser Browser kann leider keine Mitteilungen empfangen.'); return false; }
+  if(st==='denied'){ svPushHelp('denied'); return false; }
+  const perm=await Notification.requestPermission();
+  if(perm!=='granted'){ svPushHelp('denied'); return false; }
+  const {data:pub,error:e1}=await SVB.sb.rpc('push_public_key'); if(e1||!pub)throw new Error('Erinnerungen sind noch nicht eingerichtet');
+  const reg=await navigator.serviceWorker.ready;
+  let sub=await reg.pushManager.getSubscription();
+  if(sub){ try{ const k=sub.options&&sub.options.applicationServerKey; if(k&&svU8ToB64(k)!==pub){ await sub.unsubscribe(); sub=null; } }catch(e){} }
+  if(!sub)sub=await reg.pushManager.subscribe({userVisibleOnly:true,applicationServerKey:svB64ToU8(pub)});
+  const j=sub.toJSON();
+  const {error}=await SVB.sb.rpc('push_sub',{p_endpoint:j.endpoint,p_p256dh:j.keys.p256dh,p_auth:j.keys.auth,p_ua:svDeviceName()});
+  if(error){ try{await sub.unsubscribe();}catch(e){} throw new Error(/check/.test(error.message||'')?'Dieser Browser nutzt einen unbekannten Mitteilungsdienst':'Anmelden fehlgeschlagen'); }
+  try{ await svPushTest(); kToast('🔔 Erinnerungen sind an – gleich kommt eine Test-Mitteilung'); }catch(e){ kToast('🔔 Erinnerungen sind an'); }
+  return true;
+}
+async function svPushOff(){
+  try{ const reg=await navigator.serviceWorker.getRegistration(); const sub=reg&&await reg.pushManager.getSubscription();
+    if(sub){ await SVB.sb.rpc('push_unsub',{p_endpoint:sub.endpoint}); await sub.unsubscribe(); } }catch(e){}
+  kToast('🔕 Erinnerungen auf diesem Gerät ausgeschaltet');
+}
+function svPushHelp(kind){
+  const ios=`<ol class="svsteps"><li>Unten in Safari auf <b>Teilen</b> tippen (Quadrat mit Pfeil).</li><li><b>„Zum Home-Bildschirm“</b> wählen und bestätigen.</li><li>Die App <b>vom Home-Bildschirm</b> öffnen und hier nochmal auf „Erinnerungen aufs Handy“ tippen.</li></ol><p class="note">Apple erlaubt Mitteilungen nur für Apps auf dem Home-Bildschirm (ab iOS 16.4).</p>`;
+  const den=`<p>Mitteilungen sind für diese App gerade <b>blockiert</b>.</p><ol class="svsteps"><li><b>iPhone:</b> Einstellungen → Mitteilungen → SV/BSC Scout → Mitteilungen erlauben.</li><li><b>Android/Chrome:</b> Schloss-Symbol neben der Adresse bzw. App-Info → Benachrichtigungen → erlauben.</li><li>Danach hier nochmal einschalten.</li></ol>`;
+  svModal(`<div class="mhead" style="gap:14px"><div class="rm-ic" style="width:48px;height:48px">${SVI('bell')}</div><div><h2 style="margin:0">Erinnerungen aufs Handy</h2><div class="msub">${kind==='ios'?'So geht’s auf dem iPhone':'Mitteilungen erlauben'}</div></div></div><div style="margin-top:16px">${kind==='ios'?ios:den}</div>`);
+}
+async function svPushChip(host,big){
+  if(!host)return; if(!canEdit()&&!svMyCands().length){ host.innerHTML=''; return; }
+  const st=await svPushState(); if(st==='unsupported'){ host.innerHTML=''; return; }
+  if(st==='on'){ host.innerHTML=big?'':`<span class="pushchip on" title="Du bekommst Erinnerungen auf dieses Gerät">${SVI('bell')} Erinnerungen an</span>`; if(!big)return; }
+  const lbl=st==='denied'?'Mitteilungen blockiert':'Erinnerungen aufs Handy';
+  if(big){
+    host.innerHTML=st==='on'?`<div class="pushrow"><span class="pushchip on">${SVI('bell')} Auf diesem Gerät an</span><button class="btn ghost sm" data-ptest>Test senden</button><button class="btn ghost sm" data-poff>Ausschalten</button></div>`
+      :`<div class="pushrow"><button class="btn sm" data-pon>${SVI('bell')} ${lbl}</button></div>`;
+    host.insertAdjacentHTML('beforeend','<p class="note">Du bekommst eine Mitteilung, sobald bei einem deiner Kandidaten der letzte Kontakt zu lange her ist – und montags eine kurze Übersicht. Jedes Gerät einzeln einschalten.</p>');
+  } else host.innerHTML=`<button class="pushchip" data-pon>${SVI('bell')} ${lbl}</button>`;
+  const on=host.querySelector('[data-pon]'); if(on)on.onclick=async()=>{ on.disabled=true; try{ await svPushOn(); }catch(e){ kToast('⚠️ '+e.message); } on.disabled=false; svPushChip(host,big); svPushRefreshAll(host); };
+  const te=host.querySelector('[data-ptest]'); if(te)te.onclick=async()=>{ te.disabled=true; try{ const r=await svPushTest(); kToast('📨 Test verschickt'+(r&&r.devices>1?' an '+r.devices+' Geräte':'')); }catch(e){ kToast('⚠️ '+e.message); } te.disabled=false; };
+  const of=host.querySelector('[data-poff]'); if(of)of.onclick=async()=>{ await svPushOff(); svPushChip(host,big); svPushRefreshAll(host); };
+}
+function svPushRefreshAll(except){ ['svPushHome','svPushKand'].forEach(id=>{ const h=document.getElementById(id); if(h&&h!==except)svPushChip(h); }); }
+
+/* ---------- Kandidaten-Ansicht: Push-Schalter + Hinweis bei „Meine“ ---------- */
+{ const _rk2=renderKandidaten; renderKandidaten=function(){
+    const r=_rk2.apply(this,arguments);
+    const db=document.getElementById('kDigBtn');
+    if(db&&!document.getElementById('svPushKand')){ const s=document.createElement('span'); s.id='svPushKand'; db.after(s); svPushChip(s); }
+    if(kandFP==='__me'){ const w=document.getElementById('kandWrap'), empty=w&&w.querySelector('.card:last-child');
+      if(empty&&!w.querySelector('.kand-table')&&!svMyCands().length)empty.innerHTML='Dir sind noch keine Kandidaten zugeordnet. In der Spalte <b>„Verantwortlich“</b> einfach <b>'+svEsc(svMyPlName())+'</b> auswählen.'; }
+    try{svRemindRender();}catch(e){}
+    return r; }; }
+
+/* ---------- Positionen & Spielerdaten: fürs ganze Team statt nur auf diesem Gerät ---------- */
+const SV_PD_KEYS=['ps','ps2','ph','gb','al','fu','gr','sc'], SV_SC_KEYS=['tempo','technik','zweikampf','spielint','mentalitaet'];
+function svAge(geb){ const d=new Date(geb); if(isNaN(d))return null; return Math.floor((Date.now()-d)/31557600000); }
+function svApplyPlayerData(){
+  players.forEach(p=>{
+    const C=CRM[p.id], has=C&&SV_PD_KEYS.some(k=>C[k]!=null);
+    if(!has&&!p._o)return;
+    if(!p._o)p._o={pos:p.pos,pos2:p.pos2,geb:p.geb,alter:p.alter,alterCa:p.alterCa,fuss:p.fuss,groesse:p.groesse,scout:{...(p.scout||{})},scouted:p.scouted};
+    const O=p._o, X=C||{};
+    p.pos=(X.ps&&POS_W[X.ps])?X.ps:O.pos;
+    p.pos2=X.ps2!=null?String(X.ps2).split(',').filter(x=>POS_W[x]&&x!==p.pos):O.pos2;
+    p.posAlt=(X.ph&&POS_W[X.ph]&&X.ph!==p.pos)?X.ph:null;
+    if(typeof X.gb==='string'&&/^\d{4}-\d{2}-\d{2}$/.test(X.gb)){ p.geb=X.gb; p.alter=svAge(X.gb); p.alterCa=false; }
+    else if(+X.al>=14&&+X.al<=50){ p.geb=O.geb; p.alter=+X.al; p.alterCa=false; }
+    else { p.geb=O.geb; p.alter=O.alter; p.alterCa=O.alterCa; }
+    p.fuss=['Rechts','Links','Beidfüßig'].includes(X.fu)?X.fu:O.fuss;
+    p.groesse=(+X.gr>=140&&+X.gr<=215)?+X.gr:O.groesse;
+    const sc=typeof X.sc==='string'?X.sc.split(',').map(Number):null;
+    if(sc&&sc.length===5&&sc.every(v=>v>=1&&v<=10)){ p.scout={...(p.scout||{})}; SV_SC_KEYS.forEach((k,i)=>{ p.scout[k]=sc[i]; }); p.scouted=true; }
+    else { p.scout={...O.scout}; p.scouted=O.scouted; }
+  });
+}
+{ const _ca=crmApply; crmApply=function(){ const r=_ca.apply(this,arguments); try{svApplyPlayerData();}catch(e){ console.warn('Spielerdaten',e); } return r; }; }
+function svCanPD(){ return canWriteField('ps'); }
+function svPosLine(pid){
+  const M=document.getElementById('modal'); const p=players.find(x=>x.id===pid); if(!M||!p)return;
+  const sub=M.querySelector('.mhead .msub'); if(!sub||M.querySelector('.svpos'))return;
+  const alt=(p.pos2||[]).filter(x=>x!==p.pos);
+  const el=document.createElement('div'); el.className='svpos';
+  el.innerHTML=`<span class="pp" title="Position">${SVI('move')}<b>${svEsc(p.pos||'–')}</b></span>${alt.length?`<span class="pa">kann auch ${svEsc(alt.join(', '))}</span>`:''}${p.posAlt?`<span class="pa">früher ${svEsc(p.posAlt)}</span>`:''}${svCanPD()?'<button class="svpos-ed" type="button">Position ändern</button>':''}`;
+  sub.after(el);
+  const b=el.querySelector('.svpos-ed'); if(b)b.onclick=()=>svPosEditor(p,el);
+}
+function svPosEditor(p,host){
+  const keys=Object.keys(POS_W), cur=p.pos; let sel=cur; const alt=new Set((p.pos2||[]).filter(x=>x!==cur));
+  const M=document.getElementById('modal'), old=M.querySelector('.svpos-box'); if(old){ old.remove(); return; }
+  const box=document.createElement('div'); box.className='svpos-box'; (M.querySelector('.mhead')||host).after(box);
+  setTimeout(()=>{ try{ box.scrollIntoView({behavior:'smooth',block:'nearest'}); }catch(e){} },30);
+  const draw=()=>{
+    box.innerHTML=`<div class="lbl">Position von ${svEsc(svFirst(p.name))} – Hauptposition</div><div class="chips">${keys.map(k=>`<button type="button" class="pchip${k===sel?' on':''}" data-m="${k}">${k}</button>`).join('')}</div>
+      <div class="lbl">Kann auch spielen</div><div class="chips">${keys.filter(k=>k!==sel).map(k=>`<button type="button" class="pchip alt${alt.has(k)?' on':''}" data-a="${k}">${k}</button>`).join('')}</div>
+      ${sel!==cur?`<div class="hint">${SVI('info')}<span>Neu: <b>${svEsc(cur||'–')} → ${svEsc(sel)}</b>. Die alte Position bleibt als „früher ${svEsc(cur||'–')}“ sichtbar.</span></div>`:''}
+      <div class="btnrow"><button type="button" class="btn" data-save>Für alle speichern</button><button type="button" class="btn ghost" data-cancel>Abbrechen</button></div>`;
+    box.querySelectorAll('[data-m]').forEach(b=>b.onclick=()=>{ sel=b.dataset.m; alt.delete(sel); draw(); });
+    box.querySelectorAll('[data-a]').forEach(b=>b.onclick=()=>{ const k=b.dataset.a; if(alt.has(k))alt.delete(k); else alt.add(k); draw(); });
+    box.querySelector('[data-cancel]').onclick=()=>box.remove();
+    box.querySelector('[data-save]').onclick=()=>svSavePos(p,sel,[...alt]);
+  };
+  draw();
+}
+function svSavePos(p,sel,alt){
+  const upd={}, before=p.pos;
+  const a=keysSorted(alt.filter(k=>k!==sel)).join(',')||'-';
+  const curA=keysSorted((p.pos2||[]).filter(x=>x!==p.pos)).join(',')||'-';
+  if(sel!==p.pos){ upd.ps=sel; upd.ph=p.pos||undefined; }
+  if(a!==curA||upd.ps)upd.ps2=a;
+  if(!Object.keys(upd).length){ kToast('Keine Änderung'); return; }
+  crmSet(p.id,upd); try{crmApply();}catch(e){}
+  try{renderAll();}catch(e){} openModal(p.id);
+  kToast(upd.ps?'✓ '+p.name+': '+(before||'–')+' → '+sel+' – für alle gespeichert':'✓ Nebenpositionen gespeichert');
+}
+function keysSorted(arr){ const o=Object.keys(POS_W); return arr.slice().sort((x,y)=>o.indexOf(x)-o.indexOf(y)); }
+function svHookSave(pid){
+  const p=players.find(x=>x.id===pid), b=document.getElementById('saveP'); if(!p||!b||!svCanPD()||b.dataset.sv)return; b.dataset.sv='1';
+  const snap={pos:p.pos,geb:p.geb||null,alter:p.alter??null,fuss:p.fuss||null,groesse:p.groesse??null,sc:SV_SC_KEYS.map(k=>(p.scout||{})[k]).join(',')};
+  b.addEventListener('click',()=>{
+    const u={};
+    if(p.pos!==snap.pos){ u.ps=p.pos; u.ph=snap.pos||undefined; }
+    if((p.geb||null)!==snap.geb){ u.gb=p.geb||undefined; if(!p.geb)u.al=p.alter||undefined; }
+    else if(!p.geb&&(p.alter??null)!==snap.alter)u.al=p.alter||undefined;
+    if((p.fuss||null)!==snap.fuss)u.fu=p.fuss||undefined;
+    if((p.groesse??null)!==snap.groesse)u.gr=p.groesse||undefined;
+    const sc=SV_SC_KEYS.map(k=>(p.scout||{})[k]).join(','); if(sc!==snap.sc)u.sc=sc;
+    if(Object.keys(u).length){ crmSet(p.id,u); try{crmApply();}catch(e){} try{renderAll();}catch(e){} kToast('✓ Für das ganze Team gespeichert'); }
+  });
+  const sec=b.closest('.editsec'); const h=sec&&sec.querySelector('h4');
+  if(h&&!sec.querySelector('.sv-shared'))h.insertAdjacentHTML('afterend','<p class="note sv-shared" style="margin:-4px 0 10px">Position, Geburtsdatum, Fuß, Größe und Eye-Test sieht nach dem Speichern das ganze Team. Foto, Status, Einsätze und Assists bleiben auf diesem Gerät.</p>');
+}
+{ const _om2=openModal; openModal=function(){ const r=_om2.apply(this,arguments); try{ svPosLine(arguments[0]); svHookSave(arguments[0]); }catch(e){ console.warn(e); } return r; }; }
+
+/* ---------- Mein Konto: Zuordnung + Erinnerungen ---------- */
+{ const _acc=svAccount; svAccount=function(){
+    const r=_acc.apply(this,arguments);
+    const M=document.getElementById('modal'), app=M&&[...M.querySelectorAll('.editsec')].pop(); if(!app||svRole()==='viewer')return r;
+    const auto=kandPlanners().find(n=>svPlOf({name:SVU.name},n));
+    const sec=document.createElement('div'); sec.className='editsec';
+    sec.innerHTML=`<h4>Kandidaten &amp; Erinnerungen</h4>
+      <div class="field"><label for="svMyPl">In der Spalte „Verantwortlich“ bin ich</label><select id="svMyPl"><option value="">Automatisch${auto?' – '+svEsc(auto):''}</option>${kandPlanners().map(n=>`<option${SVU.pl_name===n?' selected':''}>${svEsc(n)}</option>`).join('')}</select></div>
+      <div id="svPushAcc" style="margin-top:12px"></div>`;
+    app.before(sec);
+    document.getElementById('svMyPl').onchange=async e=>{
+      const v=e.target.value;
+      try{ const {error}=await SVB.sb.rpc('me_update',{p_name:null,p_pw_set:null,p_pl:v}); if(error)throw error;
+        SVU.pl_name=v||null; try{ const c=JSON.parse(localStorage.getItem('svbcProfile')||'null'); if(c){ c.pl_name=SVU.pl_name; localStorage.setItem('svbcProfile',JSON.stringify(c)); } }catch(x){}
+        kToast('✓ Gespeichert – „Meine Kandidaten“ zeigt jetzt '+(v||auto||'deine')); svAfterKand(); }
+      catch(err){ kToast('⚠️ '+(err.message||err)); }
+    };
+    svPushChip(document.getElementById('svPushAcc'),true);
+    return r; }; }
+
+/* ---------- Start ---------- */
+async function svTeamLoad(){ try{ const {data}=await SVB.sb.rpc('team_names'); if(Array.isArray(data)){ SV_TEAM=data; const me=data.find(u=>u.id===SVU.id); if(me&&me.pl_name!==undefined)SVU.pl_name=me.pl_name; } }catch(e){} }
+{ const _si=svInit; svInit=function(){
+    const r=_si.apply(this,arguments);
+    try{svApplyPlayerData();}catch(e){}
+    if(!document.getElementById('kRoleList'))document.body.insertAdjacentHTML('beforeend','<datalist id="kRoleList"><option value="Stammspieler"><option value="Führungsspieler"><option value="Rotation"><option value="Backup"><option value="Perspektivspieler"><option value="Torjäger"><option value="Ersatz-TW"><option value="Zweite Mannschaft"></datalist>');
+    if(navigator.serviceWorker)navigator.serviceWorker.addEventListener('message',e=>{ const t=e.data&&e.data.svbcGo; if(typeof t==='string'&&/^[a-z]+$/.test(t)){ if(t==='kandidaten'&&svMyCands().length)kandFP='__me'; goTab(t); } });
+    { const _rh2=renderHome; renderHome=function(){ const x=_rh2.apply(this,arguments); try{svRemindRender();}catch(e){} return x; }; }
+    svRemindRender(); svBadges();
+    svTeamLoad().then(()=>{ svRemindRender(); svBadges(); if(document.querySelector('#panel-kandidaten.active'))try{renderKandidaten();}catch(e){} });
+    if(/(^|&)kandidaten/.test((location.hash||'').slice(1))&&svMyCands().length){ kandFP='__me'; try{renderKandidaten();}catch(e){} }
+    return r; }; }
 
 /* ================= INIT ================= */
 renderWeights();
