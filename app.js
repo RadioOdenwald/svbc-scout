@@ -1383,6 +1383,7 @@ const FORMATIONS={
  '4-2-3-1':[['TW',50,90],['LV',17,74],['IV',39,77],['IV',61,77],['RV',83,74],['ZM',38,58],['ZM',62,58],['LM',20,38],['OM',50,35],['RM',80,38],['ST',50,20]],
  '4-5-1':[['TW',50,90],['LV',17,72],['IV',39,75],['IV',61,75],['RV',83,72],['LM',13,48],['ZM',33,53],['ZM',50,57],['ZM',67,53],['RM',87,48],['ST',50,22]],
  '4-1-4-1':[['TW',50,90],['LV',17,72],['IV',39,75],['IV',61,75],['RV',83,72],['ZM',50,63],['LM',15,44],['ZM',37,45],['ZM',63,45],['RM',85,44],['ST',50,20]],
+ '5-1-2-2':[['TW',50,91],['LV',11,62],['IV',31,74],['IV',50,76],['IV',69,74],['RV',89,62],['ZM',50,57],['OM',32,40],['OM',68,40],['ST',38,21],['ST',62,21]],
  '5-4-1':[['TW',50,91],['LV',11,64],['IV',31,74],['IV',50,76],['IV',69,74],['RV',89,64],['LM',17,44],['ZM',39,48],['ZM',61,48],['RM',83,44],['ST',50,21]],
 };
 const ROLE2POS={TW:'TW',IV:'IV',LV:'AV',RV:'AV',ZM:'ZM',LM:'Flügel',RM:'Flügel',LA:'Flügel',RA:'Flügel',OM:'OM',ST:'ST'};
@@ -2099,7 +2100,7 @@ function openSlotPicker(i,depth){
 }
 
 /* ===== App-Modus: installierbar, offline-fest, aktualisiert sich selbst ===== */
-const APP_BUILD='20260923-1024', OUTBOX_KEY='svbcOutbox', APP_HIDE_KEY='svbcInstallHide';
+const APP_BUILD='20260923-1209', OUTBOX_KEY='svbcOutbox', APP_HIDE_KEY='svbcInstallHide';
 let _appPrompt=null, _appNew=null, _obT=null;
 function appStandalone(){ try{ return !!(window.matchMedia&&matchMedia('(display-mode: standalone)').matches)||navigator.standalone===true; }catch(e){ return false; } }
 function appPlatform(){
@@ -2343,7 +2344,7 @@ function svTiles(){
   if(svRole()!=='viewer')T.push({go:'kandidaten',ic:'kand',c:'b',v:kand.length,l:'Kandidaten in der Pipeline',s:due?`<b class="bad">${due} Kontakt${due>1?'e':''} überfällig</b>`:(kand.length?'<b class="ok">alles im Plan</b>':'noch keine aufgenommen')});
   T.push({go:'elf',ic:'pitch',c:'g',v:filled+'<small>/'+total+'</small>',l:'Startelf besetzt',s:'Formation '+svEsc(form||'–')});
   T.push({go:'scout',ic:'gem',c:'v',v:stars,l:'Auf der Merkliste',s:'Favoriten im Blick'});
-  T.push({go:'db',ic:'db',c:'y',v:sen.toLocaleString('de-DE'),l:'Spieler im Radar',s:'7 Ligen · '+jug+' Talente'});
+  T.push({go:'db',ic:'db',c:'y',v:sen.toLocaleString('de-DE'),l:'Spieler im Radar',s:(DATA.updated?'Stand '+new Date(DATA.updated).toLocaleDateString('de-DE',{day:'2-digit',month:'2-digit'})+' · ':'')+'7 Ligen'});
   if(svRole()==='viewer')T.push({go:'kaderplan',ic:'plan',c:'b',v:'26/27',l:'Kaderplan',s:'Traumelf & Backups'});
   el.innerHTML=T.map(t=>`<button class="tile ktile c-${t.c}" data-go="${t.go}"><span class="ti-ic">${SVI(t.ic)}</span><div class="v">${t.v}</div><div class="l">${svEsc(t.l)}</div><div class="s">${t.s}</div></button>`).join('');
   el.querySelectorAll('[data-go]').forEach(b=>b.onclick=()=>goTab(b.dataset.go));
@@ -2354,7 +2355,8 @@ function svHello(){
   const el=document.getElementById('svHello'); if(!el)return;
   const h=new Date().getHours(), g=h<11?'Guten Morgen':h<17?'Hallo':'Guten Abend';
   const d=new Date().toLocaleDateString('de-DE',{weekday:'long',day:'numeric',month:'long'});
-  el.innerHTML=`<div><h2>${g}, <span>${svEsc(svFirst(SVU.name)||'Coach')}</span></h2><p>${svEsc(d)} · <span class="rolechip r-${svEsc(svRole())}"><i></i>${svEsc(SVB.ROLE_T[svRole()]||'')}</span></p></div>
+  const st=(typeof DATA!=='undefined'&&DATA.updated)?' · Daten vom '+new Date(DATA.updated).toLocaleDateString('de-DE',{day:'2-digit',month:'2-digit'}):'';
+  el.innerHTML=`<div><h2>${g}, <span>${svEsc(svFirst(SVU.name)||'Coach')}</span></h2><p>${svEsc(d+st)} · <span class="rolechip r-${svEsc(svRole())}"><i></i>${svEsc(SVB.ROLE_T[svRole()]||'')}</span></p></div>
     <div class="online" id="svOnline2"></div>`;
   svOnlineRender();
 }
@@ -2577,6 +2579,112 @@ function svInit(){
   { const _ar=crmAfterRemote; crmAfterRemote=function(){ const r=_ar.apply(this,arguments); svActivitySoon(); return r; }; }
   if(SVB.offline)syncState('err');
 }
+
+/* =====================================================================
+   SV/BSC Scout · Saison 26/27 live: Bewertung aus Vorsaison + laufender Saison
+   - Produktion/Teamanteil: gleitend über 25/26 + 26/27 (ligagewichtet) → aktuell, aber stabil
+   - Formtrend: laufende Saison gegen Vorsaison (ab 3 Spielen)
+   - Tabellenkontext/Gegentore: ab 3 Spielen aus der aktuellen Tabelle
+   ===================================================================== */
+const SV_SEASON_MIN=3;
+function svCurOk(p){ return !!(p&&p.cur&&p.cur.spiele>0&&!p.isJugend); }
+function svSeasonLabel(){ const s=(DATA&&DATA.season)||'2526'; return s.slice(0,2)+'/'+s.slice(2); }
+{ const _sc0=scores; scores=function(p){
+  if(!svCurOk(p))return _sc0(p);
+  const c=p.cur, w25=wOf(p), w26=LIGA_W[ligaBase(c.sub||c.liga)]||LIGA_W[ligaBase(c.liga)]||w25;
+  const sp25=p.einsaetze||((p.toreBelegt&&p.kaderDoc&&p.kaderStarts)?Math.max(6,p.kaderStarts):p.teamSp)||0;
+  const t25=p.tore||0, t26=c.tore||0, sp26=c.spiele||0, spAll=Math.max(1,sp25+sp26);
+  const gw=(t25*w25+t26*w26)/spAll;                       /* ligagewichtete Tore/Spiel über beide Saisons */
+  const gpg=(t25+t26)/spAll;
+  let prod=clamp(gw/1.0*100,0,100);
+  const tTall=(p.tT||0)+(c.tT||0);
+  let share=tTall>0?clamp(((t25+t26)/tTall)/0.40*100,0,100):50;
+  const useCur=sp26>=SV_SEASON_MIN;
+  const rank=useCur?c.rank:p.rank, tc=useCur?c.teamCount:p.teamCount;
+  let ctx=50; if(rank!=null&&tc>1){const pct=(rank-1)/(tc-1);ctx=clamp(30+pct*70,0,100);}
+  let pot=50; if(p.alter!=null){const a=p.alter;pot=a<=20?100:a<=23?88:a<=26?70:a<=29?50:a<=32?32:18;}
+  let trend=50,tratio=null;
+  if(useCur&&sp25>0){                                       /* Form: laufende Saison vs. Vorsaison */
+    const r26=(t26/sp26)*w26, r25=(t25/sp25)*w25;
+    if(r25>0.02||r26>0.02){ tratio=r26/Math.max(0.05,r25); trend=clamp(50+(tratio-1)*40,0,100); if(w26<w25)trend=Math.min(trend,85); if(w26>w25&&tratio>=0.7)trend=Math.max(trend,55); }
+  } else if(p.prev){
+    const wPrevLiga=LIGA_W[ligaBase(p.prev.liga)]; const wprev=(p.prev.tore/Math.max(1,p.prev.spiele))*wPrevLiga;
+    tratio=((t25/Math.max(1,sp25))*w25)/Math.max(0.05,wprev); trend=clamp(50+(tratio-1)*40,0,100);
+  }
+  let scout=50;
+  if(p.scouted&&Object.values(p.scout).some(v=>v!==5)){const w=POS_W[p.pos]||POS_W['ST'];let s=0;for(const k in w)s+=(p.scout[k]||5)*w[k];scout=clamp(s*10,0,100);}
+  const presse=(p.pressIdx!=null)?p.pressIdx:50;
+  let defMode=false,gaTxt=null;
+  if(p.pos==='TW'||p.pos==='IV'||p.pos==='AV'){
+    defMode=true; ctx=50;
+    const cl=(typeof clubFor==='function')?clubFor(p.club):null;
+    const s26=cl&&cl.s2526, s27=cl&&cl['s'+(DATA.season||'2627')];
+    const lg25=(DATA.ligaGA&&DATA.ligaGA['2526']&&s26)?DATA.ligaGA['2526'][s26.liga]:null;
+    const lg27=(DATA.ligaGA&&DATA.ligaGA[DATA.season]&&s27)?DATA.ligaGA[DATA.season][s27.liga]:null;
+    let ga=0,sp=0,exp=0;
+    if(s26&&s26.spiele&&lg25){ga+=s26.gegentore;sp+=s26.spiele;exp+=lg25*s26.spiele;}
+    if(s27&&s27.spiele&&lg27){ga+=s27.gegentore;sp+=s27.spiele;exp+=lg27*s27.spiele;}
+    let defv=50;
+    if(sp>0&&exp>0){ const ratio=ga/exp; defv=clamp((1.45-ratio)/0.9*100,0,100); gaTxt=(ga/sp).toFixed(2)+' Gegentore/Spiel (25/26 + '+svSeasonLabel()+') vs. Liga-Schnitt '+(exp/sp).toFixed(2);
+      if(s27&&s27.spiele>=SV_SEASON_MIN&&lg27&&s26&&s26.spiele&&lg25){ const r27=(s27.gegentore/s27.spiele)/lg27, r26=(s26.gegentore/s26.spiele)/lg25; trend=clamp(50+(r26-r27)*60,0,100); } }
+    if(p.pos==='AV'&&p.assists)defv=clamp(defv+Math.min(10,p.assists*3),0,100);
+    if(t25+t26>0)defv=clamp(defv+Math.min(15,(t25+t26)*5),0,100);
+    prod=Math.max(prod,defv); if(!(t25+t26>0))share=defv;
+  }
+  const sum=W.prod+W.share+W.ctx+W.pot+W.trend+W.presse+W.scout;
+  let total=(prod*W.prod+share*W.share+ctx*W.ctx+pot*W.pot+trend*W.trend+presse*W.presse+scout*W.scout)/sum;
+  let sdsB=0; if(p.sds>0){sdsB=Math.min(6,p.sds*2);total=Math.min(100,total+sdsB);}
+  const _mo=mvpOf(p); let mvpAdj=0,mvpVal=_mo?_mo.v:null,mvpD=_mo?_mo.d:null,mvpBase=total;
+  if(mvpVal!=null&&p.adjTo==null){const _b=total;total=Math.min(100,total*mvpFactor(mvpVal));mvpAdj=Math.round((total-_b)*10)/10;}
+  let adjD=0,adjBase=null; if(p.adjTo!=null){adjBase=Math.round(total*10)/10;adjD=Math.round((p.adjTo-total)*10)/10;total=p.adjTo;}
+  const proj=Math.round(gw*30);
+  return {prod:Math.round(prod),share:Math.round(share),ctx:Math.round(ctx),pot:Math.round(pot),trend:Math.round(trend),presse:Math.round(presse),scout:Math.round(scout),total:Math.round(total*10)/10,
+    mvp:mvpVal,mvpAdj,mvpD,mvpBase:Math.round(mvpBase*10)/10,gpg,proj,tratio,defMode,gaTxt,sdsB,adjD,adjBase,shareRaw:tTall>0?(t25+t26)/tTall:null,cur:c};
+}; }
+
+/* Liste: aktuelle Saison zuerst zeigen */
+{ const _rh0=rowHtml; rowHtml=function(p,i,extra){
+  let h=_rh0(p,i,extra);
+  if(svCurOk(p)){ const c=p.cur; h=h.replace(`<span><b>${p.tore}</b> Tore</span>`,`<span><b>${c.tore}</b> Tore ${svSeasonLabel()}</span><span>${p.tore} T 25/26</span>`);
+    if(c.wechsel)h=h.replace(`<span>${p.club}</span>`,`<span>${svEsc(c.club)} <i style="color:var(--gold);font-style:normal" title="Vereinswechsel – vorher ${svEsc(p.club)}">⇄</i></span>`); }
+  if(p.neu27)h=h.replace('<div class="pname">','<div class="pname"><span class="badge" style="background:rgba(34,197,94,.15);color:#86efac">neu</span> ');
+  return h; }; }
+/* Profil: Zeile für die laufende Saison */
+function svSeasonProfile(pid){
+  const M=document.getElementById('modal'); if(!M)return;
+  const p=players.find(x=>x.id===pid); if(!p||!svCurOk(p))return;
+  const c=p.cur, sl=M.querySelector('.statlist'); if(!sl||sl.querySelector('.sv-cur'))return;
+  const row=document.createElement('div'); row.className='sv-cur';
+  row.innerHTML=`<span>Saison ${svSeasonLabel()} <i style="font-size:11px;color:var(--ink3);font-style:normal">Stand ${new Date(c.stand).toLocaleDateString('de-DE')}</i></span><b>${c.tore} Tore · ${c.spiele} Sp.${c.rank?' · Platz '+c.rank+'/'+c.teamCount:''}</b>`;
+  sl.insertBefore(row,sl.firstChild.nextSibling);
+  if(c.wechsel){ const w=document.createElement('div'); w.className='sv-cur'; w.innerHTML=`<span>Neuer Verein</span><b>${svEsc(c.club)}</b>`; sl.insertBefore(w,row.nextSibling); }
+}
+{ const _om1=openModal; openModal=function(){ const r=_om1.apply(this,arguments); try{svSeasonProfile(arguments[0]);}catch(e){} return r; }; }
+
+/* ---------- Datenstand & Update (Admin) ---------- */
+function svFmtDate(s){ try{ return new Date(s).toLocaleDateString('de-DE',{day:'2-digit',month:'2-digit',year:'numeric'}); }catch(e){ return s||''; } }
+async function svDataCard(P){
+  if(!P||!isAdmin())return;
+  let rows=[]; try{ const {data}=await SVB.sb.from('data_updates').select('at,ok,source,version,summary').order('at',{ascending:false}).limit(6); rows=data||[]; }catch(e){}
+  const last=rows.find(r=>r.ok), lastSt=last&&last.summary||{};
+  const el=document.createElement('div'); el.className='card'; el.id='svData';
+  const lg=(lastSt.leagues||[]).map(l=>`<tr><td>${svEsc(l.name)}</td><td class="num">${l.spieltag}</td><td class="num">${l.teams}</td><td class="num">${l.scorers}</td><td class="num">${l.added}</td></tr>`).join('');
+  el.innerHTML=`<div class="adm-head"><div><h3 style="margin:0;display:flex;gap:8px;align-items:center">${SVI('refresh')} Datenstand</h3>
+      <p style="margin:6px 0 0;font-size:13.5px">Tore, Spiele und Tabellen aller 7 Ligen kommen automatisch von FUSSBALL.DE – <b>jeden Montag und Donnerstag um 6 Uhr</b>. Die Bewertungen rechnen die laufende Saison 26/27 mit der Vorsaison zusammen.</p></div>
+      <button class="btn" id="svDataGo">${SVI('refresh')} Jetzt aktualisieren</button></div>
+    <div class="adm-stats" style="margin-bottom:12px"><div class="adm-stat"><b>${svEsc(svFmtDate((DATA&&DATA.updated)||last&&last.at))}</b><span>Stand der Daten</span></div>
+      ${last?`<div class="adm-stat"><b>${lastSt.matched||0}</b><span>Torschützen zugeordnet</span></div><div class="adm-stat"><b>${lastSt.added||0}</b><span>neu im Radar</span></div><div class="adm-stat"><b>${lastSt.transfers||0}</b><span>Vereinswechsel erkannt</span></div>`:''}</div>
+    ${lg?`<div class="dbwrap" style="max-height:none"><table class="db" style="min-width:0"><thead><tr><th>Liga</th><th class="num">Spieltag</th><th class="num">Teams</th><th class="num">Torschützen</th><th class="num">neu</th></tr></thead><tbody>${lg}</tbody></table></div>`:''}
+    <p class="note" id="svDataMsg">${rows.length?'Letzte Läufe: '+rows.slice(0,4).map(r=>(r.ok?'✓ ':'⚠ ')+new Date(r.at).toLocaleString('de-DE',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'})+' ('+svEsc(r.source||'')+')').join(' · '):'Noch kein automatischer Lauf.'}</p>`;
+  const old=P.querySelector('#svData'); if(old)old.replaceWith(el); else P.appendChild(el);
+  el.querySelector('#svDataGo').onclick=async()=>{
+    const b=el.querySelector('#svDataGo'), m=el.querySelector('#svDataMsg'); b.disabled=true; b.textContent='Lädt von FUSSBALL.DE …';
+    try{ const {data,error}=await SVB.sb.functions.invoke('data-update',{body:{}}); if(error){ let t=error.message; try{ const j=await error.context.json(); if(j&&j.error)t=j.error; }catch(_){} throw new Error(t); }
+      m.innerHTML='✓ Aktualisiert: '+(data.stats.matched||0)+' Torschützen, '+(data.stats.added||0)+' neu. <b>Die App lädt die neuen Daten jetzt …</b>'; setTimeout(()=>{ try{appReload();}catch(e){location.reload();} },1800); }
+    catch(e){ b.disabled=false; b.innerHTML=SVI('refresh')+' Jetzt aktualisieren'; m.textContent='⚠ '+e.message; }
+  };
+}
+{ const _ar0=svAdminRender; svAdminRender=async function(){ const r=await _ar0.apply(this,arguments); try{ await svDataCard(document.getElementById('panel-admin')); }catch(e){} return r; }; }
 
 /* ================= INIT ================= */
 renderWeights();
