@@ -1,0 +1,24 @@
+{
+  "id": "./",
+  "name": "SV/BSC Scout – Mörlenbach",
+  "short_name": "SV/BSC Scout",
+  "description": "Scouting, Kandidaten und Kaderplanung des SV/BSC Mörlenbach",
+  "lang": "de",
+  "dir": "ltr",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#0b0d12",
+  "theme_color": "#0b0d12",
+  "categories": ["sports", "productivity"],
+  "icons": [
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ],
+  "shortcuts": [
+    { "name": "Kandidaten", "short_name": "Kandidaten", "url": "./#kandidaten", "icons": [{ "src": "icon-192.png", "sizes": "192x192" }] },
+    { "name": "Kaderplan", "short_name": "Kaderplan", "url": "./#kaderplan", "icons": [{ "src": "icon-192.png", "sizes": "192x192" }] },
+    { "name": "Aufstellung", "short_name": "Aufstellung", "url": "./#elf", "icons": [{ "src": "icon-192.png", "sizes": "192x192" }] }
+  ]
+}
