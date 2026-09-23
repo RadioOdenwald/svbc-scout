@@ -2100,7 +2100,7 @@ function openSlotPicker(i,depth){
 }
 
 /* ===== App-Modus: installierbar, offline-fest, aktualisiert sich selbst ===== */
-const APP_BUILD='20260923-1740-r8', OUTBOX_KEY='svbcOutbox', APP_HIDE_KEY='svbcInstallHide';
+const APP_BUILD='20260923-1742-r8b', OUTBOX_KEY='svbcOutbox', APP_HIDE_KEY='svbcInstallHide';
 let _appPrompt=null, _appNew=null, _obT=null;
 function appStandalone(){ try{ return !!(window.matchMedia&&matchMedia('(display-mode: standalone)').matches)||navigator.standalone===true; }catch(e){ return false; } }
 function appPlatform(){
@@ -4503,7 +4503,7 @@ function rdChances(){
 function rdItem(r){
   const p=r.player_id&&trP(r.player_id), star=p&&p.star;
   return `<div class="tra l-${r.lvl} rdit"><span class="tra-av ${p?'':'team'}" ${p?`data-svp="${svEsc(p.id)}"`:''}>${p?avaHtml(p):SVI(r.typ==='team'?'shield':'radar')}</span>
-    <div class="tra-b"><b ${p?`data-svp="${svEsc(p.id)}"`:''}>${svEsc(r.titel)}</b><span>${svEsc(r.detail||'')}</span><small class="rdmeta">${svEsc(RD_TYP[r.typ]||r.typ)} · ${TRC.fmt(r.stand)}${r.stand.slice(2,4)}${r.created_at>rdSeen()?' · <b class="rdnew">neu</b>':''}</small></div>
+    <div class="tra-b"><b ${p?`data-svp="${svEsc(p.id)}"`:''}>${svEsc(r.titel)}</b><span>${svEsc(r.detail||'')}</span><small class="rdmeta">${svEsc(RD_TYP[r.typ]||r.typ)} · ${TRC.fmt(r.stand)}${r.stand.slice(2,4)}${r.created_at>rdSeen()?' · <i class="rdnew">neu</i>':''}</small></div>
     ${p&&!p.own?`<button class="iconbtn rdstar${star?' on':''}" data-star="${svEsc(p.id)}" title="${star?'Auf der Merkliste':'Auf die Merkliste'}">${SVI('star')}</button>`:''}</div>`;
 }
 function rdRender(){
