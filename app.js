@@ -2100,7 +2100,7 @@ function openSlotPicker(i,depth){
 }
 
 /* ===== App-Modus: installierbar, offline-fest, aktualisiert sich selbst ===== */
-const APP_BUILD='20260923-1639-r7', OUTBOX_KEY='svbcOutbox', APP_HIDE_KEY='svbcInstallHide';
+const APP_BUILD='20260923-1650-r7b', OUTBOX_KEY='svbcOutbox', APP_HIDE_KEY='svbcInstallHide';
 let _appPrompt=null, _appNew=null, _obT=null;
 function appStandalone(){ try{ return !!(window.matchMedia&&matchMedia('(display-mode: standalone)').matches)||navigator.standalone===true; }catch(e){ return false; } }
 function appPlatform(){
@@ -3424,6 +3424,7 @@ const TRC=(function(){
       else if(/uni|schule|klausur|pruefung|studium/.test(c))grund='uni'; else if(/familie|hochzeit|geburtstag|beerdigung|taufe/.test(c))grund='familie';
       else if(/zweite|2\. mannschaft|reserve/.test(c))grund='zweite'; else if(/ohne grund|unentschuldigt|ohne absage|nicht abgemeldet|ohne abmeldung|keine absage|einfach nicht/.test(c))grund='ohne';
       else if(/privat|termin/.test(c))grund='privat';
+      if(!ps.length&&grund&&last.length&&last.every(p=>sp[p.id]&&sp[p.id].status==='weg'))ps=last;   // „X war nicht da, hatte Schicht“
       let mot=null, fit=null;
       if(/lustlos|unmotiviert|kein bock|keinen bock|null bock|faul|desinteressiert|schlecht drauf|genervt/.test(c))mot=/sehr|total|komplett|null bock/.test(c)?1:2;
       else if(/super motiviert|sehr motiviert|voll dabei|brennt|ueberragend|herausragend|top einstellung/.test(c))mot=5;
@@ -3497,7 +3498,7 @@ function canContacts(){ return canEdit(); }
 function canTraining(){ return canEdit(); }
 SV_PAGES.training=['Training','Anwesenheit, Fitness, Verletzungen – und dein Co-Trainer'];
 { const _ta=svTabAllowed; svTabAllowed=function(t){ if(t==='training')return canTraining(); return _ta.apply(this,arguments); }; }
-Object.assign(SV_ROLE_INFO.trainer,{d:'Wie die Kaderplaner – mit Fokus Training',yes:['Alles sehen & bearbeiten','Training, Fitness & Verletzungen','Kandidaten & Aufstellung','Co-Trainer'],no:['Nutzerverwaltung']});
+Object.assign(SV_ROLE_INFO.trainer,{t:'Trainer',d:'Wie die Kaderplaner – mit Fokus Training',yes:['Alles sehen & bearbeiten','Training, Fitness & Verletzungen','Kandidaten & Aufstellung','Co-Trainer'],no:['Nutzerverwaltung']});
 Object.assign(SV_ROLE_INFO.planer,{yes:['Kandidaten & Kontakte pflegen','Kaderplan & Aufstellung','Training & Verletzungen','Co-Trainer']});
 
 const TR={st:{sessions:[],injuries:[]},loaded:false,loading:null,view:'home',ai:null,chat:[],chatBusy:false,greeted:false};

@@ -9,7 +9,7 @@ const CFG=window.SVBC_CFG||{}, I=window.SVI;
 const gate=document.getElementById('gate'), card=document.getElementById('gcard'), load=document.getElementById('gload');
 const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const ls={get(k){try{return localStorage.getItem(k);}catch(e){return null;}},set(k,v){try{v==null?localStorage.removeItem(k):localStorage.setItem(k,v);}catch(e){}}};
-const ROLE_T={admin:'Admin',vorstand:'Vorstand',planer:'Kaderplaner',trainer:'Trainer / Scout',viewer:'Gast'};
+const ROLE_T={admin:'Admin',vorstand:'Vorstand',planer:'Kaderplaner',trainer:'Trainer',viewer:'Gast'};
 const initials=n=>String(n||'?').trim().split(/\s+/).map(w=>w[0]).slice(0,2).join('').toUpperCase()||'?';
 document.body.classList.add('gated');
 
