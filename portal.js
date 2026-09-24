@@ -43,18 +43,18 @@
     return [...m.entries()].map(([id,name])=>({id,name})).sort((a,b)=>a.name.localeCompare(b.name,'de'));
   }
   function meBtn(){ const b=$('#me'); if(!ME){ b.style.display='none'; return; } b.style.display=''; const ini=ME.name.split(' ').map(w=>w[0]).slice(0,2).join('');
-    b.innerHTML=`<i>${esc(ini)}</i>${esc(ME.name.split(' ')[0])}`; b.onclick=()=>{ if(ME.fest){ toast('Das ist dein persönlicher Link – nur für dich.'); return; } if(confirm('Nicht '+ME.name+'? Namen neu wählen.')){ ME=null; ls.del('kab_me'); render(); } }; }
+    b.innerHTML=`<i>${esc(ini)}</i>${esc(ME.name.split(' ')[0])}`; b.onclick=()=>{ if(ME.fest){ toast('Das ist dein persönlicher Link, nur für dich.'); return; } if(confirm('Nicht '+ME.name+'? Namen neu wählen.')){ ME=null; ls.del('kab_me'); render(); } }; }
   function render(){
     meBtn();
     const R=roster();
-    if(ME&&!R.some(x=>x.id===ME.id)&&R.length){ /* nicht mehr auf der Liste – trotzdem anzeigen */ }
+    if(ME&&!R.some(x=>x.id===ME.id)&&R.length){ /* nicht mehr auf der Liste, trotzdem anzeigen */ }
     if(!ME){
       const tgt=target();
-      app.innerHTML=`<div class="card"><h2>Wer bist du?</h2><p class="note">Tippe auf deinen <b>Vor- und Nachnamen</b> – das Handy merkt es sich. Danach reicht ein Klick: dabei oder nicht dabei.</p>
+      app.innerHTML=`<div class="card"><h2>Wer bist du?</h2><p class="note">Tippe auf deinen <b>Vor- und Nachnamen</b> · das Handy merkt es sich. Danach reicht ein Klick: dabei oder nicht dabei.</p>
         <input class="search" id="q" type="search" placeholder="Name suchen …" autocomplete="off"><div class="pick" id="pk"></div></div>
-        ${tgt?`<div class="card neu"><h2>Nicht in der Liste?</h2><p class="note">Dann trag dich mit Vor- und Nachnamen ein – beides ist Pflicht.</p>
+        ${tgt?`<div class="card neu"><h2>Nicht in der Liste?</h2><p class="note">Dann trag dich mit Vor- und Nachnamen ein, beides ist Pflicht.</p>
           <div class="nm"><input class="txt" id="gV" placeholder="Vorname" autocomplete="given-name" maxlength="30"><input class="txt" id="gN" placeholder="Nachname" autocomplete="family-name" maxlength="40"></div>
-          <button class="btn2 full" id="gGo">Eintragen</button></div>`:'<p class="note" style="text-align:center">Du fehlst? Kurz beim Trainer melden – er setzt dich auf die Liste.</p>'}`;
+          <button class="btn2 full" id="gGo">Eintragen</button></div>`:'<p class="note" style="text-align:center">Du fehlst? Kurz beim Trainer melden. Er setzt dich auf die Liste.</p>'}`;
       const gg=$('#gGo'); if(gg)gg.onclick=()=>gast(tgt.id,$('#gV').value,$('#gN').value);
       const draw=q=>{ const n=(q||'').toLowerCase(); $('#pk').innerHTML=R.filter(x=>!n||x.name.toLowerCase().includes(n)).map(x=>`<button data-id="${esc(x.id)}">${esc(x.name)}</button>`).join('')||'<p class="note">Kein Treffer.</p>';
         document.querySelectorAll('#pk [data-id]').forEach(b=>b.onclick=()=>{ ME={id:b.dataset.id,name:R.find(x=>x.id===b.dataset.id).name}; ls.set('kab_me',JSON.stringify(ME)); render(); }); };
@@ -72,13 +72,13 @@
     if(v.length<2||n.length<2){ toast('Bitte Vor- und Nachname eintragen'); return; }
     if(busy)return; busy=true;
     try{ const r=await rpc('portal_gast',{p_key:KEY,p_poll:poll,p_vorname:v,p_nachname:n}); ME={id:r.id,name:r.name}; ls.set('kab_me',JSON.stringify(ME));
-      toast(r.neu?'✓ Eingetragen – jetzt zu- oder absagen':'✓ Gefunden: '+r.name); busy=false; await load(); return; }
+      toast(r.neu?'✓ Eingetragen: jetzt zu- oder absagen':'✓ Gefunden: '+r.name); busy=false; await load(); return; }
     catch(e){ toast('⚠️ '+e.message); }
     busy=false;
   }
   function polls(B){
     const P=(S.polls||[]).filter(p=>p.datum>=S.heute).sort((a,b)=>(a.id===FOCUS?-1:b.id===FOCUS?1:0)||(a.datum<b.datum?-1:a.datum>b.datum?1:0));
-    const wa=S.ich&&S.ich.whatsapp?`<div class="card wa"><b>WhatsApp-Erinnerungen</b><span>${S.ich.optout?'Aus – du bekommst keine Nachrichten.':'An – du bekommst den Link zum Training und ggf. eine Erinnerung.'}</span><button class="btn2" id="waT">${S.ich.optout?'Wieder einschalten':'Ausschalten'}</button></div>`:'';
+    const wa=S.ich&&S.ich.whatsapp?`<div class="card wa"><b>WhatsApp-Erinnerungen</b><span>${S.ich.optout?'Aus: du bekommst keine Nachrichten.':'An: du bekommst den Link zum Training und ggf. eine Erinnerung.'}</span><button class="btn2" id="waT">${S.ich.optout?'Wieder einschalten':'Ausschalten'}</button></div>`:'';
     if(!P.length){ B.innerHTML='<div class="card empty"><h2>Gerade nichts offen</h2><p class="note">Sobald der Trainer eine Abstimmung anlegt, steht sie hier.</p></div>'+wa; waWire(); return; }
     B.innerHTML=P.map(p=>{ const T=p.teilnehmer||[], V=new Map((p.votes||[]).map(v=>[v.p,v])), mine=V.get(ME.id), inL=T.some(t=>t.id===ME.id);
       const g={zu:[],vllt:[],ab:[],offen:[]}; T.forEach(t=>{ const v=V.get(t.id); (v?g[v.a]:g.offen).push(t.name); }); const n=T.length||1, pc=x=>Math.round(x/n*100);
@@ -104,7 +104,7 @@
     if(busy)return; busy=true;
     try{ await rpc('portal_vote',{p_key:KEY,p_poll:poll,p_player:ME.id,p_antwort:a,p_grund:g||null,p_notiz:n||null});
       const p=S.polls.find(x=>x.id===poll); p.votes=(p.votes||[]).filter(v=>v.p!==ME.id).concat([{p:ME.id,a,g:a==='ab'?(g||null):null,n:n||null,at:new Date().toISOString()}]);
-      if(!quiet){ toast(a==='zu'?'👍 Du bist dabei – danke!':a==='ab'?(g?'✓ Gespeichert':'✓ Nicht dabei – tipp bitte kurz den Grund an'):'✓ Gespeichert'); render(); }
+      if(!quiet){ toast(a==='zu'?'👍 Du bist dabei. Danke!':a==='ab'?(g?'✓ Gespeichert':'✓ Nicht dabei: tipp bitte kurz den Grund an'):'✓ Gespeichert'); render(); }
     }catch(e){ toast('⚠️ '+e.message); }
     busy=false;
   }
@@ -121,18 +121,18 @@
     B.innerHTML=`<div class="flip" id="flip"><div class="flin"><div class="card hero fl-f">${face(0)}</div><div class="card hero fl-b"></div></div></div>
       ${C.kasse?`<a class="mklink" href="${esc(C.kasse.replace(/\/?$/,'/')+'#k='+encodeURIComponent(KEY))}"><span>🏆</span><b>Top-Supporter &amp; Kassen-Transparenz</b><i>→</i></a>`:''}
       <div class="card mine"><h2>Deine Strafen</h2>${mine.length?`<div class="grid2" style="margin-top:12px"><div class="stat"><span>Offen</span><b class="${sum?'mid':'ok'}">${eur(sum)}</b></div><div class="stat"><span>Bezahlt</span><b>${eur(mine.filter(b=>b.status==='bezahlt').reduce((a,b)=>a+ +b.betrag,0))}</b></div></div>
-        ${pay?`<a class="pay" href="${esc(pay)}" target="_blank" rel="noopener">Mit PayPal bezahlen · ${eur(sum)}</a><p class="note">Bitte „Freunde &amp; Familie“ wählen – dann kostet es nichts.</p>`:''}
+        ${pay?`<a class="pay" href="${esc(pay)}" target="_blank" rel="noopener">Mit PayPal bezahlen · ${eur(sum)}</a><p class="note">Bitte „Freunde &amp; Familie“ wählen, dann kostet es nichts.</p>`:''}
         ${sum&&cfg.iban?`<div class="iban"><span>Oder per Überweisung</span><b>${esc(cfg.iban.replace(/(.{4})/g,'$1 ').trim())}</b><small>${esc(cfg.kontoinhaber||'')} · Verwendungszweck: Mannschaftskasse ${esc(ME.name)}</small><button class="btn2" id="ibanCp">IBAN kopieren</button></div>`:''}
-        ${sum?`<button class="btn2" id="paid">Ich habe bezahlt</button><div class="weg" id="weg" hidden><p class="note"><b>Wie hast du bezahlt?</b> Der Kassenwart schaut dann aufs richtige Konto.</p><div class="ans">${['paypal','bank','bar'].map(k=>`<button data-weg="${k}"><span>${{paypal:'🅿️',bank:'🏦',bar:'💶'}[k]}</span>${{paypal:'PayPal',bank:'Überweisung',bar:'Bar'}[k]}</button>`).join('')}</div></div>`:''}${myG.length?`<p class="note">⏳ ${myG.length} Posten als bezahlt gemeldet${myG[0].zahlweg?' ('+FIX[myG[0].zahlweg]+')':''} – zählt, sobald der Kassenwart den Eingang abhakt.</p>`:''}
+        ${sum?`<button class="btn2" id="paid">Ich habe bezahlt</button><div class="weg" id="weg" hidden><p class="note"><b>Wie hast du bezahlt?</b> Der Kassenwart schaut dann aufs richtige Konto.</p><div class="ans">${['paypal','bank','bar'].map(k=>`<button data-weg="${k}"><span>${{paypal:'🅿️',bank:'🏦',bar:'💶'}[k]}</span>${{paypal:'PayPal',bank:'Überweisung',bar:'Bar'}[k]}</button>`).join('')}</div></div>`:''}${myG.length?`<p class="note">⏳ ${myG.length} Posten als bezahlt gemeldet${myG[0].zahlweg?' ('+FIX[myG[0].zahlweg]+')':''} · zählt, sobald der Kassenwart den Eingang abhakt.</p>`:''}
         <h3>Deine Posten</h3>${mine.map(b=>`<div class="row"><b>${esc(b.titel)}</b><small>${esc(new Date(b.datum+'T12:00:00').toLocaleDateString('de-DE'))}</small><em>${eur(b.betrag)}</em><span class="st ${esc(b.status)}">${esc(b.status)}</span></div>`).join('')}`
-        :'<p class="note">Weiße Weste – keine Strafen. 😇</p>'}${cfg.hinweis?`<p class="note">${esc(cfg.hinweis)}</p>`:''}</div>
+        :'<p class="note">Weiße Weste, keine Strafen. 😇</p>'}${cfg.hinweis?`<p class="note">${esc(cfg.hinweis)}</p>`:''}</div>
       <div class="card"><h2>Alle Spieler</h2>${P.length?P.map(x=>`<div class="row"><b>${esc(x.name)}</b>${x.off?`<em class="mid">${eur(x.off)} offen</em>`:'<em class="ok">✓</em>'}<small>${eur(x.bez)} bezahlt</small></div>`).join(''):'<p class="note">Noch keine Einträge.</p>'}</div>
       ${(K.katalog||[]).length?`<div class="card"><h2>Strafenkatalog</h2>${K.katalog.map(k=>`<div class="row"><b>${esc(k.titel)}</b><em>${eur(k.betrag)}</em></div>`).join('')}</div>`:''}
       <div class="card"><h2>Letzte Buchungen</h2>${L.slice(0,40).map(b=>`<div class="row"><b>${b.art==='ausgabe'?'➖ ':b.art==='einzahlung'?'➕ ':''}${esc(b.p?b.name||'':b.titel)}</b><small>${b.p?esc(b.titel):''}</small><em class="${b.art==='ausgabe'?'bad':''}">${b.art==='ausgabe'?'−':''}${eur(b.betrag)}</em></div>`).join('')||'<p class="note">Noch keine Buchungen.</p>'}</div>`;
     const ic=$('#ibanCp'); if(ic)ic.onclick=async()=>{ try{ await navigator.clipboard.writeText(cfg.iban); toast('✓ IBAN kopiert'); }catch(e){ prompt('IBAN:',cfg.iban); } };
     const pd=$('#paid'); if(pd)pd.onclick=()=>{ pd.hidden=true; $('#weg').hidden=false; };
     document.querySelectorAll('[data-weg]').forEach(b=>b.onclick=async()=>{ if(busy)return; busy=true;
-      try{ const n=await rpc('portal_bezahlt',{p_key:KEY,p_player:ME.id,p_weg:b.dataset.weg}); toast(`✓ ${n} Posten gemeldet (${FIX[b.dataset.weg]}) – der Kassenwart hakt ab`); busy=false; await load(); }catch(e){ busy=false; toast('⚠️ '+e.message); } });
+      try{ const n=await rpc('portal_bezahlt',{p_key:KEY,p_player:ME.id,p_weg:b.dataset.weg}); toast(`✓ ${n} Posten gemeldet (${FIX[b.dataset.weg]}): der Kassenwart hakt ab`); busy=false; await load(); }catch(e){ busy=false; toast('⚠️ '+e.message); } });
     let fi=0, fb=false; const fl=$('#flip'); if(fl&&KO.length>1)fl.onclick=()=>{ if(fb)return; fb=true; const inn=fl.querySelector('.flin'); fl.querySelector('.fl-b').innerHTML=face(fi+1); inn.classList.add('turn');
       setTimeout(()=>{ fi++; fl.querySelector('.fl-f').innerHTML=face(fi); inn.style.transition='none'; inn.classList.remove('turn'); void inn.offsetWidth; inn.style.transition=''; fb=false; },620); };
   }

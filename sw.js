@@ -2,9 +2,9 @@
    - App-Seite: erst Netz (max. 4 s), sonst gespeicherte Version → startet auch im Funkloch
    - Icons/Wappen/Chart-Bibliothek: aus dem Speicher, im Hintergrund aufgefrischt
    - Sync (Make) und version.json laufen NIE über den Speicher */
-const BUILD = '4.2-202609241703';
+const BUILD = '4.3-202609241852';
 const CACHE = 'svbc-scout-' + BUILD;
-const SHELL = ['./', './manifest.webmanifest', './icon-192.png', './icon-512.png', './apple-touch-icon.png', './favicon-64.png', './crest.svg',
+const SHELL = ['./', './manifest.webmanifest', './icon-192.png', './icon-512.png', './apple-touch-icon.png', './favicon-64.png', './crest.svg', './logo.png',
   './fonts/inter-var.woff2', './fonts/barlowc-700.woff2', './vendor/supabase.js?v=' + BUILD, './icons.js?v=' + BUILD, './boot.js?v=' + BUILD, './app.js?v=' + BUILD];
 const PAGE_KEY = './';
 
@@ -51,7 +51,7 @@ async function pageFirstNetwork(req) {
 
 async function assetStaleWhileRevalidate(req, key) {
   const c = await caches.open(CACHE);
-  const hit = await c.match(key || req);            /* exakt (inkl. ?v=Build) – neue Version holt sich neuen Code */
+  const hit = await c.match(key || req);            /* exakt (inkl. ?v=Build): neue Version holt sich neuen Code */
   const upd = fetch(req).then(r => { if (r && (r.ok || r.type === 'opaque')) c.put(key || req, r.clone()); return r; }).catch(() => null);
   return hit || (await upd) || Response.error();
 }

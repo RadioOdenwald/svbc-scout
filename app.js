@@ -37,7 +37,7 @@ const clamp=(v,a,b)=>Math.min(b,Math.max(a,v));
 function ligaBase(l){return (l==='D1'||l==='D2')?'D':l;}
 function wOf(p){return p.isJugend ? p.jw : LIGA_W[p.liga];}
 function scores(p){
-  const sp=p.einsaetze||((p.toreBelegt&&p.kaderDoc&&p.kaderStarts)?Math.max(6,p.kaderStarts):p.teamSp); /* dok.-Spiele-Basis NUR bei Untergrenzen-Toren aus den Heften — offizielle Saisontore rechnen über Team-Spiele */
+  const sp=p.einsaetze||((p.toreBelegt&&p.kaderDoc&&p.kaderStarts)?Math.max(6,p.kaderStarts):p.teamSp); /* dok.-Spiele-Basis NUR bei Untergrenzen-Toren aus den Heften, offizielle Saisontore rechnen über Team-Spiele */
   const gpg=(p.min&&p.min>=90)?p.tore/(p.min/90):p.tore/Math.max(1,sp);
   const wnow=gpg*wOf(p);
   let prod=clamp(wnow/1.0*100,0,100);
@@ -105,9 +105,9 @@ function scores(p){
 /* ================= GEMS ================= */
 function gemsOf(p){
   const s=scores(p);const out=[];
-  if(p.exSvbc)out.push({k:'Rückholer',t:'Kennt den Verein – Ex-SV/BSC mit '+p.tore+' Toren höherklassig'});
-  if(p.isJugend&&s.gpg>=0.8)out.push({k:'U19-Sprung',t:'Jugend-Quote '+fmt(s.gpg)+'/Spiel – bereit für Senioren-Minuten'});
-  if(!p.isJugend&&p.zweit&&(p.liga==='C'||p.liga==='D')&&s.gpg>=0.65)out.push({k:'Zweite Reihe',t:'Top-Quote im II.-Team – kickt nur so tief, weil das Erstteam höher spielt'});
+  if(p.exSvbc)out.push({k:'Rückholer',t:'Kennt den Verein: Ex-SV/BSC mit '+p.tore+' Toren höherklassig'});
+  if(p.isJugend&&s.gpg>=0.8)out.push({k:'U19-Sprung',t:'Jugend-Quote '+fmt(s.gpg)+'/Spiel: bereit für Senioren-Minuten'});
+  if(!p.isJugend&&p.zweit&&(p.liga==='C'||p.liga==='D')&&s.gpg>=0.65)out.push({k:'Zweite Reihe',t:'Top-Quote im II.-Team: kickt nur so tief, weil das Erstteam höher spielt'});
   if(!p.isJugend&&s.shareRaw!=null&&s.shareRaw>=0.35&&p.rank!=null&&p.rank>p.teamCount/2)out.push({k:'Einsamer Torjäger',t:Math.round(s.shareRaw*100)+'% aller Teamtore in schwachem Team'});
   if(s.tratio!=null&&s.tratio>=1.3&&p.liga!=='KOL')out.push({k:'Formexplosion',t:'Quote +'+Math.round((s.tratio-1)*100)+'% vs. Vorsaison (ligagewichtet)'});
   return out;
@@ -259,7 +259,7 @@ function renderHome(){
     return `<div class="rankrow row" data-id="${p.id}">
       <span class="rk" style="color:${tierColor(x.W.w)}" title="Wechsel-Index (Wechselwahrscheinlichkeit)">${x.W.w}</span>
       <div class="ava l-${p.liga}" style="width:30px;height:30px;font-size:11px;border-radius:9px">${src?`<img src="${src}" onerror="this.remove()">`:initials(p.name)}</div>
-      <span class="rn">${p.name}${p.club==='SG Wald-Michelbach'?` <b style="color:#4da3ff">●</b>`:``} <i style="color:var(--ink3)">${p.club} · ${LIGA_NAME[p.liga]||p.liga}</i><br><i style="color:#8fa3c7;font-size:11px">Stärke ${Math.round(x.s.total)} · Transfer-Chance ${x.W.k} — ${wreason(x.W,1)}</i></span>
+      <span class="rn">${p.name}${p.club==='SG Wald-Michelbach'?` <b style="color:#4da3ff">●</b>`:``} <i style="color:var(--ink3)">${p.club} · ${LIGA_NAME[p.liga]||p.liga}</i><br><i style="color:#8fa3c7;font-size:11px">Stärke ${Math.round(x.s.total)} · Transfer-Chance ${x.W.k} · ${wreason(x.W,1)}</i></span>
       <span class="rv">${p.km!=null?p.km+' km':''}</span></div>`;}).join('')+
     `<p class="note">Zahl = <b>Wechsel-Index</b> (Wechselwahrscheinlichkeit aus öffentlichen Signalen), nur Spieler mit Stärke ≥ 45. Zeile antippen → Profil mit kompletter Begründung.</p>`;}
   $('#homeGems').innerHTML=gems.map(({p,g})=>{
@@ -288,16 +288,16 @@ function renderHome(){
         <span class="rn">${p.name}${C.c?' <span class="badge b-crmc">📞</span>':''} <i style="color:var(--ink3)">${p.club} · ${LIGA_NAME[p.liga]||p.liga}</i>${sub?`<br><i style="color:#8fa3c7;font-size:11px">${sub}</i>`:''}${C.n?`<div class="crmnote">📝 ${kEsc(C.n.length>90?C.n.slice(0,90)+'…':C.n)}</div>`:''}</span>
         <span class="rv">${p.km!=null?p.km+' km':''}</span></div>`;};
     let out='<div class="sechead">🗂 Scouting-Zentrale <small style="color:var(--ink3)">Kontakte · Merkliste · Wiedervorlagen</small></div><div class="card" style="padding:10px 12px">';
-    if(due.length)out+=`<div class="duebox"><b style="color:#ffb347">⏰ Wiedervorlage fällig (${due.length})</b> — die wolltet ihr euch jetzt wieder anschauen:</div>`+
+    if(due.length)out+=`<div class="duebox"><b style="color:#ffb347">⏰ Wiedervorlage fällig (${due.length})</b> · die wolltet ihr euch jetzt wieder anschauen:</div>`+
       due.map(p=>mini(p,'Wiedervorlage seit '+fmtD(crmOf(p).u||T)+(wscoreSafe(p)?' · Transfer-Chance '+wscoreSafe(p).k:''))).join('');
     if(att.length)out+=`<div class="sechead" style="margin:10px 0 4px">💚 Unsere Kandidaten (${att.length})</div>`+
       att.map(x=>mini(x.p,x.W?('Transfer-Chance '+x.W.k+' · Wechsel-Index '+x.W.w):'' )).join('');
     if(exs.length)out+=`<div class="sechead" style="margin:10px 0 4px">↩️ Ehemalige im Blick (${exs.length}) <small style="color:var(--ink3)">Rückkehr gibt +15 im Wechsel-Index</small></div>`+
-      exs.slice(0,8).map(x=>mini(x.p,'Transfer-Chance '+x.W.k+' — '+wreason(x.W,1))).join('');
-    if(!due.length&&!att.length&&!exs.length&&!cont.length)out+=`<p class="note" style="margin:4px 0">So funktioniert's: Im Spielerprofil markierst du <b>📞 kontaktiert</b>, <b>💚 attraktiv</b>, <b>🚫 kein Interesse</b> oder <b>⏰ später</b> (mit Wiedervorlage-Datum). Alles landet hier — geräteübergreifend, auch für Tobi. Kennst du einen, der früher beim SV/BSC gespielt hat? <b>↩️ markieren</b> → er bekommt automatisch den Rückkehr-Bonus im Wechsel-Index.</p>`;
-    if(hidNo.length||hidLat.length)out+=`<details class="hidbox"><summary>🚫 Ausgeblendet: ${hidNo.length} kein Interesse · ⏰ ${hidLat.length} auf Wiedervorlage — anzeigen</summary>`+
+      exs.slice(0,8).map(x=>mini(x.p,'Transfer-Chance '+x.W.k+' · '+wreason(x.W,1))).join('');
+    if(!due.length&&!att.length&&!exs.length&&!cont.length)out+=`<p class="note" style="margin:4px 0">So funktioniert's: Im Spielerprofil markierst du <b>📞 kontaktiert</b>, <b>💚 attraktiv</b>, <b>🚫 kein Interesse</b> oder <b>⏰ später</b> (mit Wiedervorlage-Datum). Alles landet hier: geräteübergreifend, auch für Tobi. Kennst du einen, der früher beim SV/BSC gespielt hat? <b>↩️ markieren</b> → er bekommt automatisch den Rückkehr-Bonus im Wechsel-Index.</p>`;
+    if(hidNo.length||hidLat.length)out+=`<details class="hidbox"><summary>🚫 Ausgeblendet: ${hidNo.length} kein Interesse · ⏰ ${hidLat.length} auf Wiedervorlage: anzeigen</summary>`+
       hidLat.map(p=>mini(p,'wieder ab '+fmtD(crmOf(p).u))).join('')+
-      hidNo.map(p=>mini(p,'kein Interesse — im Profil jederzeit änderbar')).join('')+`</details>`;
+      hidNo.map(p=>mini(p,'kein Interesse: im Profil jederzeit änderbar')).join('')+`</details>`;
     out+='</div>';
     el.innerHTML=out;
    }}
@@ -313,7 +313,7 @@ function renderList(){
   const arr=sorted(visible());
   const hid=(ageMin!=null||ageMax!=null)?players.filter(p=>activeLigen.has(p.liga)&&p.alter==null).length:0;
   $('#filterHint').textContent=`${arr.length} Spieler${hid?` · ${hid} ohne Altersangabe ausgeblendet`:''}${fPos?` · Position ${fPos} (Standard: ST)`:''}`;
-  $('#list').innerHTML=arr.length?arr.map((p,i)=>rowHtml(p,i)).join(''):'<div class="empty">Keine Treffer – Filter lockern.</div>';
+  $('#list').innerHTML=arr.length?arr.map((p,i)=>rowHtml(p,i)).join(''):'<div class="empty">Keine Treffer: Filter lockern.</div>';
 }
 function renderGems(){
   const gems=players.filter(p=>!crmHidden(p)).map(p=>({p,g:gemsOf(p),gs:gemScore(p)})).filter(x=>x.gs).sort((a,b)=>b.gs-a.gs);
@@ -407,7 +407,7 @@ let kandFP='',kandDue=false,kandQ='',kandPanel='',kandAddQ='',kandKeyMsg='',kand
 function kEsc(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
 function daysSince(iso){if(!iso)return null;const d=new Date(iso+'T00:00:00'),n=new Date(todayISO()+'T00:00:00');return Math.round((n-d)/86400000);}
 function metaOf(){try{return CRM[META_ID]||{};}catch(e){return {};}}
-function kandOut(C){ /* aus der Pipeline genommen – gilt, bis danach wieder markiert/zugewiesen/eingeschätzt wird */
+function kandOut(C){ /* aus der Pipeline genommen. Gilt, bis danach wieder markiert/zugewiesen/eingeschätzt wird */
   if(!C.px)return false; const T=C._t||{}; return (T.px||0)>=Math.max(T.f||0,T.pl||0,T.w||0,T.s||0);}
 function kandList(){return players.filter(p=>{const C=crmOf(p);return (C.f||C.pl||C.w||C.lc||C.s==='att')&&C.s!=='no'&&!kandOut(C);});}
 function kandIsDue(p){const ds=daysSince(crmOf(p).lc);return ds===null||ds>KAND_DUE_DAYS;}
@@ -424,7 +424,7 @@ function kToast(msg,actLabel,actFn){
 async function kCopy(txt){
   try{await navigator.clipboard.writeText(txt);kToast('📋 In die Zwischenablage kopiert');}
   catch(e){const ta=document.createElement('textarea');ta.value=txt;ta.style.position='fixed';ta.style.opacity='0';document.body.appendChild(ta);ta.select();
-    try{document.execCommand('copy');kToast('📋 In die Zwischenablage kopiert');}catch(e2){kToast('Kopieren nicht möglich – Text bitte markieren');}ta.remove();}
+    try{document.execCommand('copy');kToast('📋 In die Zwischenablage kopiert');}catch(e2){kToast('Kopieren nicht möglich: Text bitte markieren');}ta.remove();}
 }
 
 /* ---------- Team-Schlüssel: Kontaktdaten Ende-zu-Ende verschlüsselt (AES-GCM 256, Schlüssel per PBKDF2 aus einem Satz) ---------- */
@@ -453,15 +453,15 @@ async function tkInit(){ if(!tkCan())return; const pass=lsGet(TK_LS); if(!pass)r
 async function tkSetPass(pass){
   pass=(pass||'').trim();
   const fail=m=>{kandKeyMsg=m;renderKandidaten();setTimeout(()=>{const i=document.getElementById('kKeyIn');if(i)i.focus();},0);};
-  if(pass.length<12)return fail('Bitte mindestens 12 Zeichen – am sichersten: „🎲 Schlüssel erzeugen“ nutzen.');
-  if(!tkCan())return fail('Dieser Browser kann nicht verschlüsseln – bitte aktuellen Chrome/Safari/Firefox nutzen.');
-  if(!_remoteDone)return fail('Daten werden noch geladen – bitte in ein paar Sekunden erneut versuchen.');
+  if(pass.length<12)return fail('Bitte mindestens 12 Zeichen. Am sichersten: „🎲 Schlüssel erzeugen“ nutzen.');
+  if(!tkCan())return fail('Dieser Browser kann nicht verschlüsseln, bitte aktuellen Chrome/Safari/Firefox nutzen.');
+  if(!_remoteDone)return fail('Daten werden noch geladen, bitte in ein paar Sekunden erneut versuchen.');
   kandKeyMsg='⏳ Prüfe …'; try{const m=document.querySelector('#panel-kandidaten .kmsg');if(m)m.textContent=kandKeyMsg;}catch(e){}
   let key; try{key=await tkDerive(pass);}catch(e){return fail('Schlüssel konnte nicht erzeugt werden.');}
-  if(!metaOf().kv){ try{ const d=await syncFetch(); if(syncAdoptRemote(d))crmAfterRemote(); }catch(e){ return fail('Keine Verbindung zum Speicher – bitte gleich noch einmal versuchen.'); } }
+  if(!metaOf().kv){ try{ const d=await syncFetch(); if(syncAdoptRemote(d))crmAfterRemote(); }catch(e){ return fail('Keine Verbindung zum Speicher, bitte gleich noch einmal versuchen.'); } }
   const kv=metaOf().kv;
   if(kv){ try{ if(await tkDecWith(key,kv,'kv')!=='svbc-ok')throw 0; }catch(e){ return fail('❌ Das ist nicht der Team-Schlüssel.'); } }
-  else { crmSet(META_ID,{kv:await tkEncWith(key,'svbc-ok','kv')}); kToast('🔐 Team-Schlüssel festgelegt – teile ihn mit den anderen Kaderplanern'); }
+  else { crmSet(META_ID,{kv:await tkEncWith(key,'svbc-ok','kv')}); kToast('🔐 Team-Schlüssel festgelegt: teile ihn mit den anderen Kaderplanern'); }
   TK=key; tkVerified=true; lsSet(TK_LS,pass); kandKeyMsg=''; kandKeyDraft=''; kandPanel='';
   await kandCryptoTick(true);
 }
@@ -473,7 +473,7 @@ async function kandCryptoTick(force){
     const kv=metaOf().kv;
     if(!tkVerified&&kv){
       let ok=false; try{ ok=(await tkDecWith(TK,kv,'kv'))==='svbc-ok'; }catch(e){ ok=false; }
-      if(!ok){ TK=null; kandKeyMsg='Der gespeicherte Schlüssel passt nicht zum Team-Schlüssel – bitte neu eingeben.'; tkBusy=false; try{renderKandidaten();}catch(e){} return; }
+      if(!ok){ TK=null; kandKeyMsg='Der gespeicherte Schlüssel passt nicht zum Team-Schlüssel, bitte neu eingeben.'; tkBusy=false; try{renderKandidaten();}catch(e){} return; }
       tkVerified=true; changed=true;
     }
     if(!tkVerified&&!kv){ tkBusy=false; return; } /* ohne Prüfwert nichts ver-/entschlüsseln */
@@ -505,8 +505,8 @@ function kandContactCell(p,C){
       +((ph||ml)?'<div class="kacts">'+(ph?'<a class="kbtn klink" href="tel:'+kEsc(ph.tel)+'" title="Anrufen">📞</a><a class="kbtn klink" href="https://wa.me/'+kEsc(ph.wa)+'" target="_blank" rel="noopener" title="WhatsApp-Chat öffnen">💬</a>':'')+(ml?'<a class="kbtn klink" href="mailto:'+kEsc(ml)+'" title="E-Mail">✉️</a>':'')+'</div>':'');
   }
   if(C.k&&!isEnc(C.k))return '<span class="kand-lock" style="color:#ffb347" title="Wird verschlüsselt, sobald ein Planer mit Schlüssel die Seite öffnet">⚠ unverschlüsselt</span>';
-  if(C.k)return '<span class="kand-lock" title="Verschlüsselt gespeichert – Team-Schlüssel eingeben zum Anzeigen">🔒 hinterlegt</span>';
-  return '<span class="kand-lock" title="Kontaktdaten werden verschlüsselt gespeichert – dazu Team-Schlüssel eingeben">🔒 –</span>';
+  if(C.k)return '<span class="kand-lock" title="Verschlüsselt gespeichert: Team-Schlüssel eingeben zum Anzeigen">🔒 hinterlegt</span>';
+  return '<span class="kand-lock" title="Kontaktdaten werden verschlüsselt gespeichert. Dazu Team-Schlüssel eingeben">🔒 –</span>';
 }
 
 /* ---------- Wochen-Digest je Kaderplaner (zum Kopieren / Teilen per WhatsApp) ---------- */
@@ -524,7 +524,7 @@ function kandDigestText(pl){
   const all=kandList();
   const sec=(name,L)=>{
     const due=L.filter(kandIsDue).sort((a,b)=>(daysSince(crmOf(b).lc)??1e9)-(daysSince(crmOf(a).lc)??1e9)), ok=L.filter(p=>!kandIsDue(p));
-    let t=(name?'👤 '+name:'👤 ohne Verantwortlichen')+' – '+(due.length?due.length+' von '+L.length+' fällig':'alle '+L.length+' im Plan ✓')+'\n';
+    let t=(name?'👤 '+name:'👤 ohne Verantwortlichen')+' · '+(due.length?due.length+' von '+L.length+' fällig':'alle '+L.length+' im Plan ✓')+'\n';
     if(due.length)t+='⏰ Jetzt melden:\n'+due.map(kandLine).join('\n')+'\n';
     if(ok.length)t+='✅ Im Plan: '+ok.map(p=>p.name+' ('+daysSince(crmOf(p).lc)+' T)').join(', ')+'\n';
     return t;
@@ -540,7 +540,7 @@ function kandDigestPanel(){
   const chips=planners.map(n=>'<span class="kplchip">'+kEsc(n)+(metaPl.includes(n)&&!PLANNERS_DEFAULT.includes(n)?'<button class="kx" data-plrm="'+kEsc(n)+'" title="Planer entfernen">×</button>':'<span style="width:6px"></span>')+'</span>').join(' ');
   kandDigestCache=[];
   let cards='';
-  if(!all.length){ cards='<div class="kand-sub" style="padding:8px 0">Noch keine Kandidaten in der Pipeline – dann gibt es auch nichts zu erinnern.</div>'; }
+  if(!all.length){ cards='<div class="kand-sub" style="padding:8px 0">Noch keine Kandidaten in der Pipeline, dann gibt es auch nichts zu erinnern.</div>'; }
   else{
     const items=[{t:'👥 Alle Planer',pl:null,n:all.filter(kandIsDue).length}];
     planners.forEach(n=>{const L=all.filter(p=>(crmOf(p).pl||'')===n);if(L.length)items.push({t:'👤 '+n,pl:n,n:L.filter(kandIsDue).length});});
@@ -549,7 +549,7 @@ function kandDigestPanel(){
         +'<textarea readonly>'+kEsc(txt)+'</textarea><div class="btnrow" style="margin-top:6px;display:flex;gap:6px"><button class="kbtn" data-kdcopy="'+i+'">📋 Kopieren</button><a class="kbtn kbtn-go" href="https://wa.me/?text='+encodeURIComponent(txt)+'" target="_blank" rel="noopener">💬 Per WhatsApp teilen</a></div></div>';}).join('')+'</div>';
   }
   return '<div class="card kpanel"><div class="kpanel-h"><b>📨 Wochen-Digest &amp; Kaderplaner</b><span style="flex:1"></span><button class="kx" id="kpClose" title="Schließen">✕</button></div>'
-    +'<div class="kand-sub" style="margin-bottom:8px">Pro Planer eine fertige Erinnerung: wer ist fällig, wer ist im Plan. Kopieren oder direkt in WhatsApp teilen – z.B. jeden Montag.</div>'
+    +'<div class="kand-sub" style="margin-bottom:8px">Pro Planer eine fertige Erinnerung: wer ist fällig, wer ist im Plan. Kopieren oder direkt in WhatsApp teilen. Z.B. jeden Montag.</div>'
     +'<div class="kctrl"><span class="kand-sub">Kaderplaner:</span> '+chips+' <input id="kplNew" class="kand-in" style="max-width:150px" placeholder="＋ Name" autocomplete="off" value="'+kEsc(kandPlDraft)+'"><button class="kbtn" id="kplAdd">Hinzufügen</button></div>'
     +'<label style="display:flex;align-items:center;gap:6px;font-size:12px;margin-top:8px"><input type="checkbox" id="kdContacts"'+(kandDigestContacts?' checked':'')+'> Kontaktdaten mit in den Text nehmen'+(canContacts()?'':' <i class="kand-sub">(nur für Kaderplaner)</i>')+'</label>'
     +cards+'</div>';
@@ -558,10 +558,10 @@ function kandKeyPanel(){
   const kv=metaOf().kv;
   let body;
   if(!tkCan()) body='<p class="kand-sub">Dieser Browser unterstützt keine Verschlüsselung. Bitte einen aktuellen Browser verwenden.</p>';
-  else if(TK&&tkVerified) body='<p style="font-size:13px;margin:0 0 8px">✅ Auf diesem Gerät entsperrt. Kontaktdaten werden <b>im Browser verschlüsselt</b>, bevor sie gespeichert werden – online (GitHub, Make-Speicher) liegen sie nur als unlesbarer Code.</p><button class="kbtn" id="kKeyForget">Schlüssel auf diesem Gerät entfernen</button>';
-  else body='<p style="font-size:13px;margin:0 0 8px">'+(kv?'Gib den <b>Team-Schlüssel</b> ein, den ihr unter euch Kaderplanern geteilt habt. Er wird nur auf diesem Gerät gespeichert.':'<b>Noch kein Team-Schlüssel festgelegt.</b> Am sichersten: <b>🎲 erzeugen</b> lassen, kopieren und den anderen Kaderplanern schicken. Eigener Schlüssel geht auch (mind. 12 Zeichen). Ohne Schlüssel sind die Kontaktdaten für niemanden lesbar – auch nicht für GitHub oder den Make-Speicher.')+'</p>'
+  else if(TK&&tkVerified) body='<p style="font-size:13px;margin:0 0 8px">✅ Auf diesem Gerät entsperrt. Kontaktdaten werden <b>im Browser verschlüsselt</b>, bevor sie gespeichert werden. Online (GitHub, Make-Speicher) liegen sie nur als unlesbarer Code.</p><button class="kbtn" id="kKeyForget">Schlüssel auf diesem Gerät entfernen</button>';
+  else body='<p style="font-size:13px;margin:0 0 8px">'+(kv?'Gib den <b>Team-Schlüssel</b> ein, den ihr unter euch Kaderplanern geteilt habt. Er wird nur auf diesem Gerät gespeichert.':'<b>Noch kein Team-Schlüssel festgelegt.</b> Am sichersten: <b>🎲 erzeugen</b> lassen, kopieren und den anderen Kaderplanern schicken. Eigener Schlüssel geht auch (mind. 12 Zeichen). Ohne Schlüssel sind die Kontaktdaten für niemanden lesbar, auch nicht für GitHub oder den Make-Speicher.')+'</p>'
     +'<div class="kctrl"><input type="'+(kv?'password':'text')+'" id="kKeyIn" class="kand-in" style="max-width:280px" placeholder="Team-Schlüssel" autocomplete="off" autocapitalize="off" spellcheck="false" value="'+kEsc(kandKeyDraft)+'">'+(kv?'':'<button class="kbtn" id="kKeyGen">🎲 Schlüssel erzeugen</button><button class="kbtn" id="kKeyCopy" title="Kopieren">📋</button>')+'<button class="kbtn kbtn-go" id="kKeyOk">'+(kv?'🔓 Entsperren':'🔐 Festlegen')+'</button></div>'
-    +'<div class="kmsg">'+kEsc(kandKeyMsg)+'</div><p class="kand-sub" style="margin-top:4px">Der Schlüssel lässt sich nicht wiederherstellen – wer ihn vergisst, fragt einfach einen anderen Planer.</p>';
+    +'<div class="kmsg">'+kEsc(kandKeyMsg)+'</div><p class="kand-sub" style="margin-top:4px">Der Schlüssel lässt sich nicht wiederherstellen. Wer ihn vergisst, fragt einfach einen anderen Planer.</p>';
   return '<div class="card kpanel"><div class="kpanel-h"><b>🔐 Team-Schlüssel für Kontaktdaten</b><span style="flex:1"></span><button class="kx" id="kpClose" title="Schließen">✕</button></div>'+body+'</div>';
 }
 
@@ -593,7 +593,7 @@ function renderKandidaten(){
   const opt=(arr,cur,ph)=>'<option value="">'+ph+'</option>'+arr.map(o=>'<option value="'+kEsc(o)+'"'+(String(cur)===String(o)?' selected':'')+'>'+kEsc(o)+'</option>').join('');
   const dueCount=all.filter(kandIsDue).length;
   const keyBtn='';
-  const stT={pending:'⏳ speichert…',ok:'☁️ gespeichert',err:'⚠️ offline – wird nachgeholt'}[SYNC_ST]||'';
+  const stT={pending:'⏳ speichert…',ok:'☁️ gespeichert',err:'⚠️ offline, wird nachgeholt'}[SYNC_ST]||'';
   let html='<div class="card" style="padding:10px 12px;margin-bottom:8px">'
     +'<div class="kctrl">'
     +'<input id="kandSearch" class="kand-in" style="max-width:190px" placeholder="🔎 In Pipeline suchen…" value="'+kEsc(kandQ)+'" autocomplete="off">'
@@ -610,7 +610,7 @@ function renderKandidaten(){
   if(kandPanel==='digest')html+=kandDigestPanel();
   if(kandPanel==='key')html+=kandKeyPanel();
   if(!list.length){
-    html+='<div class="card" style="padding:18px;text-align:center;color:var(--ink3,#8fa3c7)">'+(all.length?'Keine Kandidaten für diesen Filter.':'Noch keine Kandidaten. Oben bei <b>„＋ Spieler aufnehmen"</b> einen Namen tippen – oder im Spielerprofil ☆ „Auf die Shortlist".')+'</div>';
+    html+='<div class="card" style="padding:18px;text-align:center;color:var(--ink3,#8fa3c7)">'+(all.length?'Keine Kandidaten für diesen Filter.':'Noch keine Kandidaten. Oben bei <b>„＋ Spieler aufnehmen"</b> einen Namen tippen, oder im Spielerprofil ☆ „Auf die Shortlist".')+'</div>';
     wrap.innerHTML=html; wireKand(); return;
   }
   const rows=list.map(p=>{
@@ -733,7 +733,7 @@ function renderKaderplan(){
     });
   });
   const d=new Date(),dstr=String(d.getDate()).padStart(2,'0')+'.'+String(d.getMonth()+1).padStart(2,'0')+'.'+d.getFullYear();
-  let html='<div class="kp-print-only"><div style="font-size:20px;font-weight:800">SV/BSC Mörlenbach – Kaderplanung</div><div style="font-size:11px;color:#555;margin-top:2px">Formation '+LINEUP.formation+' · Stand '+dstr+' · Stammspieler + Backup = aktueller Kader · 🎯 Ziel = Wunsch/Transferziel nächste Saison</div></div>';
+  let html='<div class="kp-print-only"><div style="font-size:20px;font-weight:800">SV/BSC Mörlenbach: Kaderplanung</div><div style="font-size:11px;color:#555;margin-top:2px">Formation '+LINEUP.formation+' · Stand '+dstr+' · Stammspieler + Backup = aktueller Kader · 🎯 Ziel = Wunsch/Transferziel nächste Saison</div></div>';
   html+='<div class="sechead">📋 Kaderplan <small style="color:var(--ink3)">Formation '+LINEUP.formation+' · Stand '+dstr+'</small></div>';
   html+='<div class="card" style="padding:8px 10px;margin-bottom:8px"><div class="kp-head">'
     +'<div class="kp-sum"><span class="kchip" style="background:rgba(47,210,122,.15);color:#5fe09b">'+ok+' besetzt</span>'
@@ -757,7 +757,7 @@ function wireKaderplan(){
 }
 /* ===== FuPa-MVP (Saison 26/27): team-relativer Leistungswert 0–100 aus der FuPa-Spielerstatistik =====
    Fließt als ±6 %-Modifikator in den MScore (50 % = neutral), siehe scores(). Quelle: CRM[pid].mv/.mvd
-   (in der App gepflegt, geräteübergreifend) – sonst der Start-Datensatz MVP_SEED (Stand 22.09.2026). */
+   (in der App gepflegt, geräteübergreifend), sonst der Start-Datensatz MVP_SEED (Stand 22.09.2026). */
 function _mvpNorm(s){s=(s||'').toLowerCase();s=s.split('ä').join('ae').split('ö').join('oe').split('ü').join('ue').split('ß').join('ss');try{s=s.normalize('NFKD').replace(/[\u0300-\u036f]/g,'');}catch(e){}return s.replace(/[^a-z]/g,'');}
 const MVP_SEED={
  'juliusfries':82,'florianseltenreich':78,'simongoderbauer':100,'paulbartmann':76,
@@ -811,13 +811,13 @@ function renderMvpCard(force){
       +'<td class="mvprev" data-mvprev="'+p.id+'">'+mvpPreviewCell(p,raw)+'</td></tr>';
   }).join('');
   el.innerHTML='<details id="mvpDet"'+(mvpOpen?' open':'')+'><summary>📥 FuPa-MVP nach dem Spieltag eintragen <span class="kand-sub" style="font-weight:600">· '+withMvp+' Spieler mit MVP-Wert · fließt mit max. ±6 % ins MScore</span></summary>'
-    +'<p class="kand-sub" style="margin:8px 0">So geht\'s: In der FuPa-App das Team öffnen → <b>Spielerstatistik</b> → Spalte <b>MVP</b>. Werte hier eintippen (0–100) und speichern – alle Ratings rechnen sofort neu, auf allen Geräten. Leeres Feld = kein MVP-Wert.</p>'
+    +'<p class="kand-sub" style="margin:8px 0">So geht\'s: In der FuPa-App das Team öffnen → <b>Spielerstatistik</b> → Spalte <b>MVP</b>. Werte hier eintippen (0–100) und speichern: alle Ratings rechnen sofort neu, auf allen Geräten. Leeres Feld = kein MVP-Wert.</p>'
     +'<div class="kctrl"><label class="kand-sub">Team</label><select id="mvpTeamSel">'+(own.length?'<optgroup label="Eigene Teams">'+own.map(opt).join('')+'</optgroup>':'')+'<optgroup label="Alle Teams">'+rest.map(opt).join('')+'</optgroup></select>'
     +'<label class="kand-sub">Stand</label><input type="date" id="mvpDateIn" value="'+kEsc(mvpDate)+'">'
     +(lastD?'<span class="kand-sub">zuletzt gepflegt: '+kEsc(fmtD(lastD))+'</span>':'')+'</div>'
     +'<details id="mvpPasteDet" style="margin-top:8px"'+(mvpPasteOpen?' open':'')+'><summary class="kand-sub" style="font-size:12.5px">📋 Oder: Text von der FuPa-Seite einfügen und Werte automatisch erkennen</summary>'
     +'<textarea id="mvpPaste" placeholder="Auf fupa.net die Spielerstatistik des Teams markieren, kopieren und hier einfügen…">'+kEsc(mvpPasteText)+'</textarea>'
-    +'<div class="kctrl" style="margin-top:6px"><button class="kbtn" id="mvpParseBtn">Werte erkennen</button><span class="kand-sub">Erkannte Werte erscheinen unten zum Prüfen – gespeichert wird erst mit „Speichern".</span></div></details>'
+    +'<div class="kctrl" style="margin-top:6px"><button class="kbtn" id="mvpParseBtn">Werte erkennen</button><span class="kand-sub">Erkannte Werte erscheinen unten zum Prüfen. Gespeichert wird erst mit „Speichern".</span></div></details>'
     +'<div style="overflow-x:auto"><table class="mvtbl"><thead><tr><th>Spieler</th><th>MVP %</th><th>MScore → neu</th></tr></thead><tbody>'+(rows||'<tr><td colspan="3" class="kand-sub">Keine Spieler für dieses Team erfasst.</td></tr>')+'</tbody></table></div>'
     +'<div class="kctrl" style="margin-top:10px"><button class="btn" id="mvpSaveBtn">💾 Speichern &amp; neu bewerten</button>'+(mvpDirty?'<button class="kbtn" id="mvpResetBtn">Verwerfen</button>':'')+'<span class="kand-sub" id="mvpMsgEl" style="color:'+(/^✓/.test(mvpMsg)?'#5fe09b':'var(--ink3)')+'">'+kEsc(mvpMsg)+'</span></div>'
     +'</details>';
@@ -830,14 +830,14 @@ function renderMvpCard(force){
     const p=players.find(x=>x.id===inp.dataset.mv), c=el.querySelector('[data-mvprev="'+inp.dataset.mv+'"]'); if(p&&c)c.innerHTML=mvpPreviewCell(p,inp.value);
   };});
   document.getElementById('mvpPaste').oninput=e=>{mvpPasteText=e.target.value;};
-  document.getElementById('mvpParseBtn').onclick=()=>{ const n=mvpParse(document.getElementById('mvpPaste').value); mvpMsg=n?(n+' Wert'+(n>1?'e':'')+' erkannt – bitte kurz prüfen und speichern.'):'Keine Werte erkannt – bitte Namen/Zahlen prüfen oder direkt eintippen.'; mvpPasteOpen=!n; if(n)mvpPasteText=''; renderMvpCard(true); };
+  document.getElementById('mvpParseBtn').onclick=()=>{ const n=mvpParse(document.getElementById('mvpPaste').value); mvpMsg=n?(n+' Wert'+(n>1?'e':'')+' erkannt, bitte kurz prüfen und speichern.'):'Keine Werte erkannt, bitte Namen/Zahlen prüfen oder direkt eintippen.'; mvpPasteOpen=!n; if(n)mvpPasteText=''; renderMvpCard(true); };
   document.getElementById('mvpSaveBtn').onclick=mvpSave;
   const rb=document.getElementById('mvpResetBtn'); if(rb)rb.onclick=()=>{mvpDraft={};mvpDirty=false;mvpMsg='';renderMvpCard(true);};
 }
 function confirmDiscard(){try{return window.confirm('Nicht gespeicherte MVP-Eingaben verwerfen?');}catch(e){return true;}}
 function mvpParse(text){
   /* Erkennt je Spieler den MVP-Wert in kopiertem FuPa-Text: vollständiger Name (mind. Vor- + Nachname),
-     danach die erste Zahl 0–100 – "2/2" (Elfmeter) wird übersprungen, "2." (nächster Platz) oder "–" beendet die Zeile. */
+     danach die erste Zahl 0–100 · "2/2" (Elfmeter) wird übersprungen, "2." (nächster Platz) oder "–" beendet die Zeile. */
   const toks=String(text||'').split(/\s+/).filter(Boolean), nt=toks.map(_mvpNorm); let found=0;
   const team=mvpTeamPlayers(), cnt={};
   team.forEach(p=>{const f=_mvpNorm(p.name);cnt[f]=(cnt[f]||0)+1;});
@@ -872,7 +872,7 @@ function mvpSave(){
     crmSet(id,{mv:v,mvd:date}); n++;
   }
   mvpDraft={}; mvpDirty=false;
-  mvpMsg=n?('✓ '+n+' MVP-Wert'+(n>1?'e':'')+' gespeichert – alle Ratings sind neu berechnet.'):'Keine Änderungen zu speichern.';
+  mvpMsg=n?('✓ '+n+' MVP-Wert'+(n>1?'e':'')+' gespeichert: alle Ratings sind neu berechnet.'):'Keine Änderungen zu speichern.';
   renderAll(); renderMvpCard(true);
 }
 
@@ -884,44 +884,44 @@ function wscore(p){
   if(p.own)return null;
   const f=[]; let w=50;
   const add=(v,t)=>{w+=v;f.push([v,t]);};
-  if(p.exSvbc)add(15,'Ex-SV/BSC — Rückkehr hat Anknüpfungspunkte');
-  else if(crmOf(p).x)add(15,'Ex-SV/BSC (von euch markiert) — Rückkehr hat Anknüpfungspunkte');
+  if(p.exSvbc)add(15,'Ex-SV/BSC: Rückkehr hat Anknüpfungspunkte');
+  else if(crmOf(p).x)add(15,'Ex-SV/BSC (von euch markiert): Rückkehr hat Anknüpfungspunkte');
   if(p.isJugend)add(15,'Jugendspieler: Sprung in den Seniorenbereich steht ohnehin an');
-  if(p.zweit)add(14,'Spielt in einer Zweitvertretung — bei uns winkt 1.-Mannschafts-Fußball');
+  if(p.zweit)add(14,'Spielt in einer Zweitvertretung. Bei uns winkt 1.-Mannschafts-Fußball');
   const lowPlay=(p.min&&p.teamSp&&p.min/(p.teamSp*90)<0.45)||(!p.min&&p.einsaetze&&p.teamSp&&p.einsaetze/p.teamSp<0.6);
-  if(p.min&&p.teamSp&&p.min/(p.teamSp*90)<0.45)add(12,'Wenig Spielzeit ('+p.min.toLocaleString('de-DE')+' Min.) — sitzt offenbar oft draußen');
+  if(p.min&&p.teamSp&&p.min/(p.teamSp*90)<0.45)add(12,'Wenig Spielzeit ('+p.min.toLocaleString('de-DE')+' Min.): sitzt offenbar oft draußen');
   else if(p.einsaetze&&p.teamSp&&p.einsaetze/p.teamSp<0.6)add(7,'Nur '+p.einsaetze+' von '+p.teamSp+' Teamspielen absolviert');
   if(p.liga==='KOL'){
-    if(lowPlay)add(-5,'Kickt eine Liga höher (KOL), dort aber ohne Stammplatz — Schritt runter für Spielzeit ist ein Klassiker');
-    else add(-18,'Kickt eine Liga über uns (KOL) — müsste sportlich absteigen');
+    if(lowPlay)add(-5,'Kickt eine Liga höher (KOL), dort aber ohne Stammplatz. Schritt runter für Spielzeit ist ein Klassiker');
+    else add(-18,'Kickt eine Liga über uns (KOL): müsste sportlich absteigen');
   }
   if(p.liga==='GL'){
-    if(lowPlay)add(-8,'Kickt zwei Ligen höher (Gruppenliga), dort aber meist draußen — für garantierte Spielzeit ansprechbar');
-    else add(-26,'Gruppenliga-Stammspieler (2 Ligen über uns) — Wechsel in die A-Klasse sehr unwahrscheinlich');
+    if(lowPlay)add(-8,'Kickt zwei Ligen höher (Gruppenliga), dort aber meist draußen. Für garantierte Spielzeit ansprechbar');
+    else add(-26,'Gruppenliga-Stammspieler (2 Ligen über uns). Wechsel in die A-Klasse sehr unwahrscheinlich');
   }
   if(p.liga==='B')add(8,'Kreisliga B: Schritt in die A-Klasse wäre attraktiv');
   if(p.liga==='C')add(11,'Kreisliga C: deutlicher sportlicher Aufstieg möglich');
   if(p.liga==='D'&&!p.isJugend)add(13,'Kreisliga D: A-Klasse wäre ein großer Schritt nach oben');
   if(p.km!=null){
-    if(p.km<=5)add(10,'Nur '+p.km+' km entfernt — quasi Nachbarschaft');
-    else if(p.km<=10)add(6,p.km+' km — gut erreichbar');
-    else if(p.km<=15)add(2,p.km+' km — machbar');
-    else if(p.km<=25)add(-6,p.km+' km — schon ein Stück Fahrt');
-    else add(-14,p.km+' km — unrealistische Distanz für die A-Klasse');
+    if(p.km<=5)add(10,'Nur '+p.km+' km entfernt: quasi Nachbarschaft');
+    else if(p.km<=10)add(6,p.km+' km: gut erreichbar');
+    else if(p.km<=15)add(2,p.km+' km: machbar');
+    else if(p.km<=25)add(-6,p.km+' km, schon ein Stück Fahrt');
+    else add(-14,p.km+' km: unrealistische Distanz für die A-Klasse');
   }
   if(p.rank!=null&&p.teamCount>1){
     const q=(p.rank-1)/(p.teamCount-1);
-    if(q>=0.7)add(8,'Sein Team steckt im Tabellenkeller (Platz '+p.rank+') — Frust möglich');
-    else if(q<=0.2)add(-10,'Sein Team spielt oben mit (Platz '+p.rank+') — wenig Wechselgrund');
+    if(q>=0.7)add(8,'Sein Team steckt im Tabellenkeller (Platz '+p.rank+'): Frust möglich');
+    else if(q<=0.2)add(-10,'Sein Team spielt oben mit (Platz '+p.rank+'): wenig Wechselgrund');
   }
-  if(p.kanone)add(-12,'Torschützenkönig — steht auf jeder Wunschliste, schwer zu bekommen');
+  if(p.kanone)add(-12,'Torschützenkönig: steht auf jeder Wunschliste, schwer zu bekommen');
   const sh=(p.tT&&p.tT>0)?p.tore/p.tT:0;
-  if(sh>=0.35&&!p.zweit)add(-7,'Trägt '+Math.round(sh*100)+' % der Teamtore — sein Verein wird um ihn kämpfen');
-  if(p.alter!=null&&p.alter<=19&&!p.isJugend)add(5,'U20 — sucht den nächsten Entwicklungsschritt');
-  if(p.pressStats&&p.pressStats.wechsel)add(7,'Wechsel-Historie in der Presse — grundsätzlich mobil');
+  if(sh>=0.35&&!p.zweit)add(-7,'Trägt '+Math.round(sh*100)+' % der Teamtore: sein Verein wird um ihn kämpfen');
+  if(p.alter!=null&&p.alter<=19&&!p.isJugend)add(5,'U20: sucht den nächsten Entwicklungsschritt');
+  if(p.pressStats&&p.pressStats.wechsel)add(7,'Wechsel-Historie in der Presse. Grundsätzlich mobil');
   if(p.status&&/verletzt/i.test(p.status))add(-8,'Aktuell verletzt gemeldet');
   const _sc=scores(p);
-  if(_sc.mvp!=null){ if(_sc.mvp>=90)add(-6,'FuPa-MVP '+_sc.mvp+' % – Schlüsselspieler seines Teams, der Verein wird ihn halten wollen'); else if(_sc.mvp<=55)add(5,'FuPa-MVP nur '+_sc.mvp+' % – eher Randfigur, bei uns winkt mehr Verantwortung'); }
+  if(_sc.mvp!=null){ if(_sc.mvp>=90)add(-6,'FuPa-MVP '+_sc.mvp+' %: Schlüsselspieler seines Teams, der Verein wird ihn halten wollen'); else if(_sc.mvp<=55)add(5,'FuPa-MVP nur '+_sc.mvp+' %: eher Randfigur, bei uns winkt mehr Verantwortung'); }
   w=clamp(Math.round(w),3,97);
   const k=Math.round((_sc.total*0.55+w*0.45)*10)/10;
   f.sort((a,b)=>Math.abs(b[0])-Math.abs(a[0]));
@@ -995,8 +995,8 @@ function openLegend(){
       <div class="srow"><span class="sy">${ring(53)}</span><span class="sm"><b style="color:#ffd60a">Gelb = Mittel</b> · 48–59 · beobachten</span><span></span></div>
       <div class="srow"><span class="sy">${ring(40)}</span><span class="sm"><b style="color:#ff6b6b">Rot = (noch) schwach</b> · unter 48 · aktuell keine Verstärkung</span><span></span></div>
     </div>
-    <div class="seas"><h4>💎 Rohdiamant – wer bekommt den Diamanten?</h4>
-      <div class="srow"><span class="sy">💎</span><span class="sm"><b>Zweite Reihe:</b> II./III.-Team in C/D-Klasse + mind. 0,65 Tore/Spiel – kickt nur so tief, weil das Erstteam höher spielt</span><span></span></div>
+    <div class="seas"><h4>💎 Rohdiamant: wer bekommt den Diamanten?</h4>
+      <div class="srow"><span class="sy">💎</span><span class="sm"><b>Zweite Reihe:</b> II./III.-Team in C/D-Klasse + mind. 0,65 Tore/Spiel: kickt nur so tief, weil das Erstteam höher spielt</span><span></span></div>
       <div class="srow"><span class="sy">💎</span><span class="sm"><b>Einsamer Torjäger:</b> mind. 35 % aller Teamtore + Team in unterer Tabellenhälfte</span><span></span></div>
       <div class="srow"><span class="sy">💎</span><span class="sm"><b>U19-Sprung:</b> Jugendspieler mit mind. 0,8 Toren/Spiel</span><span></span></div>
       <div class="srow"><span class="sy">💎</span><span class="sm"><b>Formexplosion:</b> ligagewichtete Quote mind. +30 % vs. Vorsaison</span><span></span></div>
@@ -1005,13 +1005,13 @@ function openLegend(){
     <div class="seas"><h4>Badges &amp; Symbole</h4>
       <div class="srow"><span class="sy"><span class="badge b-KOL">KOL</span></span><span class="sm">Liga des Spielers (KOL = Kreisoberliga, eine Liga über euch)</span><span></span></div>
       <div class="srow"><span class="sy"><span class="badge b-own">SV/BSC</span></span><span class="sm">Eigener Spieler / eigenes Talent</span><span></span></div>
-      <div class="srow"><span class="sy"><span class="badge b-ex">Ex-SV/BSC</span></span><span class="sm">Früherer SV/BSC-Spieler – Rückhol-Kandidat</span><span></span></div>
+      <div class="srow"><span class="sy"><span class="badge b-ex">Ex-SV/BSC</span></span><span class="sm">Früherer SV/BSC-Spieler: Rückhol-Kandidat</span><span></span></div>
       <div class="srow"><span class="sy"><span class="badge b-kan">Kanone</span></span><span class="sm">Torschützenkönig seiner Liga 25/26</span><span></span></div>
-      <div class="srow"><span class="sy"><span class="badge b-risk">⚠</span></span><span class="sm">Risiko laut Presse (z. B. Spielertrainer, Karriereende) – im Profil nachlesen</span><span></span></div>
+      <div class="srow"><span class="sy"><span class="badge b-risk">⚠</span></span><span class="sm">Risiko laut Presse (z. B. Spielertrainer, Karriereende): im Profil nachlesen</span><span></span></div>
       <div class="srow"><span class="sy"><span class="badge b-zweit">II/III</span></span><span class="sm">Spielt in einer Zweit-/Drittmannschaft (evtl. ans Erstteam gebunden)</span><span></span></div>
       <div class="srow"><span class="sy">📰</span><span class="sm">Presse-Dossier im Profil vorhanden</span><span></span></div>
-      <div class="srow"><span class="sy">📞💚🚫⏰</span><span class="sm"><b>Scouting-Status</b> (im Profil setzen): kontaktiert · attraktiv · kein Interesse (wird nicht mehr vorgeschlagen) · später mit Wiedervorlage-Datum — synchronisiert über alle Geräte</span><span></span></div>
-      <div class="srow"><span class="sy">↩️</span><span class="sm"><b>Ex-SV/BSC-Markierung:</b> „hat früher bei uns gespielt" — gibt +15 auf den Wechsel-Index (Rückkehr-Bonus)</span><span></span></div>
+      <div class="srow"><span class="sy">📞💚🚫⏰</span><span class="sm"><b>Scouting-Status</b> (im Profil setzen): kontaktiert · attraktiv · kein Interesse (wird nicht mehr vorgeschlagen) · später mit Wiedervorlage-Datum: synchronisiert über alle Geräte</span><span></span></div>
+      <div class="srow"><span class="sy">↩️</span><span class="sm"><b>Ex-SV/BSC-Markierung:</b> „hat früher bei uns gespielt" · gibt +15 auf den Wechsel-Index (Rückkehr-Bonus)</span><span></span></div>
       <div class="srow"><span class="sy">▲ ≈ ▼</span><span class="sm">Formtrend vs. Vorsaison (ligagewichtet, steigend/stabil/fallend)</span><span></span></div>
       <div class="srow"><span class="sy">~</span><span class="sm">ca.-Wert, aus datierter Quelle hochgerechnet (Beleg im Profil)</span><span></span></div>
       <div class="srow"><span class="sy">📰</span><span class="sm"><b>Presse-Index (0–100):</b> aus 194 analysierten Regionalartikeln (WNOZ, fussball.de, Vereinsseiten). Tore/Vorlagen/Paraden/Lob im Artikel = Pluspunkte, Kritik/Verletzung = Minus, neuere Artikel zählen mehr. Fairness-Bremse: Wenige Nennungen bewegen den Wert kaum (kein Spieler wird wegen 1 Artikel hochgejubelt). Ohne Nennungen = neutral 50. Alle Belege im Profil verlinkt.</span><span></span></div>
@@ -1053,7 +1053,7 @@ function openModal(id){
       <button class="crmb" data-lat="s">Sommer 27 (nächste Saison)</button>
       <button class="crmb" data-lat="2">Sommer 28 (in 2 Jahren)</button>
       <input type="date" id="latdate" value="${kEsc(C.u||'')}" title="individuelles Datum"></div>
-      <p class="note" style="margin:2px 0 0">Bis dahin taucht er in keinen Vorschlägen auf — am Stichtag ploppt er auf der Startseite als Wiedervorlage wieder hoch.</p>`:''}
+      <p class="note" style="margin:2px 0 0">Bis dahin taucht er in keinen Vorschlägen auf, am Stichtag ploppt er auf der Startseite als Wiedervorlage wieder hoch.</p>`:''}
     ${C.s==='no'?`<p class="note" style="margin:2px 0 0">Ausgeblendet: taucht in keinen Vorschlägen mehr auf (Datenbank &amp; Suche zeigen ihn weiter, Startseite listet ihn unter „Ausgeblendet").</p>`:''}
     ${C.n?`<div class="crmnote">📝 ${kEsc(C.n)}</div>`:''}`;})()}
     ${p.info?`<div class="infobox">💡 ${p.info}</div>`:''}
@@ -1084,7 +1084,7 @@ function openModal(id){
         ${p.fdeUrl?`<div><span>Offizielles Profil</span><b><a href="${p.fdeUrl}" target="_blank" rel="noopener">fussball.de ↗</a></b></div>`:''}
       </div>
     </div>
-    ${s.defMode?`<div class="proj">🛡 Defensiv-Profil — Bewertung über <b>Team-Gegentore</b>${s.gaTxt?` (${s.gaTxt})`:``} + Presse${p.pos===`AV`?` + Vorlagen (wo belegt)`:``}${p.tore>0?` + <b>Torgefahr-Bonus</b> (${p.toreBelegt?`min. `:``}${p.tore} Tore)`:``}. Individuelle Defensivdaten sind für die Kreisligen öffentlich nicht verfügbar.</div>`:`<div class="proj">📈 <b>${s.proj} Tore</b> – erwartete Ausbeute über 30 Spiele in der <b>Kreisliga A</b></div>`}
+    ${s.defMode?`<div class="proj">🛡 Defensiv-Profil: Bewertung über <b>Team-Gegentore</b>${s.gaTxt?` (${s.gaTxt})`:``} + Presse${p.pos===`AV`?` + Vorlagen (wo belegt)`:``}${p.tore>0?` + <b>Torgefahr-Bonus</b> (${p.toreBelegt?`min. `:``}${p.tore} Tore)`:``}. Individuelle Defensivdaten sind für die Kreisligen öffentlich nicht verfügbar.</div>`:`<div class="proj">📈 <b>${s.proj} Tore</b> · erwartete Ausbeute über 30 Spiele in der <b>Kreisliga A</b></div>`}
     <div class="d2col">
     <div class="seas"><h4>Saison-Record (Spieler + Vereins-Kontext)</h4>
       ${seasonsOf(p).map(x=>{
@@ -1101,16 +1101,16 @@ function openModal(id){
       ${s.sdsB?`<div class="srow"><span class="sy" style="font-size:11px">🏅 Elf d. Woche</span><span class="sbar" style="width:100%;max-width:none"><i style="width:${s.sdsB*10}%;background:#b39df7"></i></span><b>+${s.sdsB}</b></div>`:''}
       ${s.mvpAdj?`<div class="srow"><span class="sy" style="font-size:11px">🔵 FuPa-MVP ${s.mvp}%</span><span class="sbar" style="width:100%;max-width:none"><i style="width:${Math.min(100,Math.abs(s.mvpAdj)*8)}%;background:#2fd27a"></i></span><b>${s.mvpAdj>0?'+':''}${s.mvpAdj}</b></div>`:''}
     </div>
-    <div class="seas"><h4>Einordnung — antippen ›</h4>
+    <div class="seas"><h4>Einordnung: antippen ›</h4>
       ${(!s.defMode||p.tore>0)?`<div class="srow clk" data-rank="tore"><span class="sy">🏅</span><span class="sm">Torjäger-Rang: <b>#${(()=>{const pool=players.filter(x=>x.liga===p.liga&&x.isJugend===p.isJugend).sort((a,b)=>b.tore-a.tore);return pool.findIndex(x=>x.id===p.id)+1;})()}</b> von ${players.filter(x=>x.liga===p.liga&&x.isJugend===p.isJugend).length} erfassten Spielern (${p.isJugend?'Jugend':LIGA_NAME[p.liga]})</span><span></span></div>`:``}
       ${(!s.defMode||p.tore>0)?`<div class="srow clk" data-rank="gpg"><span class="sy">📊</span><span class="sm">Tore/Spiel: besser als <b>${(()=>{const pool=players.filter(x=>x.liga===p.liga&&x.isJugend===p.isJugend);const me=s.gpg;return Math.round(pool.filter(x=>scores(x).gpg<me).length/Math.max(1,pool.length)*100);})()} %</b> der Liga-Konkurrenz</span></div>`:``}
       <div class="srow clk" data-rank="score"><span class="sy">⭐</span><span class="sm">MScore-Rang: <b>#${(()=>{const pool=players.filter(x=>x.liga===p.liga&&x.isJugend===p.isJugend).sort((a,b)=>scores(b).total-scores(a).total);return pool.findIndex(x=>x.id===p.id)+1;})()}</b> von ${players.filter(x=>x.liga===p.liga&&x.isJugend===p.isJugend).length}</span></div>
       <div class="srow clk" data-clubview="1"><span class="sy">🏟</span><span class="sm">Kader &amp; Vereins-Historie: <b>${p.club}</b></span></div>
     </div>
-    ${WV?`<div class="seas"><h4>🕵️ Digital-Scout — Wechsel-Index <b style="color:${tierColor(WV.w)}">${WV.w}</b> · Transfer-Chance <b style="color:${tierColor(WV.k)}">${WV.k}</b></h4>
+    ${WV?`<div class="seas"><h4>🕵️ Digital-Scout: Wechsel-Index <b style="color:${tierColor(WV.w)}">${WV.w}</b> · Transfer-Chance <b style="color:${tierColor(WV.k)}">${WV.k}</b></h4>
       ${WV.f.map(x=>`<div class="srow"><span class="sy">${x[0]>0?'🟢':'🔴'}</span><span class="sm">${x[1]}</span><b style="color:${x[0]>0?'#5fe09b':'#ff8a8a'};font-variant-numeric:tabular-nums">${x[0]>0?'+':''}${x[0]}</b></div>`).join('')}
-      ${WV.f.length?'':'<div class="srow"><span class="sy">·</span><span class="sm">Keine besonderen Signale — neutraler Basiswert 50</span><span></span></div>'}
-      <p class="note">Start bei 50, öffentliche Signale werden addiert/abgezogen. <b>Transfer-Chance</b> = 55 % MScore + 45 % Wechsel-Index — die Kennzahl für „stark UND realistisch holbar“.</p></div>`:''}
+      ${WV.f.length?'':'<div class="srow"><span class="sy">·</span><span class="sm">Keine besonderen Signale: neutraler Basiswert 50</span><span></span></div>'}
+      <p class="note">Start bei 50, öffentliche Signale werden addiert/abgezogen. <b>Transfer-Chance</b> = 55 % MScore + 45 % Wechsel-Index, die Kennzahl für „stark UND realistisch holbar“.</p></div>`:''}
     ${p.pressNews&&p.pressNews.length?`<div class="pressbox"><h4>📰 Presse-Engine · Index ${p.pressIdx} · ${p.pressNews.length} Nennungen</h4>
       <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:9px">${Object.entries(p.pressStats||{}).map(([t,n])=>`<span class="badge b-zweit" style="text-transform:none">${({tor:'⚽',vorlage:'🅰️',parade:'🧤',lob:'👍',kritik:'⚠️',verletzung:'🚑',wechsel:'🔁',neutral:'📄'})[t]||'📄'} ${t}: ${n}</span>`).join('')}</div>
       ${p.pressNews.map(m=>`<div class="pressitem" style="padding-left:20px"><b>${({tor:'⚽',vorlage:'🅰️',parade:'🧤',lob:'👍',kritik:'⚠️',verletzung:'🚑',wechsel:'🔁',neutral:'📄'})[m.typ]||'📄'} ${m.h||'(ohne Überschrift)'}</b>${m.d?` <i style="color:var(--ink3);font-style:normal">· ${m.d}</i>`:''}<br>${m.x||''} <a href="${m.u}" target="_blank" rel="noopener">Artikel ↗</a></div>`).join('')}
@@ -1425,7 +1425,7 @@ function fmtD(iso){if(!iso)return '';const [y,m,d]=iso.split('-');return d+'.'+m
      OHNE gültigen Online-Stand wird NIE geschrieben (sonst könnte ein Handy mit Funkloch alles überschreiben).
    - Nach dem Speichern wird nachgeprüft, ob der Server alles hat; sonst wird erneut gesendet.
    - Zeitstempel als "hybride Uhr": nie kleiner als alles schon Gesehene → falsch gehende Handy-Uhren schaden nicht.
-   - Eingehende Werte werden geprüft (Datumsformat, Zahlenbereiche, Längen) – Schutz vor eingeschleustem Code. */
+   - Eingehende Werte werden geprüft (Datumsformat, Zahlenbereiche, Längen): Schutz vor eingeschleustem Code. */
 let SYNC_ST='idle', _pendingRefresh=false, _hlc=0, _lineupT=0, _lastLineupSer=null, _pushTries=0, _verifyT=null, _kvChanged=false, _lineupAdopted=false;
 const SYNC_BAD_KEYS={'__proto__':1,'constructor':1,'prototype':1};
 const SYNC_DATE=/^\d{4}-\d{2}-\d{2}$/;
@@ -1518,7 +1518,7 @@ function syncAdoptRemote(d){ /* Online-Stand einarbeiten; true = lokal hat sich 
 }
 function syncState(st){
   SYNC_ST=st;
-  const t={idle:'',pending:'⏳ speichert…',ok:'☁️ gespeichert',err:'⚠️ offline – wird nachgeholt'}[st]||'';
+  const t={idle:'',pending:'⏳ speichert…',ok:'☁️ gespeichert',err:'⚠️ offline, wird nachgeholt'}[st]||'';
   document.querySelectorAll('.ksync').forEach(el=>{el.textContent=t;el.style.display=t?'':'none';});
 }
 function lineupSync(){
@@ -1662,7 +1662,7 @@ function lineupCardHtml(p,role,i){
   return `<div class="fcardm" style="--tc:${c}">${i!=null?`<button class="swapbtn" data-swap="${i}" title="Ersatzspieler anzeigen">⇄</button>`:``}<div class="ov">${ov}</div>`+
     `<div class="pic">${src?`<img src="${src}" alt="" onerror="this.remove()">`:initials(p.name)}</div>`+
     `<div class="nm">${p.name.split(' ').slice(-1)[0]}</div>`+
-    (p.pos!=='TW'?`<div class="xg" title="Erwartete Tore über 30 Spiele Kreisliga A: Tore pro Team-Spiel × Liga-Gewicht × 30 — reale Einsatzquote eingerechnet">${role} · ≈${s.proj} xT</div>`:`<div class="xg">🧤 ${role}</div>`)+`</div>`;
+    (p.pos!=='TW'?`<div class="xg" title="Erwartete Tore über 30 Spiele Kreisliga A: Tore pro Team-Spiel × Liga-Gewicht × 30, reale Einsatzquote eingerechnet">${role} · ≈${s.proj} xT</div>`:`<div class="xg">🧤 ${role}</div>`)+`</div>`;
 }
 function renderLineup(){
   const pitch=document.getElementById('pitch');if(!pitch)return;
@@ -1708,7 +1708,7 @@ function renderLineup(){
    if(benchEl){
      const inXI=new Set(Object.values(LINEUP.slots));
      const bench=players.filter(p=>p.own&&p.kader===1&&!p.verzicht&&!(p.status&&/erletzt/.test(p.status))&&((p.kaderStarts||0)>0||p.bankOk)&&!inXI.has(p.id)).sort((a,b)=>(b.kaderStarts||0)-(a.kaderStarts||0)||scores(b).total-scores(a).total);
-     benchEl.innerHTML=`<div class="lbl" style="display:block;margin:12px 2px 2px">🪑 Ersatzbank 25/26 (${bench.length}) — nur Spieler mit dokumentiertem Einsatz in der Ersten, sortiert nach Startelf-Häufigkeit. Aufs Feld ziehen = einwechseln · Feldspieler hierher ziehen = auswechseln · antippen = Profil.</div>
+     benchEl.innerHTML=`<div class="lbl" style="display:block;margin:12px 2px 2px">🪑 Ersatzbank 25/26 (${bench.length}), nur Spieler mit dokumentiertem Einsatz in der Ersten, sortiert nach Startelf-Häufigkeit. Aufs Feld ziehen = einwechseln · Feldspieler hierher ziehen = auswechseln · antippen = Profil.</div>
        <div class="benchrow">${bench.map(p=>`<div class="bcard" data-bpid="${p.id}">${lineupCardHtml(p,p.pos||'–')}<div class="btag" title="${p.kaderStarts||0}× Startelf 25/26 (dokumentiert)">${p.kaderStarts||0}×</div></div>`).join('')}</div>`;
    }}
   // Statistik / Lücken
@@ -1844,7 +1844,7 @@ function renderShadow(){
       <span class="sc" style="color:${tierColor(W?W.k:s.total)}">${Math.round(W?W.k:s.total)}</span>
       <span style="min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${p.name.split(' ').slice(-1)[0]}<br><i>${p.own?'eigen':p.club}</i></span></div>`;
   };
-  el.innerHTML=`<div class="card needcard"><h3>👥 Schattenmannschaft <i style="color:var(--ink2);font-weight:600;font-size:12px">Kaderplanung — pro Position: Startelf · Backup · Transferziel</i></h3>
+  el.innerHTML=`<div class="card needcard"><h3>👥 Schattenmannschaft <i style="color:var(--ink2);font-weight:600;font-size:12px">Kaderplanung: pro Position: Startelf · Backup · Transferziel</i></h3>
     <div style="display:flex;gap:8px;margin:8px 0 4px"><button class="rtab" id="shFill">⚡ Auto-Vervollständigen</button><button class="rtab" id="shClear">✕ Planung leeren</button></div>
     <div class="shrow" style="border-bottom:1px solid var(--line)"><span class="shhead">Pos</span><span class="shhead">Startelf</span><span class="shhead">Backup (Kader)</span><span class="shhead">🎯 Ziel (extern)</span></div>
     ${form.map((sl,i)=>{
@@ -1878,7 +1878,7 @@ function renderNeeds(){
     return `<div class="rankrow" data-goid="${p.id}">
       <span class="rk" style="color:${c}" title="${W?`Transfer-Chance`:`MScore`}">${Math.round(W?W.k:s.total)}</span>
       <div class="ava l-${p.liga}" style="width:30px;height:30px;font-size:11px;border-radius:9px">${src?`<img src="${src}" onerror="this.remove()">`:initials(p.name)}</div>
-      <span class="rn">${p.name}${p.risiko?` <span title="${p.risiko}">⚠</span>`:''} <b style="color:${tagCol||'#5fe09b'};font-size:10.5px">${tag}</b><br><i>${p.club} · ${p.km!=null?p.km+' km':'km –'} · ${p.alter?(p.alterCa?'ca. ':'')+p.alter+' J.':'Alter –'} · <b style="color:var(--ink)">≈${s.proj} xT</b> · ${p.tore} Tore 25/26</i>${W?`<br><i style="color:#8fa3c7;font-size:11px">🕵️ Stärke ${Math.round(s.total)} · Wechsel ${W.w} — ${wreason(W,2)}</i>`:``}</span>
+      <span class="rn">${p.name}${p.risiko?` <span title="${p.risiko}">⚠</span>`:''} <b style="color:${tagCol||'#5fe09b'};font-size:10.5px">${tag}</b><br><i>${p.club} · ${p.km!=null?p.km+' km':'km –'} · ${p.alter?(p.alterCa?'ca. ':'')+p.alter+' J.':'Alter –'} · <b style="color:var(--ink)">≈${s.proj} xT</b> · ${p.tore} Tore 25/26</i>${W?`<br><i style="color:#8fa3c7;font-size:11px">🕵️ Stärke ${Math.round(s.total)} · Wechsel ${W.w} · ${wreason(W,2)}</i>`:``}</span>
       ${slot!=null?`<button class="fillbtn" data-fill="${slot}:${p.id}" title="Direkt aufstellen">＋</button>`:'<span></span>'}</div>`;};
   let html='';
   // Kader-Bedarfsanalyse-Überblick
@@ -1890,13 +1890,13 @@ function renderNeeds(){
     <div style="margin-top:6px">${vacChips||'<span class="needchip" style="border-color:rgba(47,210,122,.4);color:#5fe09b">Alle 11 Positionen besetzt ✓</span>'}
     ${ages.length?`<span class="needchip">Ø Alter der Elf: ${(ages.reduce((a,b)=>a+b,0)/ages.length).toFixed(1)} J. (${ages.length}/${xiP.length} bekannt)</span>`:''}
     ${oldies.length?`<span class="needchip" style="border-color:rgba(255,107,107,.4);color:#ff8a8a">Nachfolge planen: ${oldies.map(p=>p.name.split(' ').slice(-1)[0]+' ('+(p.alterCa?'ca. ':'')+p.alter+')').join(', ')}</span>`:''}</div>
-    <p class="note">☁️ Die Aufstellung wird automatisch <b>geräteübergreifend gespeichert</b> — die zuletzt gesetzte Elf erscheint auf jedem Gerät.</p>
-    ${DATA.startelf?`<p class="note">Stammelf-Referenz: <b>${DATA.startelf.label}</b> — <a href="${DATA.startelf.quelle}" target="_blank" rel="noopener" style="color:var(--accent)">Quelle: Vereinsheft ↗</a>. Per Antippen/Ziehen frei änderbar.</p>`:``}<p class="note">Basis: öffentliche Torjägerlisten &amp; fussball.de-Profile. Torhüter/Verteidiger tauchen dort kaum auf – für Defensiv-Positionen ersetzt kein Datensatz die Sichtung vor Ort.</p></div>`;
+    <p class="note">☁️ Die Aufstellung wird automatisch <b>geräteübergreifend gespeichert</b> · die zuletzt gesetzte Elf erscheint auf jedem Gerät.</p>
+    ${DATA.startelf?`<p class="note">Stammelf-Referenz: <b>${DATA.startelf.label}</b> · <a href="${DATA.startelf.quelle}" target="_blank" rel="noopener" style="color:var(--accent)">Quelle: Vereinsheft ↗</a>. Per Antippen/Ziehen frei änderbar.</p>`:``}<p class="note">Basis: öffentliche Torjägerlisten &amp; fussball.de-Profile. Torhüter/Verteidiger tauchen dort kaum auf. Für Defensiv-Positionen ersetzt kein Datensatz die Sichtung vor Ort.</p></div>`;
   {const pool=ext.filter(p=>{const W=wscore(p);return W&&W.w>=55;}).sort(byK).slice(0,6);
    if(pool.length){
-     html+=`<div class="card needcard"><h3>🕵️ Digital-Scout — die realistischsten Verstärkungen</h3>
+     html+=`<div class="card needcard"><h3>🕵️ Digital-Scout: die realistischsten Verstärkungen</h3>
        <div style="margin-top:6px">${pool.map(p=>row(p,null,p.pos||'Pos. –','#8fd0ff')).join('')}</div>
-       <p class="note"><b>Transfer-Chance</b> = 55 % Stärke (MScore) + 45 % <b>Wechsel-Index</b>. Der Wechsel-Index schätzt aus öffentlichen Signalen (Zweitvertretung, Spielzeit, Liga-Differenz, Entfernung, Tabellenlage, Torjäger-Status, Verletzung), wie realistisch ein Wechsel zum SV/BSC ist — ein Superstürmer, der höherklassig oben mitspielt, landet bewusst weit unten. Komplette Begründung im Spielerprofil.</p></div>`;
+       <p class="note"><b>Transfer-Chance</b> = 55 % Stärke (MScore) + 45 % <b>Wechsel-Index</b>. Der Wechsel-Index schätzt aus öffentlichen Signalen (Zweitvertretung, Spielzeit, Liga-Differenz, Entfernung, Tabellenlage, Torjäger-Status, Verletzung), wie realistisch ein Wechsel zum SV/BSC ist, ein Superstürmer, der höherklassig oben mitspielt, landet bewusst weit unten. Komplette Begründung im Spielerprofil.</p></div>`;
    }}
   const entries=Object.entries(vac);
   if(entries.length){
@@ -1908,7 +1908,7 @@ function renderNeeds(){
       }
       const rows=match.map(p=>row(p,v.slot,'✓ '+want)).concat(
         extra.map(p=>row(p,v.slot,p.isJugend?'Jugend-Torjäger':(p.pos?'geführt als '+p.pos:'Pos. nicht erfasst'),'#ffd60a')));
-      const empty=!rows.length?`<p class="note">Für <b>${want}</b> ist in den öffentlichen Torjägerlisten kein Spieler mit Positionsangabe erfasst – hier hilft nur klassische Sichtung. Über die Position auf dem Feld (＋) kannst du trotzdem jeden Spieler manuell einplanen.</p>`:'';
+      const empty=!rows.length?`<p class="note">Für <b>${want}</b> ist in den öffentlichen Torjägerlisten kein Spieler mit Positionsangabe erfasst, hier hilft nur klassische Sichtung. Über die Position auf dem Feld (＋) kannst du trotzdem jeden Spieler manuell einplanen.</p>`:'';
       return `<div class="card needcard"><h3>🎯 Transfer-Vorschläge: ${v.n}× ${[...v.roles].join(' / ')} <i>(${want})</i></h3>
         <div style="margin-top:6px">${rows.join('')}</div>${empty}
         ${rows.length?'<p class="note">Beste verfügbare Spieler nach MScore (ohne eigene &amp; bereits aufgestellte). Zeile → Profil · ＋ → direkt aufstellen.</p>':''}</div>`;
@@ -1923,7 +1923,7 @@ function renderNeeds(){
     html+= ups.length?`<div class="card needcard"><h3>📈 Upgrade-Potenzial <i>(Elf ist komplett)</i></h3>
         <div style="margin-top:6px">${ups.slice(0,5).map(u=>row(u.best,u.i,`＋${u.diff.toFixed(0)} MScore vs. ${u.cur.name.split(' ').slice(-1)[0]} (${u.role})`,'#b39df7')).join('')}</div>
         <p class="note">Erfasste externe Spieler, die auf ihrer Position deutlich stärker bewertet sind als der aktuelle Elf-Spieler. ＋ ersetzt ihn in der Aufstellung.</p></div>`
-      :`<div class="card needcard"><h3>✓ Kader-Check</h3><p class="note">Elf komplett – aktuell ist kein erfasster externer Spieler auf seiner Position deutlich stärker bewertet als deine Aufstellung.</p></div>`;
+      :`<div class="card needcard"><h3>✓ Kader-Check</h3><p class="note">Elf komplett: aktuell ist kein erfasster externer Spieler auf seiner Position deutlich stärker bewertet als deine Aufstellung.</p></div>`;
   }
   if(DATA.elfSaison&&DATA.elfSaison.names&&DATA.elfSaison.names.length){
     html+=`<div class="card needcard"><h3>🏆 ${DATA.elfSaison.label||'Elf der Saison'}</h3>
@@ -2089,7 +2089,7 @@ function openSlotPicker(i,depth){
             <span class="rn">${p.own?'<b style="color:#4da3ff">●</b> ':''}${p.name} ${F?`<b style="color:${F.col}">${F.tag}</b>`:'<i style="color:var(--ink3)">'+(p.pos||'–')+'</i>'}<br><i>${p.club}${W?` · Stärke ${Math.round(s.total)} · Wechsel ${W.w}`:``}</i></span>
             <span class="rv">≈${s.proj} <i style="font-style:normal;font-size:10px">xT</i><br><i style="font-size:10px;color:var(--ink3);font-style:normal">${p.tore} Tore 25/26</i></span></div>`;}).join('')}
       </div>
-      <p class="note">● = eigener Spieler. Unpassende Positionen (z.B. IV für einen Sturmplatz) sind bewusst ausgeblendet — über die Suche erreichbar, falls du es doch wissen willst.</p>`;
+      <p class="note">● = eigener Spieler. Unpassende Positionen (z.B. IV für einen Sturmplatz) sind bewusst ausgeblendet, über die Suche erreichbar, falls du es doch wissen willst.</p>`;
     document.getElementById('overlay').classList.add('open');
     document.getElementById('mclose').onclick=closeOverlay;
     const inp=document.getElementById('pkq');inp.oninput=e=>{q=e.target.value.toLowerCase();const c=inp.selectionStart;draw();const n=document.getElementById('pkq');n.focus();n.setSelectionRange(c,c);};
@@ -2100,7 +2100,7 @@ function openSlotPicker(i,depth){
 }
 
 /* ===== App-Modus: installierbar, offline-fest, aktualisiert sich selbst ===== */
-const APP_BUILD='4.2-202609241703', OUTBOX_KEY='svbcOutbox', APP_HIDE_KEY='svbcInstallHide';
+const APP_BUILD='4.3-202609241852', OUTBOX_KEY='svbcOutbox', APP_HIDE_KEY='svbcInstallHide';
 let _appPrompt=null, _appNew=null, _obT=null;
 function appStandalone(){ try{ return !!(window.matchMedia&&matchMedia('(display-mode: standalone)').matches)||navigator.standalone===true; }catch(e){ return false; } }
 function appPlatform(){
@@ -2144,8 +2144,8 @@ function appReload(){
 function appShowUpdate(){
   let el=document.getElementById('appUpd');
   if(!el){ el=document.createElement('button'); el.id='appUpd'; el.className='appupd'; el.type='button'; document.body.appendChild(el);
-    el.onclick=()=>{ if(!appSafeToReload()&&SYNC_ST==='pending'){ kToast('Wird noch gespeichert – gleich nochmal tippen'); return; } appReload(); }; }
-  el.innerHTML='🔄 <b>Neue Version</b> – tippen zum Laden';
+    el.onclick=()=>{ if(!appSafeToReload()&&SYNC_ST==='pending'){ kToast('Wird noch gespeichert: gleich nochmal tippen'); return; } appReload(); }; }
+  el.innerHTML='🔄 <b>Neue Version</b> · tippen zum Laden';
   el.style.display='';
 }
 let _appLastCheck=0;
@@ -2166,10 +2166,10 @@ setInterval(()=>{ if(document.visibilityState==='visible')appCheckUpdate(false);
 
 /* --- Installieren (Home) --- */
 window.addEventListener('beforeinstallprompt',e=>{ e.preventDefault(); _appPrompt=e; renderAppInstall(); });
-window.addEventListener('appinstalled',()=>{ _appPrompt=null; lsSet(APP_HIDE_KEY,'1'); renderAppInstall(); try{kToast('📲 Installiert – ab jetzt über das Icon öffnen');}catch(e){} });
+window.addEventListener('appinstalled',()=>{ _appPrompt=null; lsSet(APP_HIDE_KEY,'1'); renderAppInstall(); try{kToast('📲 Installiert: ab jetzt über das Icon öffnen');}catch(e){} });
 function appShare(){
   const url=location.origin+location.pathname.replace(/index\.html$/,'');
-  const text='SV/BSC Scout – unsere Kaderplanungs-App. Link öffnen und „Zum Home-Bildschirm“ wählen: ';
+  const text='SV/BSC Scout: unsere Kaderplanungs-App. Link öffnen und „Zum Home-Bildschirm“ wählen: ';
   if(navigator.share){ navigator.share({title:'SV/BSC Scout',text,url}).catch(()=>{}); return; }
   kCopy(text+url);
 }
@@ -2180,11 +2180,11 @@ function renderAppInstall(){
   let how;
   if(_appPrompt) how=`<button class="kbtn appgo" id="appInstBtn">📲 Jetzt installieren</button>`;
   else if(P.ios&&P.inApp) how=`<ol class="appsteps"><li>Unten rechts auf <b>„In Safari öffnen“</b> (Kompass-Symbol) tippen</li><li>Dort <b>Teilen</b> <span class="appico">⬆︎</span> → <b>„Zum Home-Bildschirm“</b></li><li>Oben rechts <b>„Hinzufügen“</b></li></ol>`;
-  else if(P.ios) how=`<ol class="appsteps"><li>Unten (bzw. oben) auf <b>Teilen</b> <span class="appico">⬆︎</span> tippen</li><li>Runterscrollen: <b>„Zum Home-Bildschirm“</b></li><li>Oben rechts <b>„Hinzufügen“</b> – fertig</li></ol>`;
+  else if(P.ios) how=`<ol class="appsteps"><li>Unten (bzw. oben) auf <b>Teilen</b> <span class="appico">⬆︎</span> tippen</li><li>Runterscrollen: <b>„Zum Home-Bildschirm“</b></li><li>Oben rechts <b>„Hinzufügen“</b> · fertig</li></ol>`;
   else how=`<ol class="appsteps"><li>Oben rechts das Browser-Menü <span class="appico">⋮</span> öffnen</li><li><b>„App installieren“</b> bzw. <b>„Zum Startbildschirm hinzufügen“</b></li></ol>`;
   box.innerHTML=`<div class="card appcard"><button class="kx" id="appInstHide" title="Ausblenden" aria-label="Ausblenden">×</button>
     <div class="apphead"><img src="icon-192.png" alt="" class="appicon"><div><h3>SV/BSC Scout als App</h3>
-    <p>Eigenes Icon auf dem Startbildschirm, Vollbild, startet auch im Funkloch am Sportplatz – und aktualisiert sich von selbst.</p></div></div>
+    <p>Eigenes Icon auf dem Startbildschirm, Vollbild, startet auch im Funkloch am Sportplatz, und aktualisiert sich von selbst.</p></div></div>
     ${how}
     <div class="approw"><button class="kbtn" id="appShareBtn">📤 Link an Planer schicken</button></div></div>`;
   const b=document.getElementById('appInstBtn');
@@ -2197,7 +2197,7 @@ function appInit(){
   const acts=document.getElementById('appActs');
   if(acts){
     acts.innerHTML=`<button class="appact" id="appRefresh" title="Neu laden" aria-label="Neu laden">↻</button><button class="appact" id="appShareTop" title="App teilen" aria-label="App teilen">📤</button>`;
-    document.getElementById('appRefresh').onclick=()=>{ if(SYNC_ST==='pending'){kToast('Wird noch gespeichert – gleich nochmal');return;} _appNew=_appNew||String(Date.now()); appReload(); };
+    document.getElementById('appRefresh').onclick=()=>{ if(SYNC_ST==='pending'){kToast('Wird noch gespeichert: gleich nochmal');return;} _appNew=_appNew||String(Date.now()); appReload(); };
     document.getElementById('appShareTop').onclick=appShare;
   }
   if(/[?&]v=/.test(location.search)){ try{ history.replaceState(null,'',location.pathname+location.hash); }catch(e){} }
@@ -2212,7 +2212,13 @@ function appInit(){
    (wird an den App-Code angehängt und überschreibt gezielt einzelne Funktionen)
    ===================================================================== */
 const SVB=window.SVBC, SVU=window.__SVBC_USER||{role:'viewer',name:'',email:''};
-const svEsc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+// Texte ohne Gedankenstriche: aus „A – B“ wird je nach Satz ein Komma, Doppelpunkt oder Punkt (auch für Daten und KI-Antworten)
+const SV_KONJ=new Set('und oder aber sonst dann also damit nur nicht je auch wird werden ist sind bitte weil wenn falls statt ohne mit bis wie als ob denn doch jedoch egal danach dabei dafür deshalb daher so noch schon gern gerne etwa inkl. außer ggf. vielleicht meist oft immer nie kein keine keinen keiner'.split(' '));
+function svPolish(t){ if(t.indexOf(' – ')<0&&t.indexOf(' — ')<0)return t;
+  t=t.replace(/ [–—] ([^–—\n]{1,60}?) [–—] /g,', $1, ');
+  return t.replace(/ [–—] (\S)/g,(m,c,off,str)=>{ const left=str.slice(0,off), lw=left.split(/[.:!?·(\n]\s*/).pop().trim().split(/\s+/).filter(Boolean).length, nx=str.slice(off+3).split(/\s/)[0].toLowerCase().replace(/[,.;:]+$/,'');
+    if(SV_KONJ.has(nx)||(/[a-zäöüß]/.test(c)&&lw>6))return ', '+c; if(lw>0&&lw<=3)return ': '+c; return '. '+c.toUpperCase(); }).replace(/ [–—]$/,''); }
+const svEsc=s=>svPolish(String(s==null?'':s)).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const svIni=n=>String(n||'?').trim().split(/\s+/).map(w=>w[0]).slice(0,2).join('').toUpperCase()||'?';
 const svFirst=n=>String(n||'').trim().split(/\s+/)[0]||'';
 function svRole(){ return SVU.role||'viewer'; }
@@ -2224,7 +2230,7 @@ function canManage(){ const r=svRole(); return r==='admin'||r==='vorstand'; }
 const SV_TRAINER_FIELDS={n:1,f:1,mv:1,mvd:1,x:1,ps:1,ps2:1,ph:1,gb:1,al:1,fu:1,gr:1,sc:1};
 function canWriteField(k){ if(canEdit())return true; if(svRole()==='trainer')return !!SV_TRAINER_FIELDS[k]; return false; }
 let _svDeniedT=0;
-function svDenied(t){ const n=Date.now(); if(n-_svDeniedT<2500)return; _svDeniedT=n; try{kToast('🔒 '+(t||'Dafür fehlt dir die Berechtigung – das machen die Kaderplaner.'));}catch(e){} }
+function svDenied(t){ const n=Date.now(); if(n-_svDeniedT<2500)return; _svDeniedT=n; try{kToast('🔒 '+(t||'Dafür fehlt dir die Berechtigung. Das machen die Kaderplaner.'));}catch(e){} }
 function svAgo(ts){ const d=(Date.now()-new Date(ts).getTime())/1000; if(!isFinite(d))return ''; if(d<60)return 'gerade eben'; if(d<3600)return 'vor '+Math.round(d/60)+' Min.'; if(d<86400)return 'vor '+Math.round(d/3600)+' Std.';
   const days=Math.round(d/86400); if(days===1)return 'gestern'; if(days<7)return 'vor '+days+' Tagen'; return new Date(ts).toLocaleDateString('de-DE',{day:'2-digit',month:'2-digit',year:'2-digit'}); }
 
@@ -2274,7 +2280,7 @@ async function kandSaveContact(id,val){
 function kandContactPlain(p){ const C=crmOf(p); if(!C.k||isEnc(C.k))return ''; return String(C.k); }
 function kandContactCell(p,C){
   if(!canContacts())return '<span class="kand-lock" title="Kontaktdaten sehen nur Kaderplaner">🔒</span>';
-  if(C.k&&isEnc(C.k))return '<span class="kand-lock" title="Mit altem Team-Schlüssel verschlüsselt – bitte neu eintragen">🔒 alt – neu eintragen</span><input class="kand-in" data-kc="'+p.id+'" value="" placeholder="Handy / E-Mail" autocomplete="off">';
+  if(C.k&&isEnc(C.k))return '<span class="kand-lock" title="Mit altem Team-Schlüssel verschlüsselt, bitte neu eintragen">🔒 alt: neu eintragen</span><input class="kand-in" data-kc="'+p.id+'" value="" placeholder="Handy / E-Mail" autocomplete="off">';
   const v=kandContactPlain(p), ph=kandPhone(v), ml=kandMail(v);
   return '<input class="kand-in" data-kc="'+p.id+'" value="'+kEsc(v)+'" placeholder="Handy / E-Mail" autocomplete="off">'
     +((ph||ml)?'<div class="kacts">'+(ph?'<a class="kbtn klink" href="tel:'+kEsc(ph.tel)+'" title="Anrufen">📞</a><a class="kbtn klink" href="https://wa.me/'+kEsc(ph.wa)+'" target="_blank" rel="noopener" title="WhatsApp-Chat öffnen">💬</a>':'')+(ml?'<a class="kbtn klink" href="mailto:'+kEsc(ml)+'" title="E-Mail">✉️</a>':'')+'</div>':'');
@@ -2291,7 +2297,7 @@ function kandContactCell(p,C){
       P.querySelectorAll('.kand-table input,.kand-table select,.kand-table textarea').forEach(el=>{ el.disabled=true; });
       P.querySelectorAll('.kand-table button:not(.kand-name)').forEach(el=>{ el.disabled=true; el.style.visibility='hidden'; });
       P.querySelectorAll('.kadd,#kDigBtn').forEach(el=>el.style.display='none');
-      if(!P.querySelector('.ro-note')){ const n=document.createElement('div'); n.className='ro-note'; n.innerHTML=SVI('lock')+'<span><b>Nur lesen.</b> Die Pipeline pflegen die Kaderplaner – Kontaktdaten sind für deine Rolle ausgeblendet.</span>'; P.prepend(n); }
+      if(!P.querySelector('.ro-note')){ const n=document.createElement('div'); n.className='ro-note'; n.innerHTML=SVI('lock')+'<span><b>Nur lesen.</b> Die Pipeline pflegen die Kaderplaner. Kontaktdaten sind für deine Rolle ausgeblendet.</span>'; P.prepend(n); }
     }
     svBadges(); return r; }; }
 function svGateModal(){
@@ -2310,12 +2316,12 @@ function svGateModal(){
 },true));
 
 /* ---------- Shell: Titel, Navigation, Mehr-Menü ---------- */
-const SV_PAGES={home:['Übersicht','Dein Lagebild für die Kaderplanung'],scout:['Scouting','Alle Spieler der Region – filtern, vergleichen, merken'],
+const SV_PAGES={home:['Übersicht','Dein Lagebild für die Kaderplanung'],scout:['Scouting','Alle Spieler der Region. Filtern, vergleichen, merken'],
   kandidaten:['Kandidaten','Kontakte, Wechselchancen und Zuständigkeiten'],kaderplan:['Kaderplan','Traumelf, Backups und offene Positionen'],
-  db:['Datenbank','Alle Spieler als Tabelle – sortieren und filtern'],elf:['Aufstellung','Startelf planen und Positionen besetzen'],
+  db:['Datenbank','Alle Spieler als Tabelle. Sortieren und filtern'],elf:['Aufstellung','Startelf planen und Positionen besetzen'],
   sxi:['Schattenelf','Backups und Wunschspieler je Position'],gems:['Rohdiamanten','Unterschätzte Spieler mit Potenzial'],
   jugend:['Jugend','Nachwuchs-Radar im Umkreis'],cmp:['Vergleich','Spieler direkt gegenüberstellen'],
-  play:['Playbook','Wie datenbasierte Klubs Kader bauen'],model:['Modell','So rechnet der Scout'],admin:['Nutzer & Rollen','Wer hat Zugang – und was darf wer']};
+  play:['Playbook','Wie datenbasierte Klubs Kader bauen'],model:['Modell','So rechnet der Scout'],admin:['Nutzer & Rollen','Wer hat Zugang, und was darf wer']};
 function svTabAllowed(t){ if(t==='admin')return canManage(); if(t==='kandidaten')return svRole()!=='viewer'; return true; }
 { const _gt=goTab; goTab=function(tab){
     if(!tab||!svTabAllowed(tab)||!document.getElementById('panel-'+tab))tab='home';
@@ -2357,7 +2363,7 @@ function svHello(){
   const h=new Date().getHours(), g=h<11?'Guten Morgen':h<17?'Hallo':'Guten Abend';
   const d=new Date().toLocaleDateString('de-DE',{weekday:'long',day:'numeric',month:'long'});
   const st=(typeof DATA!=='undefined'&&DATA.updated)?' · Daten vom '+new Date(DATA.updated).toLocaleDateString('de-DE',{day:'2-digit',month:'2-digit'}):'';
-  el.innerHTML=`<div><h2>${g}, <span>${svEsc(svFirst(SVU.name)||'Coach')}</span></h2><p>${svEsc(d+st)} · <span class="rolechip r-${svEsc(svRole())}"><i></i>${svEsc(SVB.ROLE_T[svRole()]||'')}</span></p></div>
+  el.innerHTML=`<div><h2>${g}, <span>${svEsc(svFirst(SVU.name)||'Coach')}</span></h2><p><span class="hello-d">${svEsc(d+st)}</span> <span class="rolechip r-${svEsc(svRole())}"><i></i>${svEsc(SVB.ROLE_T[svRole()]||'')}</span></p></div>
     <div class="online" id="svOnline2"></div>`;
   svOnlineRender();
 }
@@ -2464,10 +2470,10 @@ function svAccount(){
 /* ---------- Admin: Nutzer & Rollen ---------- */
 const SV_ROLE_INFO={
   admin:{t:'Admin',d:'Voller Zugriff und Nutzerverwaltung',yes:['Alles sehen & bearbeiten','Kontaktdaten','Leute einladen & Rollen vergeben'],no:[]},
-  vorstand:{t:'Vorstand',d:'Alles wie die Kaderplaner – plus einladen',yes:['Alles sehen & bearbeiten','Kandidaten, Kontakte & Aufstellung','Leute einladen (bis Kaderplaner)'],no:['Rollen ändern, sperren, löschen']},
+  vorstand:{t:'Vorstand',d:'Alles wie die Kaderplaner. Plus einladen',yes:['Alles sehen & bearbeiten','Kandidaten, Kontakte & Aufstellung','Leute einladen (bis Kaderplaner)'],no:['Rollen ändern, sperren, löschen']},
   planer:{t:'Kaderplaner',d:'Die operative Kaderplanung',yes:['Kandidaten & Kontakte pflegen','Kaderplan & Aufstellung','Positionen & Spielerdaten','Notizen, MVP, Merkliste'],no:['Nutzerverwaltung']},
   trainer:{t:'Trainer / Scout',d:'Bewerten und einschätzen',yes:['Alles ansehen','Positionen & Spielerdaten ändern','Notizen, Eye-Test & MVP','Merkliste'],no:['Kontaktdaten','Kaderplanung ändern']},
-  viewer:{t:'Gast',d:'Nur lesen – z.B. für Gäste und Sponsoren',yes:['Kaderplan & Aufstellung ansehen','Scouting & Datenbank'],no:['Kontaktdaten & Notizen','Änderungen']}
+  viewer:{t:'Gast',d:'Nur lesen: z.B. für Gäste und Sponsoren',yes:['Kaderplan & Aufstellung ansehen','Scouting & Datenbank'],no:['Kontaktdaten & Notizen','Änderungen']}
 };
 let SV_USERS=[], _svDel=null;
 async function svAdminLoad(){ const {data,error}=await SVB.sb.rpc('admin_list'); if(error)throw error; SV_USERS=data||[]; }
@@ -2482,7 +2488,7 @@ async function svAdminRender(reload){
   const draft=P._draft||{name:'',email:'',role:'planer'};
   P.innerHTML=`
   <div class="card">
-    <div class="adm-head"><div><h3 style="margin:0">Person einladen</h3><p style="margin:6px 0 0;font-size:13.5px">Du bekommst einen persönlichen Link – den schickst du per WhatsApp oder Mail. Wer ihn öffnet, legt sein Passwort fest und ist drin.${ADM?'':' Als Vorstand kannst du Kaderplaner, Trainer und Gäste einladen – Rollen ändern, sperren und löschen macht der Admin.'}</p></div></div>
+    <div class="adm-head"><div><h3 style="margin:0">Person einladen</h3><p style="margin:6px 0 0;font-size:13.5px">Du bekommst einen persönlichen Link. Den schickst du per WhatsApp oder Mail. Wer ihn öffnet, legt sein Passwort fest und ist drin.${ADM?'':' Als Vorstand kannst du Kaderplaner, Trainer und Gäste einladen. Rollen ändern, sperren und löschen macht der Admin.'}</p></div></div>
     <form class="invite" id="svInv" autocomplete="off">
       <div><label for="svInvName">Name</label><input id="svInvName" class="search" placeholder="z.B. Erwin Müller" value="${svEsc(draft.name)}" required></div>
       <div><label for="svInvMail">E-Mail</label><input id="svInvMail" class="search" type="email" placeholder="name@beispiel.de" value="${svEsc(draft.email)}" required></div>
@@ -2546,7 +2552,7 @@ function svLinkBox(link,name,role,kind){
   const out=document.getElementById('svInvOut'); if(!out)return;
   const fn=svFirst(name)||'du', R=(SV_ROLE_INFO[role]||{}).t||'';
   const txt=kind==='invite'
-    ?`Hallo ${fn}! Du bist zur SV/BSC Sportzentrale eingeladen – unserer App für Kader, Scouting und Mannschaft (Rolle: ${R}).\n\nTipp auf den Link, leg dein Passwort fest – fertig:\n${link}\n\nDer Link ist nur für dich und nur begrenzt gültig. Danach kannst du die App auch aufs Handy legen.`
+    ?`Hallo ${fn}! Du bist zur SV/BSC Sportzentrale eingeladen. Unserer App für Kader, Scouting und Mannschaft (Rolle: ${R}).\n\nTipp auf den Link, leg dein Passwort fest, fertig:\n${link}\n\nDer Link ist nur für dich und nur begrenzt gültig. Danach kannst du die App auch aufs Handy legen.`
     :`Hallo ${fn}! Hier dein neuer Anmelde-Link für die SV/BSC Sportzentrale:\n${link}\n\nNur für dich und nur begrenzt gültig.`;
   out.innerHTML=`<div class="linkbox"><b style="display:flex;align-items:center;gap:8px">${SVI('check')} ${kind==='invite'?'Einladung für '+svEsc(name)+' ist bereit':'Neuer Link für '+svEsc(name)}</b>
     <code>${svEsc(link)}</code>
@@ -2649,7 +2655,7 @@ function svSeasonLabel(){ const s=(DATA&&DATA.season)||'2526'; return s.slice(0,
 { const _rh0=rowHtml; rowHtml=function(p,i,extra){
   let h=_rh0(p,i,extra);
   if(svCurOk(p)){ const c=p.cur; h=h.replace(`<span><b>${p.tore}</b> Tore</span>`,`<span><b>${c.tore}</b> Tore ${svSeasonLabel()}</span><span>${p.tore} T 25/26</span>`);
-    if(c.wechsel)h=h.replace(`<span>${p.club}</span>`,`<span>${svEsc(c.club)} <i style="color:var(--gold);font-style:normal" title="Vereinswechsel – vorher ${svEsc(p.club)}">⇄</i></span>`); }
+    if(c.wechsel)h=h.replace(`<span>${p.club}</span>`,`<span>${svEsc(c.club)} <i style="color:var(--gold);font-style:normal" title="Vereinswechsel: vorher ${svEsc(p.club)}">⇄</i></span>`); }
   if(p.neu27)h=h.replace('<div class="pname">','<div class="pname"><span class="badge" style="background:rgba(34,197,94,.15);color:#86efac">neu</span> ');
   return h; }; }
 /* Profil: Zeile für die laufende Saison */
@@ -2673,7 +2679,7 @@ async function svDataCard(P){
   const el=document.createElement('div'); el.className='card'; el.id='svData';
   const lg=(lastSt.leagues||[]).map(l=>`<tr><td>${svEsc(l.name)}</td><td class="num">${l.spieltag}</td><td class="num">${l.teams}</td><td class="num">${l.scorers}</td><td class="num">${l.added}</td></tr>`).join('');
   el.innerHTML=`<div class="adm-head"><div><h3 style="margin:0;display:flex;gap:8px;align-items:center">${SVI('refresh')} Datenstand</h3>
-      <p style="margin:6px 0 0;font-size:13.5px">Tore, Spiele und Tabellen aller 7 Ligen kommen automatisch von FUSSBALL.DE – <b>jeden Montag und Donnerstag um 6 Uhr</b>. Die Bewertungen rechnen die laufende Saison 26/27 mit der Vorsaison zusammen.</p></div>
+      <p style="margin:6px 0 0;font-size:13.5px">Tore, Spiele und Tabellen aller 7 Ligen kommen automatisch von FUSSBALL.DE · <b>jeden Montag und Donnerstag um 6 Uhr</b>. Die Bewertungen rechnen die laufende Saison 26/27 mit der Vorsaison zusammen.</p></div>
       <button class="btn" id="svDataGo">${SVI('refresh')} Jetzt aktualisieren</button></div>
     <div class="adm-stats" style="margin-bottom:12px"><div class="adm-stat"><b>${svEsc(svFmtDate((DATA&&DATA.updated)||last&&last.at))}</b><span>Stand der Daten</span></div>
       ${last?`<div class="adm-stat"><b>${lastSt.matched||0}</b><span>Torschützen zugeordnet</span></div><div class="adm-stat"><b>${lastSt.added||0}</b><span>neu im Radar</span></div><div class="adm-stat"><b>${lastSt.transfers||0}</b><span>Vereinswechsel erkannt</span></div>`:''}</div>
@@ -2691,7 +2697,7 @@ async function svDataCard(P){
 
 /* =====================================================================
    SV/BSC Scout · Runde 5
-   - Positionen & Spielerdaten fürs ganze Team (auch Trainer) – statt nur auf einem Gerät
+   - Positionen & Spielerdaten fürs ganze Team (auch Trainer), statt nur auf einem Gerät
    - „Meine Kandidaten“: wer bin ich in der Spalte „Verantwortlich“?
    - Erinnerungs-Intervall je Kandidat, Erinnerungskarte auf der Übersicht, App-Symbol-Zähler
    - Push-Erinnerungen aufs Handy (Web Push)
@@ -2802,7 +2808,7 @@ async function svPushOn(){
   const j=sub.toJSON();
   const {error}=await SVB.sb.rpc('push_sub',{p_endpoint:j.endpoint,p_p256dh:j.keys.p256dh,p_auth:j.keys.auth,p_ua:svDeviceName()});
   if(error){ try{await sub.unsubscribe();}catch(e){} throw new Error(/check/.test(error.message||'')?'Dieser Browser nutzt einen unbekannten Mitteilungsdienst':'Anmelden fehlgeschlagen'); }
-  try{ await svPushTest(); kToast('🔔 Erinnerungen sind an – gleich kommt eine Test-Mitteilung'); }catch(e){ kToast('🔔 Erinnerungen sind an'); }
+  try{ await svPushTest(); kToast('🔔 Erinnerungen sind an. Gleich kommt eine Test-Mitteilung'); }catch(e){ kToast('🔔 Erinnerungen sind an'); }
   return true;
 }
 async function svPushOff(){
@@ -2823,7 +2829,7 @@ async function svPushChip(host,big){
   if(big){
     host.innerHTML=st==='on'?`<div class="pushrow"><span class="pushchip on">${SVI('bell')} Auf diesem Gerät an</span><button class="btn ghost sm" data-ptest>Test senden</button><button class="btn ghost sm" data-poff>Ausschalten</button></div>`
       :`<div class="pushrow"><button class="btn sm" data-pon>${SVI('bell')} ${lbl}</button></div>`;
-    host.insertAdjacentHTML('beforeend','<p class="note">Du bekommst eine Mitteilung, sobald bei einem deiner Kandidaten der letzte Kontakt zu lange her ist – und montags eine kurze Übersicht. Jedes Gerät einzeln einschalten.</p>');
+    host.insertAdjacentHTML('beforeend','<p class="note">Du bekommst eine Mitteilung, sobald bei einem deiner Kandidaten der letzte Kontakt zu lange her ist, und montags eine kurze Übersicht. Jedes Gerät einzeln einschalten.</p>');
   } else host.innerHTML=`<button class="pushchip" data-pon>${SVI('bell')} ${lbl}</button>`;
   const on=host.querySelector('[data-pon]'); if(on)on.onclick=async()=>{ on.disabled=true; try{ await svPushOn(); }catch(e){ kToast('⚠️ '+e.message); } on.disabled=false; svPushChip(host,big); svPushRefreshAll(host); };
   const te=host.querySelector('[data-ptest]'); if(te)te.onclick=async()=>{ te.disabled=true; try{ const r=await svPushTest(); kToast('📨 Test verschickt'+(r&&r.devices>1?' an '+r.devices+' Geräte':'')); }catch(e){ kToast('⚠️ '+e.message); } te.disabled=false; };
@@ -2880,7 +2886,7 @@ function svPosEditor(p,host){
   const box=document.createElement('div'); box.className='svpos-box'; (M.querySelector('.mhead')||host).after(box);
   setTimeout(()=>{ try{ box.scrollIntoView({behavior:'smooth',block:'nearest'}); }catch(e){} },30);
   const draw=()=>{
-    box.innerHTML=`<div class="lbl">Position von ${svEsc(svFirst(p.name))} – Hauptposition</div><div class="chips">${keys.map(k=>`<button type="button" class="pchip${k===sel?' on':''}" data-m="${k}">${k}</button>`).join('')}</div>
+    box.innerHTML=`<div class="lbl">Position von ${svEsc(svFirst(p.name))} · Hauptposition</div><div class="chips">${keys.map(k=>`<button type="button" class="pchip${k===sel?' on':''}" data-m="${k}">${k}</button>`).join('')}</div>
       <div class="lbl">Kann auch spielen</div><div class="chips">${keys.filter(k=>k!==sel).map(k=>`<button type="button" class="pchip alt${alt.has(k)?' on':''}" data-a="${k}">${k}</button>`).join('')}</div>
       ${sel!==cur?`<div class="hint">${SVI('info')}<span>Neu: <b>${svEsc(cur||'–')} → ${svEsc(sel)}</b>. Die alte Position bleibt als „früher ${svEsc(cur||'–')}“ sichtbar.</span></div>`:''}
       <div class="btnrow"><button type="button" class="btn" data-save>Für alle speichern</button><button type="button" class="btn ghost" data-cancel>Abbrechen</button></div>`;
@@ -2900,7 +2906,7 @@ function svSavePos(p,sel,alt){
   if(!Object.keys(upd).length){ kToast('Keine Änderung'); return; }
   crmSet(p.id,upd); try{crmApply();}catch(e){}
   try{renderAll();}catch(e){} openModal(p.id);
-  kToast(upd.ps?'✓ '+p.name+': '+(before||'–')+' → '+sel+' – für alle gespeichert':'✓ Nebenpositionen gespeichert');
+  kToast(upd.ps?'✓ '+p.name+': '+(before||'–')+' → '+sel+' · für alle gespeichert':'✓ Nebenpositionen gespeichert');
 }
 function keysSorted(arr){ const o=Object.keys(POS_W); return arr.slice().sort((x,y)=>o.indexOf(x)-o.indexOf(y)); }
 function svHookSave(pid){
@@ -2928,14 +2934,14 @@ function svHookSave(pid){
     const auto=kandPlanners().find(n=>svPlOf({name:SVU.name},n));
     const sec=document.createElement('div'); sec.className='editsec';
     sec.innerHTML=`<h4>Kandidaten &amp; Erinnerungen</h4>
-      <div class="field"><label for="svMyPl">In der Spalte „Verantwortlich“ bin ich</label><select id="svMyPl"><option value="">Automatisch${auto?' – '+svEsc(auto):''}</option>${kandPlanners().map(n=>`<option${SVU.pl_name===n?' selected':''}>${svEsc(n)}</option>`).join('')}</select></div>
+      <div class="field"><label for="svMyPl">In der Spalte „Verantwortlich“ bin ich</label><select id="svMyPl"><option value="">Automatisch${auto?' · '+svEsc(auto):''}</option>${kandPlanners().map(n=>`<option${SVU.pl_name===n?' selected':''}>${svEsc(n)}</option>`).join('')}</select></div>
       <div id="svPushAcc" style="margin-top:12px"></div>`;
     app.before(sec);
     document.getElementById('svMyPl').onchange=async e=>{
       const v=e.target.value;
       try{ const {error}=await SVB.sb.rpc('me_update',{p_name:null,p_pw_set:null,p_pl:v}); if(error)throw error;
         SVU.pl_name=v||null; try{ const c=JSON.parse(localStorage.getItem('svbcProfile')||'null'); if(c){ c.pl_name=SVU.pl_name; localStorage.setItem('svbcProfile',JSON.stringify(c)); } }catch(x){}
-        kToast('✓ Gespeichert – „Meine Kandidaten“ zeigt jetzt '+(v||auto||'deine')); svAfterKand(); }
+        kToast('✓ Gespeichert: „Meine Kandidaten“ zeigt jetzt '+(v||auto||'deine')); svAfterKand(); }
       catch(err){ kToast('⚠️ '+(err.message||err)); }
     };
     svPushChip(document.getElementById('svPushAcc'),true);
@@ -2959,7 +2965,7 @@ async function svTeamLoad(){ try{ const {data}=await SVB.sb.rpc('team_names'); i
    - Spielerrolle je Position, Special Skills (mit „+“ für herausragend), starker & schwacher Fuß
    - Charakter & Training (1–5), Charakter-Tags, Stärken/Schwächen
    - Spielerkarte im Profil, Positions-Check + Auto-Sortieren in der Aufstellung
-   - Kader-Profil: Was haben wir, was fehlt – und Suche nach Rollen/Skills/Fuß
+   - Kader-Profil: Was haben wir, was fehlt, und Suche nach Rollen/Skills/Fuß
    ===================================================================== */
 Object.assign(SV_FIELD,{wf:'Schwacher Fuß',rol:'Spielerrolle',sk:'Special Skills',ch:'Charakter & Training',tg:'Charakter-Tags',sts:'Stärken',sws:'Schwächen'});
 Object.assign(SV_TRAINER_FIELDS,{wf:1,rol:1,sk:1,ch:1,tg:1,sts:1,sws:1});
@@ -3048,7 +3054,7 @@ function sbOf(p){ const C=crmOf(p);
 function sbHas(b){ return !!(b.rol||b.sk.length||b.wf||b.tg.length||b.sts||b.sws||Object.values(b.ch).some(Boolean)); }
 function sbCanEdit(){ return canWriteField('sk'); }
 function sbStars(n,max){ let s=''; for(let i=1;i<=(max||5);i++)s+=`<i class="${i<=n?'on':''}">★</i>`; return `<span class="sbstars">${s}</span>`; }
-function sbHex(s,plus,size){ const S=SB_SK[s]; return `<span class="sbhex${plus?' plus':''}${size?' '+size:''}" title="${svEsc(S.t+(plus?'+ (herausragend)':'')+' – '+S.d)}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${SB_IC[s]||''}</svg>${plus?'<b>+</b>':''}</span>`; }
+function sbHex(s,plus,size){ const S=SB_SK[s]; return `<span class="sbhex${plus?' plus':''}${size?' '+size:''}" title="${svEsc(S.t+(plus?'+ (herausragend)':'')+' · '+S.d)}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${SB_IC[s]||''}</svg>${plus?'<b>+</b>':''}</span>`; }
 function sbFootChip(p){ const f=SB_FOOT[p.fuss]; return f?`<span class="sbfoot f-${f}" title="Starker Fuß: ${svEsc(p.fuss)}">${f}</span>`:''; }
 function sbEye(p){ const s=p.scout||{}; const keys=['tempo','technik','zweikampf','spielint','mentalitaet']; const vals=keys.map(k=>+s[k]||5); return vals.every(v=>v===5)?null:vals; }
 
@@ -3096,7 +3102,7 @@ function sbEditor(pid){
       <p class="note">Gerade in der Innenverteidigung und auf den Außenbahnen wichtig: Linksfuß links, Rechtsfuß rechts.</p></section>
     <section class="sbsec"><h4>Spielerrolle <small>wie in EA FC</small></h4>
       ${posList.map(pos=>`<div class="sbrolegrp"><span class="lbl">${svEsc(pos)}</span><div class="chips">${SB_ROLES[pos].map(r=>`<button type="button" class="pchip role${st.rol===r.k?' on':''}" data-rol="${r.k}" title="${svEsc(r.fc)}">${svEsc(r.t)}</button>`).join('')}</div></div>`).join('')||'<p class="note">Erst eine Position festlegen.</p>'}
-      ${st.rol&&SB_ROLE[st.rol]?`<p class="sbroled"><b>${svEsc(SB_ROLE[st.rol].t)}</b> <em>${svEsc(SB_ROLE[st.rol].fc)}</em> – ${svEsc(SB_ROLE[st.rol].d)}</p>`:''}</section>
+      ${st.rol&&SB_ROLE[st.rol]?`<p class="sbroled"><b>${svEsc(SB_ROLE[st.rol].t)}</b> <em>${svEsc(SB_ROLE[st.rol].fc)}</em> · ${svEsc(SB_ROLE[st.rol].d)}</p>`:''}</section>
     <section class="sbsec"><h4>Special Skills <small>1× tippen = hat er · 2× = herausragend (+)</small></h4>
       ${SB_GROUPS.filter(g=>isTW?(g==='Torwart'||g==='Passspiel'):g!=='Torwart').map(g=>`<div class="sbskgrp"><span class="lbl">${g}</span><div class="chips">${SB_SKILLS.filter(s=>s.g===g).map(s=>{ const v=st.sk[s.k]||0; return `<button type="button" class="sbskchip v${v}" data-sk="${s.k}" title="${svEsc(s.d+' · EA FC: '+s.fc)}">${sbHex(s.k,v===2,'xs')}<span>${svEsc(s.t)}</span></button>`; }).join('')}</div></div>`).join('')}</section>
     <section class="sbsec"><h4>Charakter &amp; Training <small>1 = schwach · 5 = top · nochmal tippen = leeren</small></h4>
@@ -3181,7 +3187,7 @@ function sbOptimize(){
   ps.forEach((p,pi)=>{ const si=idx[asg[pi]]; ns[si]=p.id; if(si!==idx[pi])moved++; });
   if(!moved){ kToast('✓ Alle stehen schon auf der besten Position'); return; }
   LINEUP={formation:LINEUP.formation,slots:ns}; renderLineup();
-  kToast('✓ Positionen sortiert – '+moved+' Spieler umgestellt');
+  kToast('✓ Positionen sortiert · '+moved+' Spieler umgestellt');
 }
 function sbFitRow(){
   const host=document.getElementById('gapRow'); if(!host)return;
@@ -3193,7 +3199,7 @@ function sbFitRow(){
   if(!n){ el.innerHTML=''; return; }
   const good=!issues.length&&!foot.length;
   el.innerHTML=`<div class="sbfitbox ${good?'good':'warn'}"><span class="sbfit-ic">${SVI(good?'check':'info')}</span>
-    <div class="sbfit-t"><b>Positions-Check: ${ok}/${n} auf passender Position</b>${issues.length?`<span>Passt nicht: ${issues.join(' · ')}</span>`:''}${foot.length?`<span>Fuß/Seite: ${foot.join(' · ')}</span>`:''}${good?`<span>${main===ok?'Alle auf Haupt- oder Nebenposition':main+' auf Haupt-/Nebenposition, '+(ok-main)+' auf verwandter Position'} – realistisch aufgestellt. Grüner Punkt = Hauptposition, gelber = verwandte Position.</span>`:''}</div>
+    <div class="sbfit-t"><b>Positions-Check: ${ok}/${n} auf passender Position</b>${issues.length?`<span>Passt nicht: ${issues.join(' · ')}</span>`:''}${foot.length?`<span>Fuß/Seite: ${foot.join(' · ')}</span>`:''}${good?`<span>${main===ok?'Alle auf Haupt- oder Nebenposition':main+' auf Haupt-/Nebenposition, '+(ok-main)+' auf verwandter Position'} · realistisch aufgestellt. Grüner Punkt = Hauptposition, gelber = verwandte Position.</span>`:''}</div>
     ${canEdit()&&!good?`<button class="btn sm" id="sbOpt" type="button">${SVI('move')} Automatisch sortieren</button>`:''}</div>`;
   const b=document.getElementById('sbOpt'); if(b)b.onclick=sbOptimize;
 }
@@ -3235,11 +3241,11 @@ function sbKaderRender(){
   const res=sbSearch();
   el.innerHTML=`<div class="card sbkader">
     <div class="adm-head"><div><h3 style="margin:0;display:flex;gap:8px;align-items:center">${SVI('layers')} Kader-Profil 26/27</h3>
-      <p style="margin:6px 0 0;font-size:13.5px">Rollen, Special Skills, Fuß und Charakter der Ersten – wie im Karrieremodus. So seht ihr, welche Typen fehlen, und sucht gezielt danach.</p></div>
+      <p style="margin:6px 0 0;font-size:13.5px">Rollen, Special Skills, Fuß und Charakter der Ersten, wie im Karrieremodus. So seht ihr, welche Typen fehlen, und sucht gezielt danach.</p></div>
       <div class="adm-stats"><div class="adm-stat"><b>${sq.length}</b><span>im Kader</span></div><div class="adm-stat"><b>${rated}</b><span>mit Spielerbogen</span></div><div class="adm-stat"><b>${sq.filter(p=>p.fuss).length}</b><span>Fuß bekannt</span></div></div></div>
-    ${rated<sq.length?`<div class="sbhint">${SVI('info')}<span><b>${sq.length-rated} Spieler</b> haben noch keinen Spielerbogen, bei <b>${sq.length-sq.filter(p=>p.fuss).length}</b> fehlt der starke Fuß. Öffentlich steht das nirgends – am schnellsten geht es unten mit der <b>Schnell-Erfassung</b>.</span></div>`:''}
+    ${rated<sq.length?`<div class="sbhint">${SVI('info')}<span><b>${sq.length-rated} Spieler</b> haben noch keinen Spielerbogen, bei <b>${sq.length-sq.filter(p=>p.fuss).length}</b> fehlt der starke Fuß. Öffentlich steht das nirgends. Am schnellsten geht es unten mit der <b>Schnell-Erfassung</b>.</span></div>`:''}
     <div class="sbsub">Was uns fehlt</div>
-    <div class="sbgaps">${G.length?G.map((g,i)=>`<button class="sbgap l-${g.lvl==='hoch'?'h':g.lvl==='mittel'?'m':'n'}" data-gap="${i}"><span>${svEsc(g.t)}</span><em>Passende suchen →</em></button>`).join(''):`<div class="note">${rated>=5?'Keine offensichtlichen Lücken – stark!':'Sobald mindestens 5 Spielerbögen angelegt sind, zeigt die App hier auch fehlende Rollen und Skills.'}</div>`}</div>
+    <div class="sbgaps">${G.length?G.map((g,i)=>`<button class="sbgap l-${g.lvl==='hoch'?'h':g.lvl==='mittel'?'m':'n'}" data-gap="${i}"><span>${svEsc(g.t)}</span><em>Passende suchen →</em></button>`).join(''):`<div class="note">${rated>=5?'Keine offensichtlichen Lücken: stark!':'Sobald mindestens 5 Spielerbögen angelegt sind, zeigt die App hier auch fehlende Rollen und Skills.'}</div>`}</div>
     ${rated?`<div class="sbsub">Charakter der Mannschaft (Ø)</div><div class="sbteamch">${SB_CHAR.map(c=>{ const a=avg(c.k); return `<div class="sbbar"><span>${c.t}</span><i><u style="width:${a*20}%" class="v${Math.round(a)}"></u></i><b>${a?a.toFixed(1):'–'}</b></div>`; }).join('')}</div>`:''}
     <div class="sbsub">Kader nach Positionen</div>
     <div class="sbpgrid">${grp}</div>
@@ -3269,7 +3275,7 @@ function sbKaderRender(){
 }
 function sbSearch(){
   const q=sbQ, active=q.pos||q.rol||q.sk||q.foot;
-  if(!active)return {html:'<div class="note">Position, Rolle, Skill oder Fuß wählen – z.B. „IV + Linksfuß“ oder „ST + Kopfballstark“.</div>'};
+  if(!active)return {html:'<div class="note">Position, Rolle, Skill oder Fuß wählen. Z.B. „IV + Linksfuß“ oder „ST + Kopfballstark“.</div>'};
   let L=players.filter(p=>!p.isJugend&&(q.kreis==='eigene'?p.own:q.kreis==='extern'?!p.own:true));
   if(q.pos)L=L.filter(p=>p.pos===q.pos||(p.pos2||[]).includes(q.pos));
   if(q.foot)L=L.filter(p=>p.fuss===q.foot||(q.foot!=='Beidfüßig'&&p.fuss==='Beidfüßig'));
@@ -3277,7 +3283,7 @@ function sbSearch(){
   if(q.sk)L=L.filter(p=>sbOf(p).sk.some(x=>x.k===q.sk));
   L=L.map(p=>({p,s:scores(p).total})).sort((a,b)=>b.s-a.s);
   const unknownFoot=q.foot&&!L.length?players.filter(p=>!p.isJugend&&(!q.pos||p.pos===q.pos)&&!p.fuss&&(q.kreis==='eigene'?p.own:q.kreis==='extern'?!p.own:true)).length:0;
-  if(!L.length)return {html:`<div class="note">Kein Spieler mit diesem Profil erfasst.${unknownFoot?' Bei '+unknownFoot+' passenden Spielern ist der Fuß noch unbekannt – Spielerbögen für Kandidaten anlegen, dann tauchen sie hier auf.':' Rollen und Skills gibt es nur für Spieler mit Spielerbogen.'}</div>`};
+  if(!L.length)return {html:`<div class="note">Kein Spieler mit diesem Profil erfasst.${unknownFoot?' Bei '+unknownFoot+' passenden Spielern ist der Fuß noch unbekannt. Spielerbögen für Kandidaten anlegen, dann tauchen sie hier auf.':' Rollen und Skills gibt es nur für Spieler mit Spielerbogen.'}</div>`};
   return {html:`<div class="sbresl">${L.slice(0,40).map(({p,s})=>{ const b=sbOf(p), R=SB_ROLE[b.rol]; return `<div class="sbri" data-svp="${svEsc(p.id)}">${avaHtml(p)}<div class="sbri-n"><b>${svEsc(p.name)}</b><span>${svEsc(p.club||'')} · ${svEsc(p.pos||'–')}${R?' · '+svEsc(R.t):''}</span></div>${sbFootChip(p)}<span class="sbri-sk">${b.sk.slice(0,3).map(x=>sbHex(x.k,x.plus,'xs')).join('')}</span><span class="sbri-s" style="color:${tierColor(s)}">${Math.round(s)}</span></div>`; }).join('')}</div>${L.length>40?`<div class="note">… und ${L.length-40} weitere</div>`:''}`};
 }
 function sbQuick(sq){
@@ -3342,12 +3348,12 @@ const TRC=(function(){
       const s=playerStats(st,p.id,today);
       if(s.injury){
         const i=s.injury;
-        if(i.pr&&i.pr<today)out.push({key:'inj-over:'+i.id,lvl:'mittel',pid:p.id,t:`Ist ${name(p)} wieder fit?`,d:`${i.dg} seit ${fmt(i.b)} – Prognose war ${fmt(i.pr)}`,ask:{type:'fit',injury:i.id}});
+        if(i.pr&&i.pr<today)out.push({key:'inj-over:'+i.id,lvl:'mittel',pid:p.id,t:`Ist ${name(p)} wieder fit?`,d:`${i.dg} seit ${fmt(i.b)} · Prognose war ${fmt(i.pr)}`,ask:{type:'fit',injury:i.id}});
         const back=s.rows.find(r=>r.st!=='weg'&&r.d>i.b);
-        if(back)out.push({key:'inj-back:'+i.id,lvl:'info',pid:p.id,t:`${name(p)} war wieder im Training`,d:`Am ${fmt(back.d)} dabei – Verletzung (${i.dg}) als ausgeheilt abschließen?`,ask:{type:'close',injury:i.id,date:back.d}});
+        if(back)out.push({key:'inj-back:'+i.id,lvl:'info',pid:p.id,t:`${name(p)} war wieder im Training`,d:`Am ${fmt(back.d)} dabei: Verletzung (${i.dg}) als ausgeheilt abschließen?`,ask:{type:'close',injury:i.id,date:back.d}});
         continue;                                                  // Verletzte nicht zusätzlich wegen Beteiligung warnen
       }
-      if(s.ohne28>=2)out.push({key:'ohne:'+p.id+':'+s.ohne28,lvl:'hoch',pid:p.id,t:`${name(p)} fehlt ohne Grund`,d:`${s.ohne28}× unentschuldigt in den letzten 4 Wochen – Gespräch suchen?`});
+      if(s.ohne28>=2)out.push({key:'ohne:'+p.id+':'+s.ohne28,lvl:'hoch',pid:p.id,t:`${name(p)} fehlt ohne Grund`,d:`${s.ohne28}× unentschuldigt in den letzten 4 Wochen. Gespräch suchen?`});
       else if(s.streak>=3)out.push({key:'streak:'+p.id+':'+s.streak,lvl:'hoch',pid:p.id,t:`${name(p)} war ${s.streak}× in Folge nicht da`,d:`Zuletzt im Training: ${s.lastSeen?fmt(s.lastSeen):'unbekannt'}.`});
       if(s.rate28!=null&&s.ratePrev!=null&&s.n28>=3&&s.ratePrev-s.rate28>=0.25&&s.rate28<0.7)
         out.push({key:'drop:'+p.id+':'+Math.round(s.rate28*10),lvl:'mittel',pid:p.id,t:`Trainingsbeteiligung von ${name(p)} sinkt`,d:`${pct(s.ratePrev)} → ${pct(s.rate28)} (letzte 4 Wochen).`});
@@ -3355,8 +3361,8 @@ const TRC=(function(){
       if(m3.length>=2&&avg(m3)<=2.3)out.push({key:'mot:'+p.id+':'+s.mot[0].d,lvl:'mittel',pid:p.id,t:`${name(p)} wirkt lustlos`,d:`Motivation zuletzt Ø ${avg(m3).toFixed(1)} von 5.`});
       else if(m3.length>=2&&mPrev.length>=2&&avg(mPrev)-avg(m3)>=1.2)out.push({key:'motd:'+p.id+':'+s.mot[0].d,lvl:'info',pid:p.id,t:`Motivation von ${name(p)} lässt nach`,d:`Ø ${avg(mPrev).toFixed(1)} → ${avg(m3).toFixed(1)}.`});
       const f2=s.fit.slice(0,2).map(x=>x.v);
-      if(f2.length===2&&avg(f2)<=2)out.push({key:'fit:'+p.id+':'+s.fit[0].d,lvl:'info',pid:p.id,t:`${name(p)} wirkt platt`,d:`Fitness zuletzt ${f2.join(' / ')} von 5 – Belastung steuern.`});
-      if(s.inj12>=3)out.push({key:'injmany:'+p.id+':'+s.inj12,lvl:'info',pid:p.id,t:`${name(p)}: ${s.inj12} Verletzungen in 12 Monaten`,d:`Verletzungsanfällig – Belastung und Prävention im Blick behalten.`});
+      if(f2.length===2&&avg(f2)<=2)out.push({key:'fit:'+p.id+':'+s.fit[0].d,lvl:'info',pid:p.id,t:`${name(p)} wirkt platt`,d:`Fitness zuletzt ${f2.join(' / ')} von 5: Belastung steuern.`});
+      if(s.inj12>=3)out.push({key:'injmany:'+p.id+':'+s.inj12,lvl:'info',pid:p.id,t:`${name(p)}: ${s.inj12} Verletzungen in 12 Monaten`,d:`Verletzungsanfällig: Belastung und Prävention im Blick behalten.`});
     }
     const T=teamStats(st,today,squad.map(p=>p.id));
     if(T.r21.rate!=null&&T.prev.rate!=null&&T.r21.sessions>=3&&T.prev.rate-T.r21.rate>=0.12)
@@ -3474,7 +3480,7 @@ const TRC=(function(){
     const t=N(text), idx=nameIndex(squad), ps=findPlayers(t,idx);
     if(ps.length&&/fit|verletz|dabei|wieder|zurueck|training/.test(t)){
       return ps.map(p=>{ const s=playerStats(st,p.id,today); const i=s.injury;
-        if(i)return `${p.name}: verletzt seit ${fmt(i.b)} (${i.dg})${i.pr?', Prognose '+fmt(i.pr)+(i.pr<today?' – überschritten':''):''}. ${s.lastSeen&&s.lastSeen>i.b?'War am '+fmt(s.lastSeen)+' wieder im Training.':'Seitdem nicht im Training.'}`;
+        if(i)return `${p.name}: verletzt seit ${fmt(i.b)} (${i.dg})${i.pr?', Prognose '+fmt(i.pr)+(i.pr<today?' · überschritten':''):''}. ${s.lastSeen&&s.lastSeen>i.b?'War am '+fmt(s.lastSeen)+' wieder im Training.':'Seitdem nicht im Training.'}`;
         const last=s.injuries.find(x=>x.z); return `${p.name}: aktuell keine offene Verletzung${last?' (zuletzt '+last.dg+', zurück am '+fmt(last.z)+')':''}. Zuletzt im Training: ${s.lastSeen?fmt(s.lastSeen):'–'}. Beteiligung 4 Wochen: ${pct(s.rate28)}.`; }).join('\n');
     }
     if(/wer .*verletzt|verletzte|lazarett/.test(t)){ const L=squad.map(p=>({p,i:activeInjury(st,p.id,today)})).filter(x=>x.i); return L.length?'Aktuell verletzt:\n'+L.map(x=>`• ${x.p.name}: ${x.i.dg}${x.i.pr?' (Prognose '+fmt(x.i.pr)+')':''}`).join('\n'):'Aktuell ist niemand als verletzt eingetragen.'; }
@@ -3499,7 +3505,7 @@ const TRS=(function(){
   /* ===== Trainings-Score (0–100) =====
      da = 1 · zu spät = 0,75 · entschuldigt (Arbeit, Uni, Urlaub, Familie) = 0,7 · privat = 0,4 · ohne Grund = 0
      verletzt, „in der Zweiten“ und längere Krankheit (≥ 2 Einheiten am Stück oder als Verletzung/Krankheit erfasst) zählen NICHT
-     kurzfristig krank (einzelne Einheit) = 0,5 – gehäuft (≥ 3 in 90 Tagen) nur noch 0,2
+     kurzfristig krank (einzelne Einheit) = 0,5. Gehäuft (≥ 3 in 90 Tagen) nur noch 0,2
      jüngere Einheiten zählen mehr (Halbwertszeit 45 Tage), Fenster 180 Tage; Motivation fließt zu 25 % ein */
   function trainingScore(st,pid,today){
     const R=T.rows(st,pid).filter(r=>{ const dd=T.diffDays(today,r.d); return dd>=0&&dd<=180; });
@@ -3524,12 +3530,12 @@ const TRS=(function(){
     const att=sw?sa/sw:null, mot=mots.length>=2&&mw?ms/mw:null;
     const score=n>=4?Math.round(100*(mot==null?att:0.75*att+0.25*mot)):null;
     const why=[];
-    if(n)why.push(`${cnt.da}× da${cnt.spaet?`, ${cnt.spaet}× zu spät`:''} – ${n} gewertete Einheiten (180 Tage)`);
-    if(cnt.ohne)why.push(`${cnt.ohne}× ohne Grund gefehlt – zählt voll`);
-    if(cnt.kurz)why.push(`${cnt.kurz}× kurzfristig krank${short90>=3?' – gehäuft, zählt deshalb stärker':' – zählt halb'}`);
-    if(cnt.entsch)why.push(`${cnt.entsch}× entschuldigt (Arbeit, Uni, Urlaub, Familie) – zählt leicht`);
-    if(ex.verletzt||ex.krank)why.push(`${ex.verletzt+ex.krank}× verletzt oder länger krank – zählt nicht`);
-    if(ex.zweite)why.push(`${ex.zweite}× in der Zweiten – zählt nicht`);
+    if(n)why.push(`${cnt.da}× da${cnt.spaet?`, ${cnt.spaet}× zu spät`:''} · ${n} gewertete Einheiten (180 Tage)`);
+    if(cnt.ohne)why.push(`${cnt.ohne}× ohne Grund gefehlt. Zählt voll`);
+    if(cnt.kurz)why.push(`${cnt.kurz}× kurzfristig krank${short90>=3?' · gehäuft, zählt deshalb stärker':' · zählt halb'}`);
+    if(cnt.entsch)why.push(`${cnt.entsch}× entschuldigt (Arbeit, Uni, Urlaub, Familie). Zählt leicht`);
+    if(ex.verletzt||ex.krank)why.push(`${ex.verletzt+ex.krank}× verletzt oder länger krank. Zählt nicht`);
+    if(ex.zweite)why.push(`${ex.zweite}× in der Zweiten. Zählt nicht`);
     if(mot!=null)why.push(`Motivation Ø ${(1+mot*4).toFixed(1)} von 5 (25 % Gewicht)`);
     if(n<4)why.push('Noch zu wenig Einheiten für einen Score (mind. 4)');
     return {score,att,mot,n,cnt,ex,shortSick:short90,why};
@@ -3566,7 +3572,7 @@ const TRS=(function(){
   }
 
   /* ===== Loyalität (0–100) =====
-     55 % Helfereinsätze (Aufbau, Theke, Kasse … – Stunden zählen mit, jüngere mehr; „nicht erschienen“ zieht ab)
+     55 % Helfereinsätze (Aufbau, Theke, Kasse …. Stunden zählen mit, jüngere mehr; „nicht erschienen“ zieht ab)
      30 % Vereinstreue (Pflichtspiele seit 2013/14 laut Vereinsstatistik + diese Saison; 200 Spiele = voll)
      15 % Teamgeist (Mannschaftsabende, -fahrten, Feiern) */
   function loyaltyScore(pid,events,allTime,gamesSince,today){
@@ -3585,7 +3591,7 @@ const TRS=(function(){
     const why=[];
     why.push(n?`${n} Helfereinsätze in 24 Monaten${hours?` · ${hours} Std.`:''}`:'Noch keine Helfereinsätze erfasst');
     if(Object.keys(arts).length)why.push('Bei: '+Object.entries(arts).map(([k,c])=>`${EART[k]||k}${c>1?' ('+c+'×)':''}`).join(', '));
-    if(noShow)why.push(`${noShow}× trotz Zusage nicht erschienen – zieht ab`);
+    if(noShow)why.push(`${noShow}× trotz Zusage nicht erschienen. Zieht ab`);
     why.push(spiele?`${spiele} Pflichtspiele für den Verein${allTime&&allTime.stand?' (Statistik seit 2013/14 + diese Saison)':''}`:'Keine Pflichtspiele in der Vereinsstatistik');
     if(soc)why.push('Dabei bei Mannschaftsabenden/-fahrten');
     return {score,help,ten,social,n,hours,noShow,spiele,arts,last,why};
@@ -3702,7 +3708,7 @@ const TRS=(function(){
     }
     const spieler=Object.values(sp);
     const tt=spieler.reduce((x,s)=>x+(s.tore||0),0);
-    return {action:{type:'spiel',input:{datum:T.parseDate(t0,today),gegner:gm?gm[1].trim():null,heim,tore_wir:a,tore_gegner:b,spieler}},warn:tt>a?`Mehr Torschützen (${tt}) als eigene Tore (${a}) – bitte prüfen.`:null,ambig:T.ambiguous(text,idx,spieler.map(s=>s.player_id))};
+    return {action:{type:'spiel',input:{datum:T.parseDate(t0,today),gegner:gm?gm[1].trim():null,heim,tore_wir:a,tore_gegner:b,spieler}},warn:tt>a?`Mehr Torschützen (${tt}) als eigene Tore (${a}), bitte prüfen.`:null,ambig:T.ambiguous(text,idx,spieler.map(s=>s.player_id))};
   }
 
   /* ===== WhatsApp-Export (Mannschaftsgruppe) → Zu-/Absagen fürs Training =====
@@ -3761,9 +3767,9 @@ function canEdit(){ const r=svRole(); return r==='admin'||r==='vorstand'||r==='p
 function canWriteField(k){ return canEdit(); }
 function canContacts(){ return canEdit(); }
 function canTraining(){ return canEdit(); }
-SV_PAGES.training=['Training','Anwesenheit, Fitness, Verletzungen – und dein Co-Trainer'];
+SV_PAGES.training=['Training','Anwesenheit, Fitness, Verletzungen, und dein Co-Trainer'];
 { const _ta=svTabAllowed; svTabAllowed=function(t){ if(t==='training')return canTraining(); return _ta.apply(this,arguments); }; }
-Object.assign(SV_ROLE_INFO.trainer,{t:'Trainer',d:'Wie die Kaderplaner – mit Fokus Training',yes:['Alles sehen & bearbeiten','Training, Fitness & Verletzungen','Kandidaten & Aufstellung','Co-Trainer'],no:['Nutzerverwaltung']});
+Object.assign(SV_ROLE_INFO.trainer,{t:'Trainer',d:'Wie die Kaderplaner, mit Fokus Training',yes:['Alles sehen & bearbeiten','Training, Fitness & Verletzungen','Kandidaten & Aufstellung','Co-Trainer'],no:['Nutzerverwaltung']});
 Object.assign(SV_ROLE_INFO.planer,{yes:['Kandidaten & Kontakte pflegen','Kaderplan & Aufstellung','Training & Verletzungen','Co-Trainer']});
 
 const TR={st:{sessions:[],injuries:[]},loaded:false,loading:null,view:'home',ai:null,chat:[],chatBusy:false,greeted:false};
@@ -3854,7 +3860,7 @@ function trViewHome(B){
   const todayS=trSessionOn(today);
   const empty=!TR.st.sessions.length;
   B.innerHTML=`
-    ${empty?`<div class="card trhero"><div><h3>Los geht's mit dem Training</h3><p>Nach jeder Einheit kurz eintragen, wer da war – oder dem Co-Trainer einfach sagen: <em>„Max und Tim waren heute nicht da, Tom hat eine Zerrung.“</em> Ab 3–4 Einheiten erkennt die App Tendenzen und warnt früh.</p></div>
+    ${empty?`<div class="card trhero"><div><h3>Los geht's mit dem Training</h3><p>Nach jeder Einheit kurz eintragen, wer da war, oder dem Co-Trainer einfach sagen: <em>„Max und Tim waren heute nicht da, Tom hat eine Zerrung.“</em> Ab 3–4 Einheiten erkennt die App Tendenzen und warnt früh.</p></div>
       <div class="btnrow"><button class="btn" data-tr-new2>${SVI('plus')} Heutiges Training erfassen</button><button class="btn ghost" data-tr-chat2>${SVI('chat')} Co-Trainer ausprobieren</button></div></div>`:''}
     <div class="tiles trtiles">
       <div class="tile"><div class="v ${trRateCls(T.r21.rate)}">${trPct(T.r21.rate)}</div><div class="l">Beteiligung · 3 Wochen</div><div class="s">${trend==null?(T.r21.sessions+' Einheiten'):`<b class="${trend>=0?'ok':'bad'}">${trend>=0?'▲':'▼'} ${Math.abs(Math.round(trend*100))} Pkt.</b> ggü. davor`}</div></div>
@@ -3883,7 +3889,7 @@ function trInjRow(p,i){
     <div class="trinj-a"><button class="btn sm" data-inj-fit="${i.id}">Wieder fit</button><button class="iconbtn" data-inj-ed="${i.id}" title="Bearbeiten">${SVI('sliders')}</button></div></div>`;
 }
 function trWireInj(B){
-  B.querySelectorAll('[data-inj-fit]').forEach(b=>b.onclick=async()=>{ b.disabled=true; try{ await trCloseInjury(b.dataset.injFit,trToday()); kToast('✓ Wieder fit – Verletzung abgeschlossen'); }catch(e){ kToast('⚠️ '+e.message); b.disabled=false; } });
+  B.querySelectorAll('[data-inj-fit]').forEach(b=>b.onclick=async()=>{ b.disabled=true; try{ await trCloseInjury(b.dataset.injFit,trToday()); kToast('✓ Wieder fit: Verletzung abgeschlossen'); }catch(e){ kToast('⚠️ '+e.message); b.disabled=false; } });
   B.querySelectorAll('[data-inj-ed]').forEach(b=>b.onclick=()=>trInjuryEditor(b.dataset.injEd));
   B.querySelectorAll('[data-svp]').forEach(x=>x.onclick=()=>openModal(x.dataset.svp));
 }
@@ -3894,7 +3900,7 @@ function trMatchdayHtml(){
   const today=trToday(), items=[];
   F.forEach((slot,i)=>{ const p=trP(LINEUP.slots[i]); if(!p)return; const s=TRC.playerStats(TR.st,p.id,today);
     const recent=s.rows.filter(r=>TRC.diffDays(today,r.d)<=10);
-    if(s.injury)items.push({p,slot:slot[0],lvl:'hoch',t:`verletzt – ${s.injury.dg}${s.injury.pr?', Prognose '+TRC.fmt(s.injury.pr):''}`,q:'fit',inj:s.injury.id});
+    if(s.injury)items.push({p,slot:slot[0],lvl:'hoch',t:`verletzt · ${s.injury.dg}${s.injury.pr?', Prognose '+TRC.fmt(s.injury.pr):''}`,q:'fit',inj:s.injury.id});
     else if(recent.length>=2&&recent.filter(r=>r.st==='weg').length>=2)items.push({p,slot:slot[0],lvl:'mittel',t:`fehlte ${recent.filter(r=>r.st==='weg').length}× in den letzten 10 Tagen (${[...new Set(recent.filter(r=>r.st==='weg').map(r=>TRC.REASONS[r.g]||r.g))].join(', ')})`});
     else if(s.mot[0]&&TRC.diffDays(today,s.mot[0].d)<=10&&s.mot[0].v<=2)items.push({p,slot:slot[0],lvl:'mittel',t:`zuletzt lustlos im Training (Motivation ${s.mot[0].v}/5)`});
     else if(s.fit[0]&&TRC.diffDays(today,s.fit[0].d)<=10&&s.fit[0].v<=2)items.push({p,slot:slot[0],lvl:'info',t:`wirkte zuletzt platt (Fitness ${s.fit[0].v}/5)`});
@@ -3905,7 +3911,7 @@ function trMatchdayHtml(){
     ${issues.map(x=>`<div class="trmd l-${x.lvl}"><span class="trmd-slot">${svEsc(x.slot)}</span><div class="trmd-b"><b data-svp="${svEsc(x.p.id)}">${svEsc(x.p.name)}</b><span>${svEsc(x.t)}</span>
       ${x.q==='fit'?`<div class="tra-q"><button class="btn sm" data-q-fit="${x.inj}">Ist wieder fit</button></div>`:''}</div></div>`).join('')}
     ${rate.length?`<div class="trmd-rh">Wie war der Eindruck diese Woche? <small>Motivation 1–5 antippen</small></div><div class="trrgrid">${rate.map(x=>`<div class="trrg" data-rate="${svEsc(x.p.id)}"><span data-svp="${svEsc(x.p.id)}"><em>${svEsc(x.slot)}</em> ${svEsc(x.p.name.split(' ').pop())}</span><div>${[1,2,3,4,5].map(n=>`<button data-m="${n}">${n}</button>`).join('')}</div></div>`).join('')}</div>`:''}
-    ${issues.length?'<div class="note" style="margin-top:8px">Tipp: Verletzte und Unsichere in der Aufstellung tauschen – der Positions-Check zeigt, wer passt.</div>':''}</div>`;
+    ${issues.length?'<div class="note" style="margin-top:8px">Tipp: Verletzte und Unsichere in der Aufstellung tauschen, der Positions-Check zeigt, wer passt.</div>':''}</div>`;
 }
 function trWireMatchday(B){
   B.querySelectorAll('[data-rate] [data-m]').forEach(b=>b.onclick=async()=>{ const pid=b.closest('[data-rate]').dataset.rate, v=+b.dataset.m;
@@ -3945,7 +3951,7 @@ function trViewInjuries(B){
   const daysOut=hist.filter(i=>TRC.diffDays(today,i.b)<=365).reduce((a,i)=>a+TRC.diffDays(i.z,i.b),0);
   B.innerHTML=`<div class="card"><h3 class="trh">${SVI('shield')} Aktuell verletzt (${act.length})</h3>${act.length?`<div class="trinjl">${act.map(i=>trInjRow(trP(i.p)||{id:i.p,name:i.p},i)).join('')}</div>`:'<div class="note">Niemand verletzt.</div>'}</div>
     <div class="card"><h3 class="trh">${SVI('chart')} Letzte 12 Monate</h3><div class="trart">${Object.entries(byArt).map(([k,n])=>`<span><b>${n}</b> ${svEsc(TRC.ART[k]||k)}</span>`).join('')||'<span class="note">keine</span>'}<span><b>${daysOut}</b> Ausfalltage (abgeschlossen)</span></div></div>
-    <div class="card"><h3 class="trh">Verlauf</h3>${hist.length?`<div class="trhist">${hist.slice(0,80).map(i=>`<div class="trh-r" data-inj-ed="${i.id}"><b>${svEsc(trName(i.p))}</b><span>${svEsc(i.dg)}${i.kt?' · '+svEsc(i.kt):''}</span><em>${TRC.fmt(i.b)}${i.b.slice(2,4)} – ${TRC.fmt(i.z)}${i.z.slice(2,4)} · ${TRC.diffDays(i.z,i.b)} T</em></div>`).join('')}</div>`:'<div class="note">Noch keine abgeschlossenen Verletzungen.</div>'}</div>`;
+    <div class="card"><h3 class="trh">Verlauf</h3>${hist.length?`<div class="trhist">${hist.slice(0,80).map(i=>`<div class="trh-r" data-inj-ed="${i.id}"><b>${svEsc(trName(i.p))}</b><span>${svEsc(i.dg)}${i.kt?' · '+svEsc(i.kt):''}</span><em>${TRC.fmt(i.b)}${i.b.slice(2,4)} · ${TRC.fmt(i.z)}${i.z.slice(2,4)} · ${TRC.diffDays(i.z,i.b)} T</em></div>`).join('')}</div>`:'<div class="note">Noch keine abgeschlossenen Verletzungen.</div>'}</div>`;
   trWireInj(B);
   B.querySelectorAll('.trh-r[data-inj-ed]').forEach(r=>r.onclick=()=>trInjuryEditor(r.dataset.injEd));
 }
@@ -3958,7 +3964,7 @@ function trSessionEditor(datum,sid,typ0){
     rows:{}, orig:new Set(), open:null, extra:[]};
   (s0&&s0.a||[]).forEach(a=>{ st.rows[a[0]]={status:a[1],grund:a[2],motivation:a[3],fitness:a[4],notiz:a[5]||'',tore:a[6]||0,vorlagen:a[7]||0}; st.orig.add(a[0]); if(!trSquad().some(p=>p.id===a[0]))st.extra.push(a[0]); });
   if(TR.prefill&&TR.prefill.datum===st.datum){ Object.entries(TR.prefill.rows||{}).forEach(([id,r])=>{ if(!trP(id))return; const cur=st.rows[id]; if(cur&&cur.status)return; st.rows[id]=Object.assign({},cur||{},r); if(!trSquad().some(p=>p.id===id)&&!st.extra.includes(id))st.extra.push(id); }); TR.prefill=null; }
-  const M=svModal(`<div class="mhead"><div class="rm-ic" style="width:46px;height:46px">${SVI('activity')}</div><div><h2 style="margin:0">${s0?(s0.t==='spiel'?'Spiel bearbeiten':'Einheit bearbeiten'):(typ0==='spiel'?'Spiel erfassen':'Training erfassen')}</h2><div class="msub">${typ0==='spiel'||(s0&&s0.t==='spiel')?'Ergebnis, Aufstellung, Tore & Vorlagen – zählt für Allzeit-Statistik und Moneyball-Auswertung':'Anwesenheit, Gründe, Eindruck – für alle gespeichert'}</div></div></div><div id="trEd"></div>`);
+  const M=svModal(`<div class="mhead"><div class="rm-ic" style="width:46px;height:46px">${SVI('activity')}</div><div><h2 style="margin:0">${s0?(s0.t==='spiel'?'Spiel bearbeiten':'Einheit bearbeiten'):(typ0==='spiel'?'Spiel erfassen':'Training erfassen')}</h2><div class="msub">${typ0==='spiel'||(s0&&s0.t==='spiel')?'Ergebnis, Aufstellung, Tore & Vorlagen. Zählt für Allzeit-Statistik und Moneyball-Auswertung':'Anwesenheit, Gründe, Eindruck: für alle gespeichert'}</div></div></div><div id="trEd"></div>`);
   const draw=()=>{
     const E=document.getElementById('trEd'); if(!E)return;
     const list=[...trSquad(),...st.extra.map(trP).filter(Boolean).filter(p=>!trSquad().includes(p))];
@@ -4019,7 +4025,7 @@ function trSessionEditor(datum,sid,typ0){
       const b=document.getElementById('trSave'); b.disabled=true; b.textContent='Speichert …';
       try{ await trSaveSession(Object.assign({datum:st.datum,typ:st.typ,fokus:[...st.fokus],intensitaet:st.i,stimmung:st.s,notiz:st.n.trim()||null,spieler:sp},
           st.typ==='spiel'?{gegner:st.g.trim()||null,heim:st.h,tore_wir:st.tw===''?null:+st.tw,tore_gegner:st.tg===''?null:+st.tg}:{}));
-        closeOverlay(); kToast(st.typ==='spiel'?'✓ Spiel vom '+TRC.fmt(st.datum)+' gespeichert':'✓ Einheit vom '+TRC.fmt(st.datum)+' gespeichert – '+sp.filter(x=>x.status==='weg').length+' fehlten'); }
+        closeOverlay(); kToast(st.typ==='spiel'?'✓ Spiel vom '+TRC.fmt(st.datum)+' gespeichert':'✓ Einheit vom '+TRC.fmt(st.datum)+' gespeichert · '+sp.filter(x=>x.status==='weg').length+' fehlten'); }
       catch(e){ b.disabled=false; b.textContent='Für alle speichern'; kToast('⚠️ '+e.message); } };
   };
   draw();
@@ -4031,7 +4037,7 @@ function trInjuryEditor(id,pid){
   const st=i0?{id:i0.id,player_id:i0.p,diagnose:i0.dg,art:i0.art||'',koerperteil:i0.kt||'',beginn:i0.b,prognose:i0.pr||'',zurueck:i0.z||'',notiz:i0.n||''}
     :{player_id:pid||'',diagnose:'',art:'',koerperteil:'',beginn:trToday(),prognose:'',zurueck:'',notiz:''};
   const sq=trSquad();
-  svModal(`<div class="mhead"><div class="rm-ic" style="width:46px;height:46px">${SVI('shield')}</div><div><h2 style="margin:0">${i0?'Verletzung bearbeiten':'Verletzung eintragen'}</h2><div class="msub">Gesundheitsdaten – sichtbar nur fürs Trainerteam und den Vorstand</div></div></div>
+  svModal(`<div class="mhead"><div class="rm-ic" style="width:46px;height:46px">${SVI('shield')}</div><div><h2 style="margin:0">${i0?'Verletzung bearbeiten':'Verletzung eintragen'}</h2><div class="msub">Gesundheitsdaten: sichtbar nur fürs Trainerteam und den Vorstand</div></div></div>
     <div class="editgrid" style="margin-top:14px">
       <div class="field" style="grid-column:1/-1"><label>Spieler</label><select id="ijP"><option value="">– wählen –</option>${sq.map(p=>`<option value="${svEsc(p.id)}"${st.player_id===p.id?' selected':''}>${svEsc(p.name)}</option>`).join('')}</select></div>
       <div class="field" style="grid-column:1/-1"><label>Diagnose / Beschwerden</label><input id="ijD" maxlength="200" value="${svEsc(st.diagnose)}" placeholder="z.B. Zerrung hinterer Oberschenkel links"></div>
@@ -4042,7 +4048,7 @@ function trInjuryEditor(id,pid){
       <div class="field"><label>Wieder im Training am</label><input type="date" id="ijZ" value="${svEsc(st.zurueck)}"></div>
       <div class="field" style="grid-column:1/-1"><label>Notiz</label><input id="ijN" maxlength="1000" value="${svEsc(st.notiz)}" placeholder="z.B. Arzttermin Do, Physio 2× pro Woche"></div>
     </div>
-    <div class="note" style="margin-top:8px">Der Co-Trainer gibt auf Wunsch eine grobe Einschätzung zu typischen Ausfallzeiten – ersetzt aber nie Arzt oder Physio.</div>
+    <div class="note" style="margin-top:8px">Der Co-Trainer gibt auf Wunsch eine grobe Einschätzung zu typischen Ausfallzeiten, ersetzt aber nie Arzt oder Physio.</div>
     <div class="btnrow sbact"><button class="btn" id="ijSave">Speichern</button><button class="btn ghost" id="ijCancel">Abbrechen</button>${i0?'<button class="btn ghost" id="ijDel" style="margin-left:auto;color:#fca5a5">Löschen</button>':''}</div>`);
   const $i=x=>document.getElementById(x);
   document.querySelectorAll('.trquick [data-w]').forEach(b=>b.onclick=()=>{ $i('ijPr').value=TRC.addDays($i('ijB').value||trToday(),+b.dataset.w*7); });
@@ -4108,7 +4114,7 @@ function trHomeCard(){
   let el=document.getElementById('trHome'); if(!el){ el=document.createElement('div'); el.id='trHome'; host.after(el); }
   if(!TR.loaded){ el.innerHTML=''; return; }
   const al=trAlerts().filter(a=>a.lvl!=='info').slice(0,3), T=TRC.teamStats(TR.st,trToday(),trSquad().map(p=>p.id));
-  el.innerHTML=`<div class="card trhome"><div class="rm-h"><div class="rm-ic co">${SVI('chat')}</div><div class="rm-t"><h3>Co-Trainer</h3><p>${TR.st.sessions.length?`Trainingsbeteiligung 3 Wochen: <b>${trPct(T.r21.rate)}</b>`+(al.length?` · ${al.length} Hinweis${al.length>1?'e':''}`:' · alles im grünen Bereich'):'Noch keine Einheiten – einfach nach dem Training reinsprechen.'}</p></div>
+  el.innerHTML=`<div class="card trhome"><div class="rm-h"><div class="rm-ic co">${SVI('chat')}</div><div class="rm-t"><h3>Co-Trainer</h3><p>${TR.st.sessions.length?`Trainingsbeteiligung 3 Wochen: <b>${trPct(T.r21.rate)}</b>`+(al.length?` · ${al.length} Hinweis${al.length>1?'e':''}`:' · alles im grünen Bereich'):'Noch keine Einheiten: einfach nach dem Training reinsprechen.'}</p></div>
     <button class="btn sm" data-home-chat>${SVI('chat')} Fragen / eintragen</button></div>${al.map(a=>trAlertHtml(a,true)).join('')}
     <div class="rm-f"><button class="btn ghost" data-home-tr>Training öffnen →</button></div></div>`;
   el.querySelector('[data-home-chat]').onclick=()=>trChatOpen();
@@ -4122,9 +4128,9 @@ function trGreeting(){
   const al=trAlerts(), fn=svFirst(SVU.name)||'Coach', h=new Date().getHours(), g=h<11?'Guten Morgen':h<17?'Hi':'Guten Abend';
   const todayS=trSessionOn(trToday());
   let t=`${g} ${fn}! `;
-  if(al.length)t+=`Mir fällt gerade auf:\n${al.slice(0,3).map(a=>'• '+a.t+' – '+a.d).join('\n')}\n\n`;
+  if(al.length)t+=`Mir fällt gerade auf:\n${al.slice(0,3).map(a=>'• '+a.t+' · '+a.d).join('\n')}\n\n`;
   else t+='Aktuell keine Auffälligkeiten im Training. ';
-  t+=todayS?'Das heutige Training ist schon eingetragen – willst du noch Eindrücke zu einzelnen Spielern ergänzen?':'Wie war das Training? Sag mir einfach, wer gefehlt hat und warum – oder wer besonders auffiel.';
+  t+=todayS?'Das heutige Training ist schon eingetragen. Willst du noch Eindrücke zu einzelnen Spielern ergänzen?':'Wie war das Training? Sag mir einfach, wer gefehlt hat und warum, oder wer besonders auffiel.';
   return t;
 }
 function trChatOpen(){
@@ -4172,7 +4178,7 @@ function trActSummary(a){
   if(a.type==='veranstaltung'){ const h=i.helfer||[]; return `<b>🎪 ${svEsc(i.titel||TRS.EART[i.art]||'Veranstaltung')} · ${TRC.fmt(i.datum)}</b>
       ${h.length?`<div>${h.map(x=>`${svEsc(vrPersonName(x.person))}${(x.rollen||[]).length?' <em>('+x.rollen.map(r=>svEsc(TRS.ROLES[r]||r)).join(', ')+')</em>':''}${x.stunden?' '+x.stunden+' Std.':''}${x.status&&x.status!=='geholfen'?` <em class="${x.status==='nicht_erschienen'?'bad':''}">${svEsc(TRS.HSTAT[x.status]||x.status)}</em>`:''}`).join(' · ')}</div>`:'<div>Noch keine Helfer erkannt</div>'}`; }
   if(a.type==='verletzung')return `<b>🩹 Verletzung: ${svEsc(trName(i.player_id))}</b><div>${svEsc(i.diagnose||'')}${i.koerperteil?' · '+svEsc(i.koerperteil):''} · seit ${TRC.fmt(i.beginn)}${i.prognose?' · voraussichtlich zurück '+TRC.fmt(i.prognose):''}</div>`;
-  if(a.type==='verletzung_ende'){ const inj=TR.st.injuries.find(x=>x.id===i.injury_id); return `<b>✅ Wieder fit: ${svEsc(trName(inj?inj.p:i.player_id))}</b><div>${svEsc(inj?inj.dg:i.diagnose||'')} – zurück am ${TRC.fmt(i.zurueck)}</div>`; }
+  if(a.type==='verletzung_ende'){ const inj=TR.st.injuries.find(x=>x.id===i.injury_id); return `<b>✅ Wieder fit: ${svEsc(trName(inj?inj.p:i.player_id))}</b><div>${svEsc(inj?inj.dg:i.diagnose||'')} · zurück am ${TRC.fmt(i.zurueck)}</div>`; }
   return '';
 }
 async function trExec(a,rest){
@@ -4210,20 +4216,20 @@ async function trChatSend(text){
   let reply=null;
   if(typeof kxDeleteAsk==='function'&&kxDeleteAsk(text)){ TR.chatBusy=false; TR.chat.push({role:'assistant',local:true,content:KX_NO}); trChatDraw(); return; }
   if(att.imgs.length&&!(TR.ai&&TR.ai.ready)){
-    TR.chatBusy=false; TR.chat.push({role:'assistant',local:true,content:'Screenshots kann nur der KI-Co-Trainer lesen – der Admin schaltet ihn unter „Nutzer & Rollen“ ein.\nTipp: In WhatsApp den Gruppenchat exportieren (⋮ → Mehr → Chat exportieren → ohne Medien) und die Textdatei hier anhängen – die verstehe ich auch ohne KI.'}); trChatDraw(); return;
+    TR.chatBusy=false; TR.chat.push({role:'assistant',local:true,content:'Screenshots kann nur der KI-Co-Trainer lesen. Der Admin schaltet ihn unter „Nutzer & Rollen“ ein.\nTipp: In WhatsApp den Gruppenchat exportieren (⋮ → Mehr → Chat exportieren → ohne Medien) und die Textdatei hier anhängen, die verstehe ich auch ohne KI.'}); trChatDraw(); return;
   }
   if(TR.ai&&TR.ai.ready){
-    try{ const hist=TR.chat.filter(m=>!m.local||m.role==='user').slice(-12).map(m=>({role:m.role,content:m.content+(m.actions&&m.actions.length?'\n[Vorschläge: '+m.actions.map(a=>a.type+(a.done?' – eingetragen':a.skip?' – verworfen':' – offen')).join(', ')+']':'')}));
+    try{ const hist=TR.chat.filter(m=>!m.local||m.role==='user').slice(-12).map(m=>({role:m.role,content:m.content+(m.actions&&m.actions.length?'\n[Vorschläge: '+m.actions.map(a=>a.type+(a.done?' · eingetragen':a.skip?' · verworfen':' · offen')).join(', ')+']':'')}));
       const body={messages:hist}; if(att.imgs.length)body.bilder=att.imgs.map(i=>({mt:i.mt,data:i.data})); if(att.file)body.datei={name:att.file.name,text:att.file.text};
       const {data,error}=await SVB.sb.functions.invoke('coach',{body});
       if(error)throw error;
-      if(data&&data.ok)reply={role:'assistant',content:data.text||(data.actions&&data.actions.length?'Hab ich so verstanden – passt das?':'…'),actions:data.actions||[],weiter:data.weiter||null};
+      if(data&&data.ok)reply={role:'assistant',content:data.text||(data.actions&&data.actions.length?'Hab ich so verstanden. Passt das?':'…'),actions:data.actions||[],weiter:data.weiter||null};
       else if(data&&data.error&&data.error!=='kein-schluessel')reply={role:'assistant',content:'⚠️ '+data.error+'\n\nIch versuche es im einfachen Modus:',local:true};
     }catch(e){ reply=null; }
   }
   if((!reply||reply.local)&&att.file&&TRS.isWhatsApp(att.file.text)){
     const W=TRS.parseWhatsApp(att.file.text,vrPeople(),trToday(),21);
-    reply={role:'assistant',local:true,actions:W.actions,content:W.actions.length?`Aus ${W.used} Nachrichten der letzten 3 Wochen habe ich Zu- und Absagen erkannt – bitte kurz prüfen:`:`Ich habe ${W.messages} Nachrichten gelesen, aber keine eindeutigen Zu- oder Absagen der letzten 3 Wochen gefunden.`};
+    reply={role:'assistant',local:true,actions:W.actions,content:W.actions.length?`Aus ${W.used} Nachrichten der letzten 3 Wochen habe ich Zu- und Absagen erkannt, bitte kurz prüfen:`:`Ich habe ${W.messages} Nachrichten gelesen, aber keine eindeutigen Zu- oder Absagen der letzten 3 Wochen gefunden.`};
     TR.chatBusy=false; TR.chat.push(reply); trChatDraw(); return;
   }
   if((!reply||reply.local)&&att.file&&!text.trim())text=att.file.text.slice(0,2000);
@@ -4234,7 +4240,7 @@ async function trChatSend(text){
     if(PK&&!PK.actions.length&&PK.miss.length&&!(PK.ambig||[]).length&&!actions.length){ TR.chatBusy=false; TR.chat.push({role:'assistant',local:true,content:'Zu wem gehört die Nummer bzw. E-Mail? Schreib bitte den Namen dazu, z. B. „Max Mustermann 0171 1234567“.'}); trChatDraw(); return; }
     if(PK&&PK.ambig&&PK.ambig.length&&!PK.actions.length)P.ambig=PK.ambig;
     if(P.ambig&&P.ambig.length){ content=(reply?reply.content+'\n':'')+P.ambig.map(a=>`Welchen meinst du mit „${a.k.replace(/^\w/,c=>c.toUpperCase())}“: ${a.names.join(', ')}?`).join('\n')+(actions.length?'\n\nDen Rest habe ich schon vorbereitet:':' Schreib bitte den vollen Namen.'); }
-    else if(actions.length){ content=(reply?reply.content+'\n':'')+'Verstanden – so würde ich es eintragen:'+(P.warn?'\n⚠️ '+P.warn:''); }
+    else if(actions.length){ content=(reply?reply.content+'\n':'')+'Verstanden, so würde ich es eintragen:'+(P.warn?'\n⚠️ '+P.warn:''); }
     else { const ans=TRC.answer(text,sq,TR.st,trToday()); content=(reply?reply.content+'\n':'')+(ans||'Das habe ich nicht verstanden. Im einfachen Modus verstehe ich Sätze wie „Max und Tim waren heute nicht da (Arbeit), Tom hat eine Zerrung, drei Wochen“ oder Fragen wie „Ist Tom wieder fit?“.'+(TR.ai&&TR.ai.ready?'':' Für freie Fragen und Aufstellungs-Tipps kann der Admin die KI einschalten.')); }
     reply={role:'assistant',content,actions,local:true};
   }
@@ -4278,7 +4284,7 @@ function trMicSetup(){
     const ta=document.getElementById('trcTxt'), base=ta.value?ta.value+' ':'';
     rec.onresult=e=>{ let t=''; for(let i=0;i<e.results.length;i++)t+=e.results[i][0].transcript; ta.value=base+t; ta.dispatchEvent(new Event('input')); };
     rec.onend=()=>{ b.classList.remove('rec'); rec=null; };
-    rec.onerror=e=>{ b.classList.remove('rec'); rec=null; if(e.error==='not-allowed')kToast('Mikrofon nicht erlaubt – in den Einstellungen freigeben'); };
+    rec.onerror=e=>{ b.classList.remove('rec'); rec=null; if(e.error==='not-allowed')kToast('Mikrofon nicht erlaubt: in den Einstellungen freigeben'); };
     try{ rec.start(); b.classList.add('rec'); kToast('🎙️ Ich höre zu … nochmal tippen zum Beenden'); }catch(e){ rec=null; }
   };
 }
@@ -4296,9 +4302,9 @@ async function trAiCard(P){
   const ready=!!(s&&s.ready), server=s&&s.quelle==='server', aus=s&&s.aus;
   const el=document.createElement('div'); el.className='card'; el.id='trAi';
   el.innerHTML=`<div class="adm-head"><div><h3 style="margin:0;display:flex;gap:8px;align-items:center">${SVI('chat')} KI (Co-Trainer, KI-Scouts, Aufträge)</h3>
-    <p style="margin:6px 0 0;font-size:13.5px">Der KI-Schlüssel wird <b>nicht in der App</b> eingegeben. Er liegt nur auf dem Server – niemand in der App kann ihn sehen, und er wandert nie aufs Handy.</p></div>
+    <p style="margin:6px 0 0;font-size:13.5px">Der KI-Schlüssel wird <b>nicht in der App</b> eingegeben. Er liegt nur auf dem Server. Niemand in der App kann ihn sehen, und er wandert nie aufs Handy.</p></div>
     <span class="pill ${ready?'on':'wait'}">${ready?'aktiv'+(server?' · Server':'')+' · '+svEsc(s.model||''):aus?'ausgeschaltet':'noch nicht hinterlegt'}</span></div>
-    ${!ready&&!aus?`<ol class="trai-steps"><li>Im Supabase-Dashboard: Projekt → <b>Edge Functions → Secrets</b> → „Add new secret“</li><li>Name <code>ANTHROPIC_API_KEY</code>, Wert: der Schlüssel (sk-ant-…) → Speichern</li><li>Hier auf <b>Prüfen</b> tippen – fertig.</li></ol>`:''}
+    ${!ready&&!aus?`<ol class="trai-steps"><li>Im Supabase-Dashboard: Projekt → <b>Edge Functions → Secrets</b> → „Add new secret“</li><li>Name <code>ANTHROPIC_API_KEY</code>, Wert: der Schlüssel (sk-ant-…) → Speichern</li><li>Hier auf <b>Prüfen</b> tippen: fertig.</li></ol>`:''}
     <div class="invite" style="grid-template-columns:1fr auto auto"><div><label for="trAiModel">Modell</label><select id="trAiModel">${[['claude-sonnet-5','Claude Sonnet 5 (empfohlen)'],['claude-haiku-4-5-20251001','Claude Haiku 4.5 (günstig)'],['claude-opus-5-5','Claude Opus 5.5 (stärkstes)']].map(([k,t])=>`<option value="${k}"${s&&s.model===k?' selected':''}>${t}</option>`).join('')}</select></div>
       <button class="btn ghost" id="trAiCheck" style="height:46px">${SVI('refresh')} Prüfen</button><button class="btn" id="trAiSave" style="height:46px">${aus?'KI einschalten':'Speichern'}</button></div>
     <p class="note">Kosten laufen direkt über euer Anthropic-Konto; die KI-Scouts haben einen Monatsdeckel${s&&s.budget!=null?' ('+svEsc(s.budget)+' $)':''}. ${ready?'<a href="#" id="trAiOff">KI ausschalten</a>':''}</p>`;
@@ -4308,7 +4314,7 @@ async function trAiCard(P){
     try{ const {error}=await SVB.sb.rpc('ai_set',{p_key:null,p_model:m,p_clear:false}); if(error)throw error; kToast(aus?'✓ KI eingeschaltet':'✓ Gespeichert'); reload(); }catch(e){ kToast('⚠️ '+(e.message||e)); } };
   document.getElementById('trAiCheck').onclick=async e=>{ const b=e.currentTarget; b.disabled=true;
     try{ const {data,error}=await SVB.sb.functions.invoke('ki-check',{body:{}}); if(error)throw error;
-      kToast(data&&data.secret?(data.gueltig===false?'⚠️ Schlüssel gefunden, wird aber von Anthropic abgelehnt':'✓ Schlüssel auf dem Server gefunden – KI ist aktiv'):'Noch kein Schlüssel auf dem Server (ANTHROPIC_API_KEY)'); reload(); }
+      kToast(data&&data.secret?(data.gueltig===false?'⚠️ Schlüssel gefunden, wird aber von Anthropic abgelehnt':'✓ Schlüssel auf dem Server gefunden. KI ist aktiv'):'Noch kein Schlüssel auf dem Server (ANTHROPIC_API_KEY)'); reload(); }
     catch(x){ b.disabled=false; kToast('⚠️ '+(x.message||x)); } };
   const off=document.getElementById('trAiOff'); if(off)off.onclick=async e=>{ e.preventDefault(); try{ await SVB.sb.rpc('ai_set',{p_key:null,p_model:null,p_clear:true}); kToast('KI ausgeschaltet'); reload(); }catch(x){ kToast('⚠️ '+x.message); } };
 }
@@ -4331,13 +4337,13 @@ async function trAiCard(P){
     return r; }; }
 
 /* =====================================================================
-   SV/BSC Scout · Runde 8: Verein – Rankings (Training & Loyalität), Veranstaltungen & Helfer,
+   SV/BSC Scout · Runde 8: Verein: Rankings (Training & Loyalität), Veranstaltungen & Helfer,
    Allzeit-Statistik & Legenden, Import von Listen (Excel/CSV/Einfügen), Scouting-Radar
    Rechte: Rankings, Helfer, Radar nur fürs Team (Admin, Vorstand, Kaderplaner, Trainer);
            Allzeit-Statistik (öffentliche Vereinsseite) sehen alle Mitglieder.
    ===================================================================== */
 SV_PAGES.verein=['Verein','Rankings, Helfer & Veranstaltungen, Allzeit-Statistik und Legenden'];
-SV_PAGES.radar=['Radar','Formkurven, Torserien und Moneyball-Chancen – bevor es andere merken'];
+SV_PAGES.radar=['Radar','Formkurven, Torserien und Moneyball-Chancen. Bevor es andere merken'];
 function canScout(){ return canEdit(); }
 { const _ta2=svTabAllowed; svTabAllowed=function(t){ if(t==='radar')return canScout(); if(t==='verein')return true; return _ta2.apply(this,arguments); }; }
 
@@ -4409,11 +4415,11 @@ function vrViewRank(B){
     <div class="vrgrid">
       <div class="card"><h3 class="trh">${SVI('activity')} Trainings-Score</h3>${tr.length?podium(tr,'ts')+`<div class="vrlist">${rows(tr,'ts')}</div>`:'<div class="note">Ab 4 erfassten Einheiten je Spieler erscheint hier das Ranking. Tipp: Julians Trainingslisten über „Listen importieren“ einlesen.</div>'}
         ${tr.length>12&&!VR.rkAll?'<button class="btn ghost sm" data-rkall>Alle '+tr.length+' zeigen</button>':''}${noTr&&tr.length?`<div class="note">${noTr} Spieler noch ohne Score (weniger als 4 Einheiten).</div>`:''}
-        <div class="note">Verletzt, länger krank und „in der Zweiten“ zählen <b>nicht</b> – kurzfristige Krankmeldungen zählen halb, gehäuft stärker; ohne Grund zählt voll.</div></div>
+        <div class="note">Verletzt, länger krank und „in der Zweiten“ zählen <b>nicht</b> · kurzfristige Krankmeldungen zählen halb, gehäuft stärker; ohne Grund zählt voll.</div></div>
       <div class="card"><h3 class="trh">${SVI('heart')} Loyalität &amp; Vereinsherz</h3>${podium(lo,'ls')}<div class="vrlist">${rows(lo,'ls')}</div>${lo.length>12&&!VR.rkAll?'<button class="btn ghost sm" data-rkall>Alle '+lo.length+' zeigen</button>':''}
-        <div class="note">Helfereinsätze (Aufbau, Theke, Kasse … inkl. Stunden) · Vereinstreue (Pflichtspiele seit 2013/14) · Teamgeist. ${VR.ev.length?'':'<b>Noch keine Veranstaltungen erfasst</b> – aktuell zählt nur die Vereinstreue.'}</div></div>
+        <div class="note">Helfereinsätze (Aufbau, Theke, Kasse … inkl. Stunden) · Vereinstreue (Pflichtspiele seit 2013/14) · Teamgeist. ${VR.ev.length?'':'<b>Noch keine Veranstaltungen erfasst</b> · aktuell zählt nur die Vereinstreue.'}</div></div>
     </div>
-    ${risk.length?`<div class="card"><h3 class="trh">${SVI('bell')} Bindungsrisiko – früh das Gespräch suchen</h3>${risk.map(x=>`<div class="tra l-${x.rt.lvl}"><span class="tra-av" data-svp="${svEsc(x.p.id)}">${avaHtml(x.p)}</span><div class="tra-b"><b data-svp="${svEsc(x.p.id)}">${svEsc(x.p.name)}</b><span>${svEsc(x.rt.why.join(' · '))}</span></div></div>`).join('')}</div>`:''}`;
+    ${risk.length?`<div class="card"><h3 class="trh">${SVI('bell')} Bindungsrisiko: früh das Gespräch suchen</h3>${risk.map(x=>`<div class="tra l-${x.rt.lvl}"><span class="tra-av" data-svp="${svEsc(x.p.id)}">${avaHtml(x.p)}</span><div class="tra-b"><b data-svp="${svEsc(x.p.id)}">${svEsc(x.p.name)}</b><span>${svEsc(x.rt.why.join(' · '))}</span></div></div>`).join('')}</div>`:''}`;
   B.querySelectorAll('[data-k]').forEach(b=>b.onclick=()=>{ VR.kader=b.dataset.k; vrViewRank(B); });
   B.querySelectorAll('[data-rkall]').forEach(b=>b.onclick=()=>{ VR.rkAll=true; vrViewRank(B); });
   B.querySelectorAll('[data-why]').forEach(x=>x.onclick=()=>vrWhy(x.dataset.why));
@@ -4454,7 +4460,7 @@ function vrViewEvents(B){
       <div class="card"><h3 class="trh">${SVI('plan')} Veranstaltungen</h3>${VR.ev.length?`<div class="trsl">${VR.ev.slice(0,80).map(e=>{ const hh=(e.h||[]).filter(h=>h[3]==='geholfen'), std=hh.reduce((a,h)=>a+ +(h[2]||0),0), ns=(e.h||[]).filter(h=>h[3]==='nicht_erschienen').length, zu=(e.h||[]).filter(h=>h[3]==='zugesagt').length;
         return `<button class="trs" data-ev="${e.id}"><div class="trs-d"><b>${new Date(e.d+'T12:00:00').toLocaleDateString('de-DE',{weekday:'short'})}</b><span>${TRC.fmt(e.d)}${e.d.slice(2,4)}</span></div>
           <div class="trs-b"><div class="trs-f"><i class="typ">${svEsc(TRS.EART[e.a]||e.a)}</i>${std?`<i>${std} Std.</i>`:''}${zu?`<i class="int">${zu} zugesagt</i>`:''}${ns?`<i class="st s1">${ns} nicht erschienen</i>`:''}</div><span><b>${svEsc(e.t)}</b> · ${hh.length?svEsc(hh.slice(0,6).map(h=>vrPersonName(h[0]).split(' ').pop()).join(', '))+(hh.length>6?' …':''):'noch keine Helfer'}</span></div>
-          <div class="trs-n"><b>${hh.length}</b><span>Helfer</span></div></button>`; }).join('')}</div>`:`<div class="empty">Noch keine Veranstaltung erfasst.<br><small>Kerwe, Heimspiel-Dienste, Weihnachtsmarkt, Arbeitseinsätze … – oder dem Co-Trainer sagen: „Kerwe-Aufbau: Fries, Seiler und Walter, je 4 Stunden“.</small></div>`}</div>
+          <div class="trs-n"><b>${hh.length}</b><span>Helfer</span></div></button>`; }).join('')}</div>`:`<div class="empty">Noch keine Veranstaltung erfasst.<br><small>Kerwe, Heimspiel-Dienste, Weihnachtsmarkt, Arbeitseinsätze …, oder dem Co-Trainer sagen: „Kerwe-Aufbau: Fries, Seiler und Walter, je 4 Stunden“.</small></div>`}</div>
       <div class="card"><h3 class="trh">${SVI('heart')} Fleißigste Helfer · Saison</h3>${top.length?`<div class="vrlist">${top.map(([pid,s],i)=>{ const p=trP(pid); return `<div class="vrrow" ${p?`data-svp="${svEsc(pid)}"`:''}><em>${i+1}</em>${avaHtml(p||{id:pid,name:vrPersonName(pid)})}<div class="vrrow-b"><b>${svEsc(vrPersonName(pid))}</b><small>${s.n}× geholfen</small></div><span class="vrsc ok">${s.std} h</span></div>`; }).join('')}</div>`:'<div class="note">Noch keine Helfereinsätze diese Saison.</div>'}
         <h3 class="trh" style="margin-top:16px">${SVI('kand')} Wer ist als Nächstes dran?</h3>
         <div class="note" style="margin-top:0">Fair verteilt: wer in den letzten 12 Monaten am wenigsten geholfen hat (ohne Verletzte).</div>
@@ -4478,7 +4484,7 @@ function vrEventEditor(id,preset){
         <div class="field"><label>Art</label><select id="veA">${Object.entries(TRS.EART).map(([k,t])=>`<option value="${k}"${st.art===k?' selected':''}>${t}</option>`).join('')}</select></div></div>
       <div class="field" style="margin-top:8px"><label>Titel</label><input id="veT" maxlength="120" value="${svEsc(st.titel)}" placeholder="${svEsc(TRS.EART[st.art]||'')}"></div>
       <div class="sbsec"><h4>Helfer <small>${st.h.filter(h=>h.status==='geholfen').length} geholfen · ${st.h.reduce((a,h)=>a+(h.status==='geholfen'?+(h.stunden||0):0),0)} Std.</small></h4>
-        <div class="vradd"><input id="veAdd" list="veList" placeholder="Name eingeben – Spieler oder freier Helfer" autocomplete="off"><datalist id="veList">${people.map(p=>`<option value="${svEsc(p.name)}">`).join('')}</datalist><button type="button" class="btn sm" id="veAddB">${SVI('plus')}</button><button type="button" class="btn ghost sm" id="veSug">Vorschlag</button></div>
+        <div class="vradd"><input id="veAdd" list="veList" placeholder="Name eingeben: Spieler oder freier Helfer" autocomplete="off"><datalist id="veList">${people.map(p=>`<option value="${svEsc(p.name)}">`).join('')}</datalist><button type="button" class="btn sm" id="veAddB">${SVI('plus')}</button><button type="button" class="btn ghost sm" id="veSug">Vorschlag</button></div>
         <div class="tratt">${st.h.map((h,i)=>`<div class="trr s-${h.status==='geholfen'?'da':h.status==='zugesagt'?'spaet':'weg'}"><div class="trr-h"><span class="trr-n"><b>${svEsc(vrPersonName(h.person))}</b><em>${h.person.startsWith('x:')?'Helfer ohne Spielerprofil':''}</em></span>
             <select data-hs="${i}" class="vrsel">${Object.entries(TRS.HSTAT).map(([k,t])=>`<option value="${k}"${h.status===k?' selected':''}>${t}</option>`).join('')}</select>
             <input data-hh="${i}" class="vrhrs" type="number" min="0" max="24" step="0.5" inputmode="decimal" value="${h.stunden==null?'':h.stunden}" placeholder="Std." aria-label="Stunden">
@@ -4498,7 +4504,7 @@ function vrEventEditor(id,preset){
       const person=hit?hit.id:'x:'+v.slice(0,100); if(st.h.some(h=>h.person===person))return kToast('Schon eingetragen');
       st.h.push({person,rollen:[],stunden:null,status:st.datum>trToday()?'zugesagt':'geholfen',notiz:''}); draw(); setTimeout(()=>{ const a=document.getElementById('veAdd'); if(a)a.focus(); },50); };
     $('veAddB').onclick=add; $('veAdd').onkeydown=e=>{ if(e.key==='Enter'){ e.preventDefault(); add(); } };
-    $('veSug').onclick=()=>{ keep(); const s=vrSuggest(4,st.h.map(h=>h.person)); s.forEach(x=>st.h.push({person:x.p.id,rollen:[],stunden:null,status:'zugesagt',notiz:''})); draw(); kToast(s.length?'✓ '+s.length+' Helfer vorgeschlagen – wer am wenigsten dran war':'Keine weiteren Vorschläge'); };
+    $('veSug').onclick=()=>{ keep(); const s=vrSuggest(4,st.h.map(h=>h.person)); s.forEach(x=>st.h.push({person:x.p.id,rollen:[],stunden:null,status:'zugesagt',notiz:''})); draw(); kToast(s.length?'✓ '+s.length+' Helfer vorgeschlagen: wer am wenigsten dran war':'Keine weiteren Vorschläge'); };
     $('veCancel').onclick=()=>closeOverlay();
     if($('veDel'))$('veDel').onclick=async()=>{ if(!confirm('Veranstaltung samt Helfern löschen?'))return; const {error}=await SVB.sb.from('events').delete().eq('id',st.id); if(error)return kToast('⚠️ '+error.message); await vrLoadEvents(); closeOverlay(); kToast('Gelöscht'); };
     $('veSave').onclick=async()=>{ keep(); const titel=st.titel.trim()||TRS.EART[st.art]; const b=$('veSave'); b.disabled=true;
@@ -4524,7 +4530,7 @@ function vrViewAllTime(B){
   const status=x=>{ const p=x.pid&&trP(x.pid); if(p&&p.own)return `<span class="trpill ok">aktiv${p.kader===2?' · II':''}</span>`; if(p)return `<span class="trpill mid" title="laut Datenbestand">jetzt ${svEsc(p.club||'')}</span>`; return ''; };
   const th=(k,t)=>`<th><button data-as="${k}" class="${VR.atSort===k?'on':''}">${t}</button></th>`;
   B.innerHTML=`<div class="vrgrid">
-      <div class="card"><h3 class="trh">${SVI('trophy')} Meilensteine in Sicht</h3>${ms.length?ms.slice(0,8).map(o=>`<div class="tra l-mittel"><span class="tra-av" data-svp="${svEsc(o.p.id)}">${avaHtml(o.p)}</span><div class="tra-b"><b data-svp="${svEsc(o.p.id)}">${svEsc(o.p.name)}</b><span>${o.m.map(m=>`noch ${m.rest} bis ${m.ziel} ${m.lab}`).join(' · ')}</span></div></div>`).join('')+'<div class="note">Rechtzeitig Ehrung vorbereiten: Stadionsprecher, Social-Media-Post, Erinnerungstrikot – so etwas bindet.</div>':'<div class="note">Gerade niemand kurz vor einem runden Jubiläum.</div>'}</div>
+      <div class="card"><h3 class="trh">${SVI('trophy')} Meilensteine in Sicht</h3>${ms.length?ms.slice(0,8).map(o=>`<div class="tra l-mittel"><span class="tra-av" data-svp="${svEsc(o.p.id)}">${avaHtml(o.p)}</span><div class="tra-b"><b data-svp="${svEsc(o.p.id)}">${svEsc(o.p.name)}</b><span>${o.m.map(m=>`noch ${m.rest} bis ${m.ziel} ${m.lab}`).join(' · ')}</span></div></div>`).join('')+'<div class="note">Rechtzeitig Ehrung vorbereiten: Stadionsprecher, Social-Media-Post, Erinnerungstrikot, so etwas bindet.</div>':'<div class="note">Gerade niemand kurz vor einem runden Jubiläum.</div>'}</div>
       <div class="card"><h3 class="trh">${SVI('star')} Vereinslegenden <small>(200+ Spiele oder 75+ Tore)</small></h3><div class="vrchips">${legends.map(x=>`<span ${x.pid?`data-svp="${svEsc(x.pid)}"`:''}>${svEsc(vrAtName(x))} <small>${x.tot.sp} Sp. · ${x.tot.tore} T.</small></span>`).join('')||'<span class="note">–</span>'}</div>
         ${back.length?`<h3 class="trh" style="margin-top:14px">${SVI('refresh')} Rückkehrer-Radar</h3><div class="note" style="margin-top:0">Ehemalige mit vielen Spielen für uns, die laut Datenbestand jetzt woanders spielen.</div><div class="vrchips">${back.map(x=>{ const p=trP(x.pid); return `<span data-svp="${svEsc(x.pid)}">${svEsc(vrAtName(x))} <small>${x.tot.sp} Sp. · jetzt ${svEsc(p.club||'?')}${p.cur&&p.cur.tore?' · '+p.cur.tore+' Tore 26/27':''}</small></span>`; }).join('')}</div>`:''}</div>
     </div>
@@ -4533,7 +4539,7 @@ function vrViewAllTime(B){
       ${rows.slice(0,VR.atShow).map((x,i)=>{ const b=TRS.badges(x.tot,rk.get(x.r.key)); return `<tr ${x.pid?`data-svp="${svEsc(x.pid)}"`:''}><td>${i+1}</td><td><b>${svEsc(vrAtName(x))}</b> ${status(x)}</td><td>${x.tot.sp}${x.tot.sp>x.r.spiele?` <small>+${x.tot.sp-x.r.spiele}</small>`:''}</td><td>${x.tot.tore}</td><td>${x.tot.vor}</td><td>${x.tot.siege}</td><td>${x.tot.quote==null?'–':x.tot.quote+' %'}</td>
         <td>${b.map(y=>`<i class="vrbadge b-${y.k}" title="${svEsc(y.d)}">${svEsc(y.t)}</i>`).join('')}</td></tr>`; }).join('')}</tbody></table></div>
       ${rows.length>VR.atShow?`<button class="btn ghost sm" id="vrAtMore" style="margin-top:8px">Alle ${rows.length} zeigen</button>`:''}
-      <div class="note">Quelle: Spielerstatistiken der Vereinsseite (Stand ${stand?TRC.fmt(stand)+stand.slice(0,4):'–'}). „+“ = Pflichtspiele seitdem – kommen automatisch aus den Spielberichten auf FUSSBALL.DE (inkl. Pokal) oder aus „Spiel erfassen“.</div></div>`;
+      <div class="note">Quelle: Spielerstatistiken der Vereinsseite (Stand ${stand?TRC.fmt(stand)+stand.slice(0,4):'–'}). „+“ = Pflichtspiele seitdem. Kommen automatisch aus den Spielberichten auf FUSSBALL.DE (inkl. Pokal) oder aus „Spiel erfassen“.</div></div>`;
   B.querySelectorAll('[data-as]').forEach(b=>b.onclick=()=>{ VR.atSort=b.dataset.as; vrViewAllTime(B); });
   B.querySelectorAll('[data-svp]').forEach(x=>x.onclick=()=>openModal(x.dataset.svp));
   const qi=document.getElementById('vrAtQ'); let t=null; qi.oninput=()=>{ clearTimeout(t); t=setTimeout(()=>{ VR.atQ=qi.value; const pos=qi.selectionStart; vrViewAllTime(B); const n=document.getElementById('vrAtQ'); n.focus(); try{n.setSelectionRange(pos,pos);}catch(e){} },250); };
@@ -4554,7 +4560,7 @@ function vrProfile(pid){
   if(row||(ms&&ms.sp)){ const b=TRS.badges(tot,row?vrRanks().rk.get(row.key):null), nx=TRS.nextMilestones(tot)[0];
     h+=`<div class="trkpi vrkpi"><div><b>${tot.sp}</b><span>Pflichtspiele${row?' seit 13/14':''}</span></div><div><b>${tot.tore}</b><span>Tore</span></div><div><b>${tot.vor}</b><span>Vorlagen</span></div><div><b>${tot.quote==null?'–':tot.quote+' %'}</b><span>Siegquote</span></div></div>
       ${b.length?`<div class="vrbadges">${b.map(y=>`<i class="vrbadge b-${y.k}" title="${svEsc(y.d)}">${svEsc(y.t)}</i>`).join('')}</div>`:''}
-      ${nx&&p.own?`<div class="note">Nächster Meilenstein: ${nx.ziel} ${nx.lab} – noch ${nx.rest}.</div>`:''}`; }
+      ${nx&&p.own?`<div class="note">Nächster Meilenstein: ${nx.ziel} ${nx.lab} · noch ${nx.rest}.</div>`:''}`; }
   if(p.own&&team&&TR.loaded){ const ww=TRS.withWithout(TR.st,pid);
     if(ms&&ms.sp)h+=`<div class="trabs"><span>Saison 26/27 (App):</span><i>${ms.sp} Spiele (${ms.start}× Startelf)</i><i>${ms.tore} Tore</i><i>${ms.vor} Vorlagen</i></div>`;
     if(ww.delta!=null)h+=`<div class="vrmb ${ww.delta>=0.5?'ok':ww.delta<=-0.5?'bad':''}"><b>Moneyball · Mit/Ohne</b><span>Mit ihm in der Startelf ${ww.with.ppg.toFixed(2)} Punkte/Spiel (${ww.with.n} Sp., ${ww.with.ga.toFixed(1)} Gegentore) · ohne ihn ${ww.without.ppg.toFixed(2)} (${ww.without.n} Sp., ${ww.without.ga.toFixed(1)} Gegentore)</span></div>`; }
@@ -4566,7 +4572,7 @@ function vrProfile(pid){
   el.innerHTML=`<h3 class="trh">${SVI('trophy')} ${p.own?'Vereinswerte':'Radar & Form'}</h3>${h}`;
   anchor.after(el);
   el.querySelectorAll('[data-pwhy]').forEach(b=>b.onclick=()=>vrWhy(pid));
-  const mp=el.querySelector('#vrMap'); if(mp)mp.onchange=()=>{ if(!mp.value)return; crmSet(pid,{at:mp.value}); try{crmApply();}catch(e){} VR._idx=null; kToast('✓ Zugeordnet – gilt fürs ganze Team'); openModal(pid); };
+  const mp=el.querySelector('#vrMap'); if(mp)mp.onchange=()=>{ if(!mp.value)return; crmSet(pid,{at:mp.value}); try{crmApply();}catch(e){} VR._idx=null; kToast('✓ Zugeordnet: gilt fürs ganze Team'); openModal(pid); };
   const fm=el.querySelector('#vrForm'); if(fm)vrFormCurve(pid,fm);
 }
 async function vrFormCurve(pid,box){
@@ -4589,11 +4595,11 @@ function rdChances(){
   const own=p=>p.own, L=players.filter(p=>!own(p)&&p.cur&&p.cur.spiele>=3);
   const age=p=>p.alter!=null&&!p.alterCa?p.alter:null;
   const young=L.filter(p=>age(p)!=null&&age(p)<=21&&p.cur.tore>=3).sort((a,b)=>b.cur.tore/b.cur.spiele-a.cur.tore/a.cur.spiele).slice(0,10)
-    .map(p=>({p,t:`${p.name} (${age(p)}) – ${p.cur.tore} Tore in ${p.cur.spiele} Spielen`,d:`${p.cur.club} · ${p.cur.sub||p.cur.liga}`}));
+    .map(p=>({p,t:`${p.name} (${age(p)}) · ${p.cur.tore} Tore in ${p.cur.spiele} Spielen`,d:`${p.cur.club} · ${p.cur.sub||p.cur.liga}`}));
   const carry=L.filter(p=>p.cur.tT>0&&p.cur.tore>=4&&p.cur.tore/p.cur.tT>=0.35&&p.cur.rank&&p.cur.teamCount&&p.cur.rank>p.cur.teamCount/2).sort((a,b)=>b.cur.tore/b.cur.tT-a.cur.tore/a.cur.tT).slice(0,10)
-    .map(p=>({p,t:`${p.name} – ${Math.round(p.cur.tore/p.cur.tT*100)} % der Tore seines Teams`,d:`${p.cur.tore} von ${p.cur.tT} Toren · ${p.cur.club} (Platz ${p.cur.rank}/${p.cur.teamCount}, ${p.cur.sub||p.cur.liga})`}));
+    .map(p=>({p,t:`${p.name} · ${Math.round(p.cur.tore/p.cur.tT*100)} % der Tore seines Teams`,d:`${p.cur.tore} von ${p.cur.tT} Toren · ${p.cur.club} (Platz ${p.cur.rank}/${p.cur.teamCount}, ${p.cur.sub||p.cur.liga})`}));
   const low=L.filter(p=>['C','D1','D2','D'].includes(p.cur.sub||p.cur.liga)&&p.cur.spiele>=4&&p.cur.tore/p.cur.spiele>=1).sort((a,b)=>b.cur.tore/b.cur.spiele-a.cur.tore/a.cur.spiele).slice(0,10)
-    .map(p=>({p,t:`${p.name} – ${(p.cur.tore/p.cur.spiele).toFixed(1)} Tore pro Spiel`,d:`${p.cur.tore} Tore · ${p.cur.club} (${p.cur.sub||p.cur.liga})${age(p)!=null?' · '+age(p)+' J.':''}`}));
+    .map(p=>({p,t:`${p.name} · ${(p.cur.tore/p.cur.spiele).toFixed(1)} Tore pro Spiel`,d:`${p.cur.tore} Tore · ${p.cur.club} (${p.cur.sub||p.cur.liga})${age(p)!=null?' · '+age(p)+' J.':''}`}));
   return {young,carry,low};
 }
 function rdItem(r){
@@ -4616,12 +4622,12 @@ function rdRender(){
       <div class="tile"><div class="v">${VR.radar.filter(r=>r.typ==='serie').length}</div><div class="l">Torserien erkannt</div><div class="s">3+ Spieltage in Folge getroffen</div></div>
       ${tf&&tf.n?`<div class="tile"><div class="v">${tf.res.slice(0,5).join(' ')}</div><div class="l">Unsere Form</div><div class="s">${tf.ppg.toFixed(2)} Punkte/Spiel · ${tf.tf}:${tf.ta} Tore</div></div>`:''}</div>
     <div class="trtabs rdf">${types.map(([k,t])=>`<button class="${F===k?'on':''}" data-rf="${k}">${t}</button>`).join('')}</div>
-    ${F==='chancen'?sec(`${SVI('sprout')} Junge Torjäger (≤ 21)`,ch.young,'Aus den aktuellen Torjägerlisten – Alter, soweit bekannt.')+sec(`${SVI('gem')} Trägt sein Team`,ch.carry,'Schießt einen Großteil der Tore einer Mannschaft aus der unteren Tabellenhälfte – oft wechselbereit.')+sec(`${SVI('chart')} Knipser in C- und D-Liga`,ch.low,'Mindestens ein Tor pro Spiel – wer schafft den Sprung eine oder zwei Ligen höher?')
+    ${F==='chancen'?sec(`${SVI('sprout')} Junge Torjäger (≤ 21)`,ch.young,'Aus den aktuellen Torjägerlisten. Alter, soweit bekannt.')+sec(`${SVI('gem')} Trägt sein Team`,ch.carry,'Schießt einen Großteil der Tore einer Mannschaft aus der unteren Tabellenhälfte, oft wechselbereit.')+sec(`${SVI('chart')} Knipser in C- und D-Liga`,ch.low,'Mindestens ein Tor pro Spiel. Wer schafft den Sprung eine oder zwei Ligen höher?')
       :`<div class="card">${R.length?R.slice(0,150).map(rdItem).join(''):`<div class="empty">Noch keine Meldungen${F!=='alle'?' in dieser Kategorie':''}.<br><small>Das Radar vergleicht bei jedem Daten-Update (montags & donnerstags früh) die Torjägerlisten aller 7 Ligen mit dem letzten Stand. Torserien werden erkannt, sobald drei Spieltage vorliegen. Sofort nutzbar: „Moneyball-Chancen“.</small></div>`}</div>`}
     <div class="note">Meldungen gehen auch als Push-Nachricht an alle mit aktivierten Mitteilungen. Quelle: Torjägerlisten &amp; Tabellen von FUSSBALL.DE.</div>`;
   P.querySelectorAll('[data-rf]').forEach(b=>b.onclick=()=>{ VR.rf=b.dataset.rf; rdRender(); });
   P.querySelectorAll('[data-svp]').forEach(x=>x.onclick=()=>openModal(x.dataset.svp));
-  P.querySelectorAll('[data-star]').forEach(b=>b.onclick=e=>{ e.stopPropagation(); const p=trP(b.dataset.star); if(!p)return; const on=!p.star; crmSet(p.id,{f:on?1:undefined}); try{crmApply();}catch(x){} try{renderAll();}catch(x){} kToast(on?'⭐ '+p.name+' auf der Merkliste – das Radar meldet jedes Tor':'Von der Merkliste genommen'); rdRender(); });
+  P.querySelectorAll('[data-star]').forEach(b=>b.onclick=e=>{ e.stopPropagation(); const p=trP(b.dataset.star); if(!p)return; const on=!p.star; crmSet(p.id,{f:on?1:undefined}); try{crmApply();}catch(x){} try{renderAll();}catch(x){} kToast(on?'⭐ '+p.name+' auf der Merkliste: das Radar meldet jedes Tor':'Von der Merkliste genommen'); rdRender(); });
   setTimeout(rdMarkSeen,1500);
 }
 
@@ -4747,10 +4753,10 @@ function vrImport(kind0,file0){
     if(!S.rows){
       h+=`<div class="vrdrop"><label class="btn" for="vrFile">${SVI('upload')} Datei wählen (.xlsx oder .csv)</label><input type="file" id="vrFile" accept=".xlsx,.xlsm,.csv,.txt,.tsv" hidden>
           <div class="note">oder Zellen aus Excel/Google Sheets kopieren und hier einfügen:</div><textarea id="vrPaste" rows="6" placeholder="Name	01.09.	03.09.	05.09.&#10;Tim Fries	x	k	x&#10;…"></textarea><button class="btn ghost sm" id="vrPasteGo">Eingefügtes einlesen</button></div>
-        <div class="note">${S.kind==='training'?'Typisch: eine Zeile je Spieler, eine Spalte je Trainingstag (x = da, k = krank, v = verletzt, u = unentschuldigt, e = entschuldigt, ur = Urlaub …). Auch eine lange Liste „Datum | Name | Status“ geht.':S.kind==='helfer'?'Z. B. „Datum | Veranstaltung | Name(n) | Aufgabe | Stunden“ – mehrere Namen in einer Zelle mit Komma trennen. Oder: Zeilen = Helfer, Spalten = Veranstaltungen (Zelle = Stunden oder x).':'Z. B. „Name | Diagnose | von | bis“.'} Die Zuordnung prüfst du im nächsten Schritt.</div>`;
+        <div class="note">${S.kind==='training'?'Typisch: eine Zeile je Spieler, eine Spalte je Trainingstag (x = da, k = krank, v = verletzt, u = unentschuldigt, e = entschuldigt, ur = Urlaub …). Auch eine lange Liste „Datum | Name | Status“ geht.':S.kind==='helfer'?'Z. B. „Datum | Veranstaltung | Name(n) | Aufgabe | Stunden“. Mehrere Namen in einer Zelle mit Komma trennen. Oder: Zeilen = Helfer, Spalten = Veranstaltungen (Zelle = Stunden oder x).':'Z. B. „Name | Diagnose | von | bis“.'} Die Zuordnung prüfst du im nächsten Schritt.</div>`;
     } else {
       const P=plan(), un=Object.entries(S.map).filter(([,v])=>!v);
-      const cnt=S.kind==='training'?`${P.length} Einheiten · ${P.reduce((a,s)=>a+s.spieler.length,0)} Einträge${P.length?` · ${TRC.fmt(P[0].datum)}${P[0].datum.slice(2,4)} – ${TRC.fmt(P[P.length-1].datum)}${P[P.length-1].datum.slice(2,4)}`:''}`
+      const cnt=S.kind==='training'?`${P.length} Einheiten · ${P.reduce((a,s)=>a+s.spieler.length,0)} Einträge${P.length?` · ${TRC.fmt(P[0].datum)}${P[0].datum.slice(2,4)} · ${TRC.fmt(P[P.length-1].datum)}${P[P.length-1].datum.slice(2,4)}`:''}`
         :S.kind==='helfer'?`${P.length} Veranstaltungen · ${P.reduce((a,e)=>a+e.helfer.length,0)} Helfereinsätze`:`${P.length} Verletzungen`;
       const H=(S.rows[S.hdr]||[]), colOpt=(sel)=>`<option value="-1">–</option>`+H.map((v,i)=>`<option value="${i}"${sel===i?' selected':''}>${svEsc(String(v||'Spalte '+(i+1)).slice(0,30))}</option>`).join('');
       h+=`<div class="vrim-src"><b>${svEsc(S.fileName)}</b> · ${S.rows.length} Zeilen${S.sheets&&S.sheets.length>1?` · Blatt <select id="vrSheet">${S.sheets.map(n=>`<option${n===S.sheet?' selected':''}>${svEsc(n)}</option>`).join('')}</select>`:''} <button class="btn ghost sm" id="vrReset">Andere Datei</button></div>
@@ -4764,7 +4770,7 @@ function vrImport(kind0,file0){
           <details class="vrdet"><summary>Zuordnung prüfen (${Object.keys(S.map).length-un.length})</summary>${Object.entries(S.map).filter(([,v])=>v).map(([n,v])=>`<div><code>${svEsc(n)}</code> → ${svEsc(vrPersonName(v))}</div>`).join('')}</details></div>
         <div class="vrim-sum">${SVI('check')} ${cnt}</div>
         <div class="btnrow sbact"><button class="btn" id="vrGo"${P.length&&!S.busy?'':' disabled'}>${S.busy?'Importiere …':'Importieren'}</button><button class="btn ghost" id="vrCancel">Abbrechen</button></div>
-        <div class="note">Bereits vorhandene Einträge am selben Tag werden ergänzt bzw. für diese Spieler überschrieben – nichts wird doppelt angelegt.</div>`;
+        <div class="note">Bereits vorhandene Einträge am selben Tag werden ergänzt bzw. für diese Spieler überschrieben. Nichts wird doppelt angelegt.</div>`;
     }
     E.innerHTML=h;
     E.querySelectorAll('[data-ik]').forEach(b=>b.onclick=()=>{ S.kind=b.dataset.ik; if(S.rows)analyse(); draw(); });
@@ -4867,7 +4873,7 @@ function svHistInit(){
    - Tab-Leiste und Seitenleiste je Rolle (Scouting immer vorne)
    - Übersicht: Rollen-Cockpit mit Schnellaktionen, wichtigsten Meldungen und KI-Lagebild
    - Scouting-Seite: Radar-Streifen ganz oben
-   - Nutzungsprotokoll (Zeit, Bereiche) – Auswertung ausschließlich für den Admin
+   - Nutzungsprotokoll (Zeit, Bereiche): Auswertung ausschließlich für den Admin
    ===================================================================== */
 const SV_TABBAR={trainer:['home','training','elf','scout'],planer:['home','scout','kandidaten','kaderplan'],vorstand:['home','scout','verein','kandidaten'],
   admin:['home','scout','training','kandidaten'],viewer:['home','scout','kaderplan','verein']};
@@ -4959,7 +4965,7 @@ function svCockpit(){
   el.innerHTML=`<div class="card svcock"><div class="svc-h"><h3>${svEsc(SV_ROLE_HEAD[r]||'Cockpit')}</h3>${ai?`<button class="btn ghost sm" id="svBriefBtn">${SVI('chat')} KI-Lagebild</button>`:''}</div>
     <div class="svc-acts">${acts.map((a,i)=>`<button class="svc-a" data-act="${i}">${SVI(a[0])}<span>${svEsc(a[1])}</span></button>`).join('')}</div>
     ${SVA.brief?`<div class="svc-brief"><b>${SVI('chat')} Lagebild des Co-Trainers</b><div>${svEsc(SVA.brief.text).replace(/\n/g,'<br>')}</div><small>${svEsc(SVA.brief.when||'')}</small></div>`:''}
-    <div class="svc-ins">${ins.length?ins.map((x,i)=>`<button class="svc-i l-${x.lvl}" data-ins="${i}"><b>${svEsc(x.t)}</b><span>${svEsc(x.d)}</span></button>`).join(''):'<div class="note">Alles ruhig – keine dringenden Punkte.</div>'}</div>
+    <div class="svc-ins">${ins.length?ins.map((x,i)=>`<button class="svc-i l-${x.lvl}" data-ins="${i}"><b>${svEsc(x.t)}</b><span>${svEsc(x.d)}</span></button>`).join(''):'<div class="note">Alles ruhig, keine dringenden Punkte.</div>'}</div>
     ${top.length?`<div class="svc-top"><span>Oft genutzt:</span>${top.map(t=>`<button data-top="${t}">${SVI(SV_TBL[t][0])}${svEsc(SV_TBL[t][1])}</button>`).join('')}</div>`:''}</div>`;
   el.querySelectorAll('[data-act]').forEach(b=>b.onclick=()=>acts[+b.dataset.act][2]());
   el.querySelectorAll('[data-ins]').forEach(b=>b.onclick=()=>{ const x=ins[+b.dataset.ins]; if(x&&x.go)x.go(); });
@@ -4988,7 +4994,7 @@ function svScoutStrip(){
   let el=document.getElementById('rdStrip'); if(!el){ el=document.createElement('div'); el.id='rdStrip'; P.prepend(el); }
   const R=VR.radar.filter(r=>r.lvl!=='info').slice(0,3), n=VR.radar.filter(r=>r.created_at>rdSeen()).length;
   el.innerHTML=`<div class="card rdstrip"><div class="svc-h"><h3>${SVI('radar')} Radar${n?` <span class="pill on">${n} neu</span>`:''}</h3><div class="btnrow"><button class="btn sm" data-rs="radar">Alle Meldungen</button><button class="btn ghost sm" data-rs="chancen">Moneyball-Chancen</button></div></div>
-    ${R.length?R.map(rdItem).join(''):'<div class="note">Noch keine Meldungen – das Radar wertet jedes Daten-Update aus.</div>'}</div>`;
+    ${R.length?R.map(rdItem).join(''):'<div class="note">Noch keine Meldungen: das Radar wertet jedes Daten-Update aus.</div>'}</div>`;
   el.querySelectorAll('[data-rs]').forEach(b=>b.onclick=()=>{ VR.rf=b.dataset.rs==='chancen'?'chancen':'alle'; goTab('radar'); });
   el.querySelectorAll('[data-svp]').forEach(x=>x.onclick=()=>openModal(x.dataset.svp));
   el.querySelectorAll('[data-star]').forEach(b=>b.style.display='none');
@@ -5005,7 +5011,7 @@ async function svUseCard(P){
   const U=await svUseLoad()||[];
   const warn=U.filter(u=>u.ai24>=40||u.flagN>0), idle=U.filter(u=>u.active&&u.role!=='viewer'&&u.role!=='admin'&&(!u.last_seen||Date.now()-new Date(u.last_seen)>14*864e5));
   el.innerHTML=`<div class="adm-head"><div><h3 style="margin:0;display:flex;gap:8px;align-items:center">${SVI('user')} Nutzung &amp; Aktivität <span class="pill wait">nur für dich</span></h3>
-      <p style="margin:6px 0 0;font-size:13.5px">Zeit in der App, aktive Tage, meistgenutzte Bereiche und Fragen an den Co-Trainer (30 Tage). Sieht außer dir niemand – auch nicht der Vorstand.</p></div></div>
+      <p style="margin:6px 0 0;font-size:13.5px">Zeit in der App, aktive Tage, meistgenutzte Bereiche und Fragen an den Co-Trainer (30 Tage). Sieht außer dir niemand, auch nicht der Vorstand.</p></div></div>
     ${warn.length?`<div class="tra l-hoch"><span class="tra-av team">${SVI('bell')}</span><div class="tra-b"><b>Auffällige KI-Nutzung</b><span>${warn.map(u=>`${svEsc(u.name||u.email)}: ${u.ai24} Fragen in 24 h${u.flagN?`, ${u.flagN}× Themen außerhalb des Vereins`:''}`).join(' · ')}</span></div></div>`:''}
     ${idle.length?`<div class="tra l-mittel"><span class="tra-av team">${SVI('clock')}</span><div class="tra-b"><b>Länger nicht in der App</b><span>${idle.map(u=>`${svEsc(u.name||u.email)} (${svEsc(SVB.ROLE_T[u.role]||u.role)}, ${svAgo2(u.last_seen)})`).join(' · ')}</span></div></div>`:''}
     <div class="trtw"><table class="trtab svuse"><thead><tr><th>Mitglied</th><th>Zuletzt</th><th>Zeit 7 T</th><th>Zeit 30 T</th><th>Aktive Tage</th><th>Meistgenutzt</th><th>Co-Trainer</th></tr></thead><tbody>
@@ -5053,7 +5059,7 @@ function svUseOpen(){ goTab('admin'); setTimeout(()=>{ const c=document.getEleme
    - Karte: Gesamtwert (OVR) + 6 Werte aus den echten Daten (Abschluss, Anteil an Teamtoren, Form, Potenzial,
      bei eigenen Spielern Training & Loyalität, sonst Wechselchance & Nähe). Antippen dreht die Karte um.
    - Wappen: öffentliche Vereinslogos von FUSSBALL.DE (nur angezeigt, nicht kopiert)
-   - Fotos: nur vereinsintern, selbst aufgenommen oder mit Einverständnis – gespeichert in der eigenen Datenbank
+   - Fotos: nur vereinsintern, selbst aufgenommen oder mit Einverständnis, gespeichert in der eigenen Datenbank
    ===================================================================== */
 const SVC={crest:new Map(),crestLoaded:false,photos:new Map(),photosLoaded:false};
 const scNorm=s=>TRC.N(String(s||'')).replace(/[^a-z0-9]/g,'');
@@ -5082,7 +5088,7 @@ function scSquare(file,size){ return new Promise((res,rej)=>{ const fr=new FileR
 async function scSavePhoto(p,file){
   try{ const data=await scSquare(file,320);
     const {error}=await SVB.sb.from('player_photos').upsert({player_id:p.id,data},{onConflict:'player_id'}); if(error)throw error;
-    p.photo=data; SVC.photos.set(p.id,data); try{renderAll();}catch(e){} openModal(p.id); kToast('📷 Foto gespeichert – nur im Team sichtbar'); }
+    p.photo=data; SVC.photos.set(p.id,data); try{renderAll();}catch(e){} openModal(p.id); kToast('📷 Foto gespeichert, nur im Team sichtbar'); }
   catch(e){ kToast('⚠️ '+(e.message||e)); }
 }
 async function scDelPhoto(p){
@@ -5152,7 +5158,7 @@ function scProfile(id){
   const inp=document.getElementById('e_photo');
   if(inp&&canScout()){
     inp.onchange=e=>{ const f=e.target.files&&e.target.files[0]; if(f)scSavePhoto(p,f); };
-    const lab=inp.closest('label'); if(lab&&!lab.nextElementSibling?.classList?.contains('phnote')){ const n=document.createElement('div'); n.className='note phnote'; n.textContent='Nur eigene Fotos oder mit Einverständnis des Spielers – sichtbar nur fürs Team.'; lab.after(n); }
+    const lab=inp.closest('label'); if(lab&&!lab.nextElementSibling?.classList?.contains('phnote')){ const n=document.createElement('div'); n.className='note phnote'; n.textContent='Nur eigene Fotos oder mit Einverständnis des Spielers, sichtbar nur fürs Team.'; lab.after(n); }
     const del=document.getElementById('delPhoto'); if(del)del.onclick=()=>scDelPhoto(p);
     const av=document.getElementById('mAva'); if(av)av.onclick=()=>inp.click();
   }
@@ -5176,12 +5182,12 @@ function scAiBox(ai){
 /* =====================================================================
    SV/BSC Scout · Runde 10: Spieltag
    - Gegnercheck: nächster Gegner mit Tabelle, Heim/Auswärts, Fieberkurve, gefährlichste Spieler, Stärken & Schwächen,
-     direkter Vergleich – und auf Knopfdruck ein KI-Matchplan
+     direkter Vergleich, und auf Knopfdruck ein KI-Matchplan
    - Elf der Woche: aus den Torjägerlisten (Spieltag oder Saison), jede Liga und A-Jugend
    - A-Jugend-Radar: Talente im Umkreis + eigene Jugend, als Karten
-   - Ergebnisse kommen automatisch (aus der Veränderung der FUSSBALL.DE-Tabelle) – niemand muss sie eintragen
+   - Ergebnisse kommen automatisch (aus der Veränderung der FUSSBALL.DE-Tabelle): niemand muss sie eintragen
    ===================================================================== */
-SV_PAGES.gegner=['Gegnercheck','Der nächste Gegner – Stärken, Schwächen, gefährliche Spieler'];
+SV_PAGES.gegner=['Gegnercheck','Der nächste Gegner: Stärken, Schwächen, gefährliche Spieler'];
 SV_PAGES.totw=['Elf der Woche','Die besten Torschützen des Spieltags als Team'];
 SV_PAGES.jugend=['A-Jugend','Talente im Umkreis und aus den eigenen Reihen'];
 SV_TBL.gegner=['target','Gegner']; SV_TBL.totw=['star','Elf d. Woche'];
@@ -5266,9 +5272,9 @@ function spTraits(row,key,sub,venue){
     if(ppg>=2.2)S.push(`${venue==='heim'?'Heimstark':'Auswärtsstark'}: ${V.s} Siege aus ${V.sp} Spielen ${vn}`);
     if(ppg<=0.8)W.push(`${vn[0].toUpperCase()+vn.slice(1)} schwach: ${V.pkt} Punkte aus ${V.sp} Spielen`);
     if(V.gt/V.sp>=2.2)W.push(`Kassiert ${vn} ${spNum(V.gt/V.sp)} Tore pro Spiel`); }
-  const top=spPlayersOf(key)[0]; if(top&&row.tore>=6&&top.cur.tore/row.tore>=0.33)S.push(`Tore hängen an ${top.name} (${spPct(top.cur.tore,row.tore)} % der Treffer) – ausschalten!`);
+  const top=spPlayersOf(key)[0]; if(top&&row.tore>=6&&top.cur.tore/row.tore>=0.33)S.push(`Tore hängen an ${top.name} (${spPct(top.cur.tore,row.tore)} % der Treffer). Ausschalten!`);
   const f=spForm(key,sub); const lastN=f.slice(0,3);
-  if(lastN.length>=3&&lastN.every(x=>x==='S'))S.push('Drei Siege in Folge – mit Selbstvertrauen');
+  if(lastN.length>=3&&lastN.every(x=>x==='S'))S.push('Drei Siege in Folge, mit Selbstvertrauen');
   if(lastN.length>=3&&!lastN.includes('S'))W.push(`Seit ${lastN.length} Spielen ohne Sieg`);
   const fv=row.fieber||[]; if(fv.length>=4){ const d=fv[fv.length-4]-fv[fv.length-1]; if(d>=3)S.push(`Im Aufwind: in drei Spieltagen von Platz ${fv[fv.length-4]} auf ${fv[fv.length-1]}`); if(d<=-3)W.push(`Im Abwärtstrend: von Platz ${fv[fv.length-4]} auf ${fv[fv.length-1]} gefallen`); }
   return {S,W};
@@ -5311,7 +5317,7 @@ async function spRender(){
       ${cmp('Tore / Spiel',U&&U.spiele?U.tore/U.spiele:null,G&&G.spiele?G.tore/G.spiele:null,'hi')}${cmp('Gegentore / Spiel',U&&U.spiele?U.gegentore/U.spiele:null,G&&G.spiele?G.gegentore/G.spiele:null,'lo')}
       ${cmp(home?'Punkte/Spiel (wir heim · sie auswärts)':'Punkte/Spiel (wir ausw. · sie heim)',V(U)&&V(U).sp?V(U).pkt/V(U).sp:null,Vo(G)&&Vo(G).sp?Vo(G).pkt/Vo(G).sp:null,'hi')}
       <div class="spforms"><div>${spFormHtml(uF)}</div><small>Form (neueste links)</small><div>${spFormHtml(gF)}</div></div>
-      ${U&&G&&(U.fieber||[]).length>1?`<h4 class="sph4">Fieberkurve – Tabellenplatz je Spieltag</h4>${spFeverSvg({n:team==='A'?'SV/BSC':'SV/BSC II',v:U.fieber||[]},{n:oppName,v:G.fieber||[]})}`:''}
+      ${U&&G&&(U.fieber||[]).length>1?`<h4 class="sph4">Fieberkurve: Tabellenplatz je Spieltag</h4>${spFeverSvg({n:team==='A'?'SV/BSC':'SV/BSC II',v:U.fieber||[]},{n:oppName,v:G.fieber||[]})}`:''}
     </div>
     <div class="card"><h3 class="trh">${SVI('target')} Auf diese Spieler achten</h3>
       ${oppPl.length?`<div class="futrow">${oppPl.map((p,i)=>fcCard(p,{size:'sm',badge:hot.get(p.id)?`🔥 ${hot.get(p.id)} Tor${hot.get(p.id)>1?'e':''} zuletzt`:(G&&G.tore?spPct(p.cur.tore,G.tore)+' % der Tore':''),anim:true,delay:i*70})).join('')}</div>`:'<div class="note">Noch keine Torschützen des Gegners in den Listen.</div>'}
@@ -5331,7 +5337,7 @@ async function spRender(){
     ${h2h.length||prev.length?`<div class="card"><h3 class="trh">Bisherige Duelle</h3>${h2h.map(r=>{ const x=spRes(r,own); return `<div class="spres f${x.e}"><i>${x.e}</i><span>${r.datum?spWd(r.datum):'Spieltag bis '+TRC.fmt(r.bis)}</span><b>${svEsc(r.heim)} ${r.tore_heim}:${r.tore_gast} ${svEsc(r.gast)}</b></div>`; }).join('')}${prev.length?`<div class="note">${prev.join(' · ')}</div>`:''}</div>`:''}
     <div class="card spai"><div class="svc-h"><h3>${SVI('chat')} KI-Matchplan</h3>${TR.ai&&TR.ai.ready?`<button class="btn sm" id="spAiBtn">${SP.ai[f.id]?'Neu erstellen':'Matchplan erstellen'}</button>`:''}</div>
       ${SP.ai[f.id]?`<div class="spai-t">${spMd(SP.ai[f.id])}</div>`:TR.ai&&TR.ai.ready?'<div class="note">Der Co-Trainer fasst alles zusammen: worauf achten, wo wir sie packen, Vorschlag für Elf & Taktik.</div>':'<div class="note">Mit KI-Schlüssel (Admin → Nutzer & Rollen) erstellt der Co-Trainer hier einen Matchplan.</div>'}</div>
-    <div class="note">Tabellen, Spielplan und Torjäger: FUSSBALL.DE (öffentlich). Ergebnisse berechnet die App aus der Veränderung der Tabelle – ohne Eintippen.</div>`;
+    <div class="note">Tabellen, Spielplan und Torjäger: FUSSBALL.DE (öffentlich). Ergebnisse berechnet die App aus der Veränderung der Tabelle, ohne Eintippen.</div>`;
   spBind(P);
   const ab=document.getElementById('spAiBtn'); if(ab)ab.onclick=()=>spAi(f,{home,oppName,oppKey,sub,U,G,uF,gF,gT,uT,oppPl,hot,inj,ourTop,h2h,own});
 }
@@ -5344,7 +5350,7 @@ function spMd(t){ return svEsc(t).replace(/\*\*(.+?)\*\*/g,'<b>$1</b>').replace(
 async function spAi(f,X){
   if(SP.aiBusy)return; SP.aiBusy=true; const b=document.getElementById('spAiBtn'); if(b){ b.disabled=true; b.textContent='Co-Trainer denkt nach …'; }
   const r=x=>x?`Platz ${x.platz}, ${x.punkte} Punkte, ${x.tore}:${x.gegentore} Tore nach ${x.spiele} Spielen; heim ${x.heim?x.heim.pkt+' Pkt/'+x.heim.sp+' Sp':'?'}, auswärts ${x.ausw?x.ausw.pkt+' Pkt/'+x.ausw.sp+' Sp':'?'}; Fieberkurve ${(x.fieber||[]).join('-')}`:'unbekannt';
-  const fakten=[`Spiel: ${f.heim} – ${f.gast}, ${f.datum} ${f.zeit||''}, ${X.home?'wir haben Heimspiel':'wir spielen auswärts'} (${f.wettbewerb||X.sub}).`,
+  const fakten=[`Spiel: ${f.heim} · ${f.gast}, ${f.datum} ${f.zeit||''}, ${X.home?'wir haben Heimspiel':'wir spielen auswärts'} (${f.wettbewerb||X.sub}).`,
     `Wir: ${r(X.U)}. Form: ${X.uF.join('')||'?'}.`, `${X.oppName}: ${r(X.G)}. Form: ${X.gF.join('')||'?'}.`,
     `Gefährliche Spieler ${X.oppName}: ${X.oppPl.map(p=>`${p.name} (${p.pos||'?'}, ${p.cur.tore} Tore${X.hot.get(p.id)?', zuletzt '+X.hot.get(p.id)+' Tore':''})`).join('; ')||'keine bekannt'}.`,
     `Stärken Gegner: ${X.gT.S.join('; ')||'–'}. Schwächen Gegner: ${X.gT.W.join('; ')||'–'}.`,
@@ -5405,14 +5411,14 @@ async function twRender(){
   const ownIn=cand.filter(c=>c.p.own);
   P.innerHTML=`<div class="trtop"><div class="trtabs twsubs">${subs.map(s=>`<button class="${sub===s?'on':''}" data-twsub="${s}">${svEsc(SP_LIGA[s]||s)}</button>`).join('')}</div>
       <div class="trtabs"><button class="${SP.tw.mode==='tag'?'on':''}" data-twm="tag">Spieltag</button><button class="${SP.tw.mode==='saison'?'on':''}" data-twm="saison">Saison</button></div></div>
-    <div class="card twcard"><div class="svc-h"><h3>${SVI('star')} ${mode==='tag'?'Elf der Woche':'Elf der Saison'} · ${svEsc(SP_LIGA[sub]||sub)}</h3><small class="note">${mode==='tag'&&win?`Tore zwischen ${TRC.fmt(win[0])} und ${TRC.fmt(win[1])}`:SP.tw.mode==='tag'?'Für den Spieltag braucht es zwei Daten-Stände – bis dahin die Saison-Elf':'Nach Toren pro Spiel'}</small></div>
+    <div class="card twcard"><div class="svc-h"><h3>${SVI('star')} ${mode==='tag'?'Elf der Woche':'Elf der Saison'} · ${svEsc(SP_LIGA[sub]||sub)}</h3><small class="note">${mode==='tag'&&win?`Tore zwischen ${TRC.fmt(win[0])} und ${TRC.fmt(win[1])}`:SP.tw.mode==='tag'?'Für den Spieltag braucht es zwei Daten-Stände, bis dahin die Saison-Elf':'Nach Toren pro Spiel'}</small></div>
       ${cand.length?`<div class="twpitch"><div class="twlines"></div>${TW_SLOTS.map((s,i)=>`<div class="twslot" style="left:${s[1]}%;top:${s[2]}%">${s[0]==='TW'?(keeper?`<div class="fut xs totw keeper fut-noflip"><div class="fut-in"><div class="fut-f"><div class="fut-sh"></div><div class="fut-ov"><b>🧤</b><span>TW</span></div><div class="fut-pic kp">${scCrest(keeper.club,'xl')}</div><div class="fut-nm"><b>${svEsc(keeper.club)}</b><i>${svEsc(keeper.t)}</i></div></div></div></div>`:card(null,i,'TW')):card(slots[i],i,s[0])}</div>`).join('')}</div>`
         :'<div class="empty">Noch keine Torschützen in dieser Liga.</div>'}
-      ${motm?`<div class="twmotm">${SVI('star')} <b>Spieler des ${mode==='tag'?'Spieltags':'Saison'}:</b> <a data-svp="${svEsc(motm.p.id)}">${svEsc(motm.p.name)}</a> (${svEsc(motm.r.club||'')}) – ${mode==='tag'?motm.g+' Tor'+(motm.g>1?'e':''):motm.r.tore+' Tore in '+(motm.r.team_sp||'?')+' Spielen'}</div>`:''}
+      ${motm?`<div class="twmotm">${SVI('star')} <b>Spieler des ${mode==='tag'?'Spieltags':'Saison'}:</b> <a data-svp="${svEsc(motm.p.id)}">${svEsc(motm.p.name)}</a> (${svEsc(motm.r.club||'')}) · ${mode==='tag'?motm.g+' Tor'+(motm.g>1?'e':''):motm.r.tore+' Tore in '+(motm.r.team_sp||'?')+' Spielen'}</div>`:''}
       ${ownIn.length?`<div class="note">🟢 Von uns dabei: ${ownIn.map(c=>`<a data-svp="${svEsc(c.p.id)}">${svEsc(c.p.name)}</a> (${mode==='tag'?c.g:c.r.tore})`).join(', ')}</div>`:''}
     </div>
     ${rest.length?`<div class="card"><h3 class="trh">Weitere Torschützen</h3><div class="twrest">${rest.map(c=>`<button class="twr" data-svp="${svEsc(c.p.id)}">${avaHtml(c.p)}<b>${svEsc(c.p.name)}</b><span>${svEsc(c.r.club||'')}</span><em>${mode==='tag'?'⚽ '+c.g:c.r.tore+' T'}</em></button>`).join('')}</div></div>`:''}
-    <div class="note">Aus den Torjägerlisten von FUSSBALL.DE. Positionen laut Scouting-Datenbank – wo keine bekannt ist, stellt die App nach Toren auf. Karten antippen zum Umdrehen.</div>`;
+    <div class="note">Aus den Torjägerlisten von FUSSBALL.DE. Positionen laut Scouting-Datenbank: wo keine bekannt ist, stellt die App nach Toren auf. Karten antippen zum Umdrehen.</div>`;
   P.querySelectorAll('[data-twsub]').forEach(b=>b.onclick=()=>{ SP.tw.sub=b.dataset.twsub; twRender(); });
   P.querySelectorAll('[data-twm]').forEach(b=>b.onclick=()=>{ SP.tw.mode=b.dataset.twm; twRender(); });
   P.querySelectorAll('[data-svp]').forEach(a=>a.onclick=()=>openModal(a.dataset.svp));
@@ -5432,8 +5438,8 @@ renderJugend=function(){
   const alt=players.filter(p=>p.isJugend&&juMeta(p).alt).length;
   box.innerHTML=`<div class="card jucard"><div class="trtabs jul">${JU_LIGEN.map(([k,t])=>`<button class="${F.liga===k?'on':''}" data-jul="${k}">${t}</button>`).join('')}</div>
       <label class="jutog"><input type="checkbox" id="juReg" ${F.region?'checked':''}> Nur Region (bis 25 km)</label>
-      <div class="note">${J.length} Jugendspieler aus ${new Set(J.map(p=>juMeta(p).liga)).size} Ligen · A-Jugend (U19) im Umkreis bis Mannheim/Heidelberg/Darmstadt · eigene B-Jugend. Jahrgang 2008 wird zur neuen Saison Senior – jetzt ist die Zeit, Kontakt zu halten.</div></div>
-    ${eig.length?`<div class="card"><h3 class="trh">🌱 Eigene Talente</h3><div class="note" style="margin-top:0">Früh ins Seniorentraining einbinden – Spieler per Profil als „Eigengewächs“ markieren, dann meldet das Radar jedes Tor.</div><div class="futgrid">${eig.map((p,i)=>fcCard(p,{size:'sm',badge:`${p.tore} Tore`,anim:true,delay:i*60})).join('')}</div></div>`:''}
+      <div class="note">${J.length} Jugendspieler aus ${new Set(J.map(p=>juMeta(p).liga)).size} Ligen · A-Jugend (U19) im Umkreis bis Mannheim/Heidelberg/Darmstadt · eigene B-Jugend. Jahrgang 2008 wird zur neuen Saison Senior, jetzt ist die Zeit, Kontakt zu halten.</div></div>
+    ${eig.length?`<div class="card"><h3 class="trh">🌱 Eigene Talente</h3><div class="note" style="margin-top:0">Früh ins Seniorentraining einbinden. Spieler per Profil als „Eigengewächs“ markieren, dann meldet das Radar jedes Tor.</div><div class="futgrid">${eig.map((p,i)=>fcCard(p,{size:'sm',badge:`${p.tore} Tore`,anim:true,delay:i*60})).join('')}</div></div>`:''}
     <div class="card"><h3 class="trh">${SVI('sprout')} Top-Talente der Region</h3>${L.length?`<div class="futgrid">${L.slice(0,24).map((p,i)=>fcCard(p,{size:'sm',badge:`${p.tore} T · ${juMeta(p).teamSp?spNum(p.tore/juMeta(p).teamSp):'–'}/Sp.`,sub:svEsc(juMeta(p).kurz||''),anim:true,delay:i*40})).join('')}</div>`:'<div class="empty">Keine Treffer mit diesem Filter.</div>'}
       ${L.length>24?`<div class="jurest">${L.slice(24,80).map(p=>`<button class="twr" data-svp="${svEsc(p.id)}">${avaHtml(p)}<b>${svEsc(p.name)}</b><span>${svEsc(p.club)} · ${svEsc(juMeta(p).kurz||'')}${p.km!=null?' · '+p.km+' km':''}</span><em>${p.tore} T</em></button>`).join('')}</div>`:''}</div>
     ${alt?`<div class="note">${alt} Einträge aus der Vorsaison sind ausgeblendet (Notizen bleiben erhalten).</div>`:''}`;
@@ -5458,7 +5464,7 @@ RD_TYP.ajung='A-Jugend'; RD_TYP.eigen='Eigene Jugend';
       const u=d.querySelector('#rdUnreal'); if(u)u.onclick=()=>{ VR.showUnreal=!VR.showUnreal; rdRender(); };
       const g=d.querySelector('#rdAiRun'); if(g)g.onclick=async()=>{ g.disabled=true; g.textContent='KI-Scouts arbeiten …';
         try{ const {data,error}=await SVB.sb.functions.invoke('scout-ai',{body:{}}); if(error)throw error; if(data&&data.ok===false)throw new Error(data.error==='kein-schluessel'?'KI ist nicht eingerichtet':data.error);
-          kToast(data&&data.gestartet?'🤖 KI-Scouts laufen – Ergebnisse erscheinen in 1–2 Minuten':'✓ '+(data.grob||0)+' geprüft, '+(data.fein||0)+' Dossiers'); setTimeout(()=>vrLoadRadar(),data&&data.gestartet?60000:500); }
+          kToast(data&&data.gestartet?'🤖 KI-Scouts laufen: Ergebnisse erscheinen in 1–2 Minuten':'✓ '+(data.grob||0)+' geprüft, '+(data.fein||0)+' Dossiers'); setTimeout(()=>vrLoadRadar(),data&&data.gestartet?60000:500); }
         catch(e){ kToast('⚠️ '+(e.message||e)); } g.disabled=false; g.innerHTML=SVI('chat')+' KI-Scouts jetzt prüfen lassen'; };
     } }; }
 
@@ -5470,7 +5476,7 @@ SV_ACTIONS.admin.splice(2,2,['target','Gegnercheck',()=>goTab('gegner')],['star'
 { const _si=svInsights; svInsights=function(){ const base=_si.apply(this,arguments); const add=[];
     try{ if(SP.loaded&&canScout()){ const r=svRole(), own=SP_OWN.A, f=spNext('A')[0], last=spResultsOf(own)[0];
       if(f){ const d=spDays(f.datum); if(d<=4)add.push({prio:r==='trainer'?0.2:r==='vorstand'?1.5:2.5,lvl:d<=1?'hoch':'mittel',t:`${d===0?'Heute':d===1?'Morgen':spWd(f.datum)}: ${f.heim_key===own?'gegen '+f.gast:'bei '+f.heim}${f.zeit?' · '+f.zeit:''}`,d:'Gegnercheck: Stärken, Schwächen, gefährliche Spieler',go:()=>goTab('gegner')}); }
-      if(last&&last.bis&&TRC.diffDays(trToday(),last.bis)<=3){ const x=spRes(last,own); add.push({prio:0.8,lvl:x.e==='N'?'mittel':'info',t:`${x.e==='S'?'Sieg':x.e==='U'?'Remis':'Niederlage'}: ${last.heim} ${last.tore_heim}:${last.tore_gast} ${last.gast}`,d:'Automatisch aus der FUSSBALL.DE-Tabelle – nichts einzutragen',go:()=>goTab('gegner')}); } } }catch(e){}
+      if(last&&last.bis&&TRC.diffDays(trToday(),last.bis)<=3){ const x=spRes(last,own); add.push({prio:0.8,lvl:x.e==='N'?'mittel':'info',t:`${x.e==='S'?'Sieg':x.e==='U'?'Remis':'Niederlage'}: ${last.heim} ${last.tore_heim}:${last.tore_gast} ${last.gast}`,d:'Automatisch aus der FUSSBALL.DE-Tabelle: nichts einzutragen',go:()=>goTab('gegner')}); } } }catch(e){}
     return add.concat(base).sort((a,b)=>a.prio-b.prio).slice(0,6); }; }
 { const _ho=svHomeOrder; svHomeOrder=function(){ _ho.apply(this,arguments); const host=document.getElementById('svCockpit'), el=document.getElementById('spHome'); if(host&&el&&host.nextSibling!==el&&['trainer','vorstand','admin'].includes(svRole()))host.after(el); }; }
 { const _gt5=goTab; goTab=function(tab){ const r=_gt5.apply(this,arguments); try{ if(tab==='gegner')spRender(); if(tab==='totw')twRender(); if(tab==='jugend')renderJugend(); }catch(e){ console.warn(e); } return r; }; }
@@ -5485,7 +5491,7 @@ async function spCostCard(P){
   const NM={'co-trainer':'Co-Trainer (Chat, Lagebild, Gegnercheck)',sichter:'KI-Sichter (Radar grob)',chefscout:'KI-Chefscout (Dossiers)',lauf:'Läufe'};
   const el=document.createElement('div'); el.className='card'; el.id='spCost';
   el.innerHTML=`<div class="adm-head"><div><h3 style="margin:0;display:flex;gap:8px;align-items:center">${SVI('shield')} KI-Kosten & Agenten</h3>
-      <p style="margin:6px 0 0;font-size:13.5px">Alles ohne KI läuft kostenlos (Daten, Radar-Filter, Gegnercheck, Elf der Woche, Rankings). KI kostet nur, wenn sie genutzt wird – mit hartem Monatsdeckel: Ist das Budget erreicht, pausieren die KI-Scouts bis zum Monatsersten.</p></div>
+      <p style="margin:6px 0 0;font-size:13.5px">Alles ohne KI läuft kostenlos (Daten, Radar-Filter, Gegnercheck, Elf der Woche, Rankings). KI kostet nur, wenn sie genutzt wird, mit hartem Monatsdeckel: Ist das Budget erreicht, pausieren die KI-Scouts bis zum Monatsersten.</p></div>
       <span class="pill ${pct>=90?'off':pct>=60?'wait':'on'}">${sp.toFixed(2)} $ von ${bu.toFixed(0)} $</span></div>
     <div class="costbar"><i style="width:${pct}%"></i></div>
     ${(s.runs||[]).filter(r=>r.agent!=='lauf').length?`<div class="costrows">${s.runs.filter(r=>r.agent!=='lauf').map(r=>`<div><span>${svEsc(NM[r.agent]||r.agent)}</span><b>${(+r.usd).toFixed(2)} $</b><small>${r.n}×</small></div>`).join('')}</div>`:'<div class="note">Diesen Monat noch keine KI-Kosten.</div>'}
@@ -5504,7 +5510,7 @@ async function spBackupCard(P){
   const el=document.createElement('div'); el.className='card'; el.id='spBackup';
   const old=!last||Date.now()-new Date(last)>14*864e5;
   el.innerHTML=`<div class="adm-head"><div><h3 style="margin:0;display:flex;gap:8px;align-items:center">${SVI('lock')} Sicherung</h3>
-    <p style="margin:6px 0 0;font-size:13.5px">Alles, was ihr von Hand pflegt (Notizen, Kontakte, Training, Verletzungen, Helfer, Aufstellung, Fotos), als eine Datei. Der Gratis-Tarif der Datenbank macht keine Sicherungen für euch – einmal im Monat herunterladen und auf dem Mac ablegen.</p></div>
+    <p style="margin:6px 0 0;font-size:13.5px">Alles, was ihr von Hand pflegt (Notizen, Kontakte, Training, Verletzungen, Helfer, Aufstellung, Fotos), als eine Datei. Der Gratis-Tarif der Datenbank macht keine Sicherungen für euch, einmal im Monat herunterladen und auf dem Mac ablegen.</p></div>
     <span class="pill ${old?'wait':'on'}">${last?'zuletzt '+new Date(last).toLocaleDateString('de-DE'):'noch nie'}</span></div>
     <button class="btn" id="spBackupGo">${SVI('upload')} Sicherung herunterladen</button>`;
   (P.querySelector('#spCost')||P.lastElementChild).after(el);
@@ -5517,7 +5523,7 @@ async function spBackupCard(P){
 /* =====================================================================
    SV/BSC Scout · Runde 11: Saison-Statistik automatisch aus den Spielberichten (FUSSBALL.DE)
    - Einsätze, Startelf, Minuten und Tore aller Pflichtspiele der Ersten (Meisterschaft + Pokal)
-   - fließt in die ewige Liste, Meilensteine, Abzeichen und Vereinstreue ein – niemand muss etwas eintragen
+   - fließt in die ewige Liste, Meilensteine, Abzeichen und Vereinstreue ein, niemand muss etwas eintragen
    ===================================================================== */
 const FB={m:[],pl:new Map(),loaded:false,loading:false,map:null,mapK:'',busy:false};
 async function fbLoad(force){
@@ -5580,18 +5586,18 @@ function fbSeasonCard(){
   const L=[...agg.values()].sort((a,b)=>b.sp-a.sp||b.start-a.start||b.tore-a.tore), T=[...agg.values()].filter(x=>x.tore).sort((a,b)=>b.tore-a.tore||a.sp-b.sp);
   const po=done.filter(g=>g.code==='PO').length, open=G.length-done.length, unmapped=L.filter(x=>!x.pid).length;
   const btn=canTraining()?`<button class="btn ghost sm" id="fbRun">${SVI('refresh')} Jetzt abrufen</button>`:'';
-  if(!G.length)return `<div class="card fbcard"><div class="vrat-h"><h3 class="trh" style="margin:0">${SVI('ball')} Saison ${fbSeasonLabel()} – automatisch</h3>${btn}</div><div class="note">Die Spielberichte der Pflichtspiele werden nach jedem Daten-Update von FUSSBALL.DE geholt (Mo, Do und So-Abend). Noch keine Daten.</div></div>`;
-  return `<div class="card fbcard"><div class="vrat-h"><h3 class="trh" style="margin:0">${SVI('ball')} Saison ${fbSeasonLabel()} – 1. Mannschaft</h3>${btn}</div>
+  if(!G.length)return `<div class="card fbcard"><div class="vrat-h"><h3 class="trh" style="margin:0">${SVI('ball')} Saison ${fbSeasonLabel()} · automatisch</h3>${btn}</div><div class="note">Die Spielberichte der Pflichtspiele werden nach jedem Daten-Update von FUSSBALL.DE geholt (Mo, Do und So-Abend). Noch keine Daten.</div></div>`;
+  return `<div class="card fbcard"><div class="vrat-h"><h3 class="trh" style="margin:0">${SVI('ball')} Saison ${fbSeasonLabel()} · 1. Mannschaft</h3>${btn}</div>
     <div class="fbstats"><span><b>${done.length}</b> Pflichtspiele${po?` <small>davon ${po} Pokal</small>`:''}</span><span><b>${L.length}</b> eingesetzte Spieler</span><span><b>${T.reduce((a,x)=>a+x.tore,0)}</b> Tore</span></div>
     <div class="fbgrid"><div><h4>Einsätze</h4>${L.slice(0,10).map((x,i)=>`<div class="fbrow" ${x.pid?`data-svp="${svEsc(x.pid)}"`:''}><em>${i+1}</em><b>${svEsc(x.name)}</b><span>${x.sp}<small> · ${x.start}× Startelf</small></span></div>`).join('')}</div>
       <div><h4>Torschützen</h4>${T.slice(0,10).map((x,i)=>`<div class="fbrow" ${x.pid?`data-svp="${svEsc(x.pid)}"`:''}><em>${i+1}</em><b>${svEsc(x.name)}</b><span>${x.tore}<small> in ${x.sp} Sp.</small></span></div>`).join('')||'<div class="note">Noch keine Tore.</div>'}</div></div>
-    <div class="note">Automatisch aus den öffentlichen Spielberichten auf FUSSBALL.DE (Meisterschaft <b>und Pokal</b>) – zählt direkt in die ewige Liste unten. ${open?open+' Spiel'+(open>1?'e':'')+' noch ohne Bericht (wird nachgeholt). ':''}${unmapped?unmapped+' Spieler noch nicht im Datenbestand zugeordnet.':''}</div></div>`;
+    <div class="note">Automatisch aus den öffentlichen Spielberichten auf FUSSBALL.DE (Meisterschaft <b>und Pokal</b>): zählt direkt in die ewige Liste unten. ${open?open+' Spiel'+(open>1?'e':'')+' noch ohne Bericht (wird nachgeholt). ':''}${unmapped?unmapped+' Spieler noch nicht im Datenbestand zugeordnet.':''}</div></div>`;
 }
 async function fbRun(btn){
   if(FB.busy)return; FB.busy=true; if(btn){ btn.disabled=true; btn.textContent='Holt Spielberichte …'; }
   try{ const {data:j,error}=await SVB.sb.functions.invoke('spielberichte',{body:{}});
     if(error){ let t=error.message; try{ const x=await error.context.json(); if(x&&x.error)t=x.error; }catch(_){} throw new Error(t); } if(!j||!j.ok)throw new Error((j&&j.error)||'Fehler');
-    await fbLoad(true); kToast(`✓ Spielberichte aktualisiert – ${j.spiele_abgerufen||0} Spiele geprüft`);
+    await fbLoad(true); kToast(`✓ Spielberichte aktualisiert · ${j.spiele_abgerufen||0} Spiele geprüft`);
   }catch(e){ kToast('⚠️ '+e.message); }
   FB.busy=false; if(btn){ btn.disabled=false; btn.innerHTML=SVI('refresh')+' Jetzt abrufen'; }
 }
@@ -5630,8 +5636,8 @@ function trViewGames(B){
   S.P.forEach((v,pid)=>{ if(!squad.some(p=>p.id===pid)&&trP(pid))rows.push(Object.assign({p:trP(pid)},v)); });
   rows.sort((a,b)=>(b.da+b.spaet)-(a.da+a.spaet)||b.da-a.da||b.bank-a.bank||a.p.name.localeCompare(b.p.name,'de'));
   const n=Math.max(1,S.spiele), bar=r=>`<div class="fgbar">${FG_ST.map(([k],i)=>r[k]?`<i class="b${i+1}" style="width:${r[k]/n*100}%"></i>`:'').join('')}</div>`;
-  B.innerHTML=`<div class="card"><div class="vrat-h"><h3 class="trh" style="margin:0">${SVI('ball')} Spiele ${fbSeasonLabel()} – 1. Mannschaft</h3>${canTraining()?`<button class="btn ghost sm" id="fgRun">${SVI('refresh')} Spielberichte abrufen</button>`:''}</div>
-    <div class="note" style="margin-top:6px">${S.spiele} Pflichtspiele (inkl. Pokal) · ${S.erfasst} davon in der App erfasst. Startelf, Einwechslungen und Kader kommen automatisch aus den Spielberichten. „Zugeschaut/unterstützt“ und „nicht da mit Grund“ tragt ihr unter <b>Spiel erfassen</b> ein – oder sie kommen aus der Abstimmung.</div>
+  B.innerHTML=`<div class="card"><div class="vrat-h"><h3 class="trh" style="margin:0">${SVI('ball')} Spiele ${fbSeasonLabel()} · 1. Mannschaft</h3>${canTraining()?`<button class="btn ghost sm" id="fgRun">${SVI('refresh')} Spielberichte abrufen</button>`:''}</div>
+    <div class="note" style="margin-top:6px">${S.spiele} Pflichtspiele (inkl. Pokal) · ${S.erfasst} davon in der App erfasst. Startelf, Einwechslungen und Kader kommen automatisch aus den Spielberichten. „Zugeschaut/unterstützt“ und „nicht da mit Grund“ tragt ihr unter <b>Spiel erfassen</b> ein, oder sie kommen aus der Abstimmung.</div>
     <div class="trtw"><table class="trtab fgtab"><thead><tr><th>Spieler</th>${FG_ST.map(([k,t,c])=>`<th class="${c}">${t}</th>`).join('')}<th></th></tr></thead><tbody>
     ${rows.filter(r=>r.da+r.spaet+r.bank+r.zuschauer+r.weg>0||r.p.kader===1).map(r=>`<tr data-svp="${svEsc(r.p.id)}"><td><b>${svEsc(r.p.name)}</b>${r.p.kader===2?' <small>II</small>':''}</td>
       ${FG_ST.map(([k,,c])=>`<td class="${r[k]?c:''}">${r[k]||'–'}${k==='weg'&&r.weg?`<span class="fggr">${Object.entries(r.gr).map(([g,x])=>svEsc(TRC.REASONS[g]||g)+(x>1?' '+x+'×':'')).join(', ')}</span>`:''}</td>`).join('')}<td>${bar(r)}</td></tr>`).join('')}</tbody></table></div></div>`;
@@ -5647,8 +5653,8 @@ function trViewGames(B){
 /* =====================================================================
    SV/BSC Scout · Runde 11: „Kabine“
    - Abstimmungen: Trainer legt an → Link in die WhatsApp-Gruppe → Spieler tippen ihren Namen und sagen zu/ab (ohne Anmeldung)
-     Die App weiß, wer im Kader ist, und zeigt, wer noch fehlt – mit fertigem Erinnerungstext zum Nachhaken
-   - Mannschaftskasse: Strafenkatalog, Strafen, Beiträge, Ein-/Ausgaben, Kassenstand – für alle Spieler transparent über denselben Link,
+     Die App weiß, wer im Kader ist, und zeigt, wer noch fehlt, mit fertigem Erinnerungstext zum Nachhaken
+   - Mannschaftskasse: Strafenkatalog, Strafen, Beiträge, Ein-/Ausgaben, Kassenstand. Für alle Spieler transparent über denselben Link,
      bezahlen per PayPal.me (kostenlos), Kassenwart bestätigt
    ===================================================================== */
 SV_PAGES.kabine=['Kabine','Abstimmungen per WhatsApp-Link und Mannschaftskasse'];
@@ -5700,8 +5706,8 @@ function kbStat(poll){
   return o;
 }
 function kbPollTitle(p){ return `${p.titel} · ${kbWd(p.datum)}${p.zeit?' '+p.zeit:''}`; }
-function kbInviteText(p){ return `⚽ *${p.titel}* – ${kbWd(p.datum)}${p.zeit?' um '+p.zeit:''}${p.ort?' ('+p.ort+')':''}\nBist du dabei? Link öffnen, deinen Vor- und Nachnamen antippen und zu- oder absagen – ohne Anmeldung, jederzeit änderbar:\n${kbUrl(p.id)}${p.frist?'\nBis '+new Date(p.frist).toLocaleString('de-DE',{weekday:'short',hour:'2-digit',minute:'2-digit'})+' Uhr':''}`; }
-function kbNudgeText(p){ const s=kbStat(p); return `⏰ *${p.titel}* (${kbWd(p.datum)}): Von euch fehlt noch die Antwort – ${s.offen.map(x=>x.name.split(' ')[0]+' '+x.name.split(' ').slice(1).join(' ').slice(0,1)+'.').join(', ')}.\nBitte kurz abstimmen, dauert 5 Sekunden:\n${kbUrl(p.id)}`; }
+function kbInviteText(p){ return `⚽ *${p.titel}* · ${kbWd(p.datum)}${p.zeit?' um '+p.zeit:''}${p.ort?' ('+p.ort+')':''}\nBist du dabei? Link öffnen, deinen Vor- und Nachnamen antippen und zu- oder absagen, ohne Anmeldung, jederzeit änderbar:\n${kbUrl(p.id)}${p.frist?'\nBis '+new Date(p.frist).toLocaleString('de-DE',{weekday:'short',hour:'2-digit',minute:'2-digit'})+' Uhr':''}`; }
+function kbNudgeText(p){ const s=kbStat(p); return `⏰ *${p.titel}* (${kbWd(p.datum)}): Von euch fehlt noch die Antwort · ${s.offen.map(x=>x.name.split(' ')[0]+' '+x.name.split(' ').slice(1).join(' ').slice(0,1)+'.').join(', ')}.\nBitte kurz abstimmen, dauert 5 Sekunden:\n${kbUrl(p.id)}`; }
 /* Wer im Kader ist, aber nicht auf der Liste steht (vergessen?) */
 function kbForgotten(p){ const ids=new Set((p.teilnehmer||[]).map(t=>t.id)); return vrKader(false).filter(x=>!ids.has(x.id)&&!trInjury(x.id)); }
 
@@ -5741,9 +5747,9 @@ function kbViewPolls(B){
       <div class="kbbar"><i class="ok" style="width:${pc(s.zu.length)}%"></i><i class="mid" style="width:${pc(s.vllt.length)}%"></i><i class="bad" style="width:${pc(s.ab.length)}%"></i></div>
       <div class="kblegend"><span class="ok">${s.zu.length} dabei</span><span class="mid">${s.vllt.length} vielleicht</span><span class="bad">${s.ab.length} können nicht</span><span>${s.offen.length} ohne Antwort</span></div>
       ${s.offen.length&&s.offen.length<n?`<div class="kbmiss"><b>Noch offen:</b> ${s.offen.map(x=>svEsc(x.name)).join(', ')}</div>`:''}
-      ${fg?`<div class="kbmiss warn">⚠️ ${fg} ${fg>1?'Spieler aus dem Kader stehen':'Spieler aus dem Kader steht'} nicht auf der Liste – vergessen? <button class="lnk" data-kb-fg="${p.id}">Ansehen</button></div>`:''}
+      ${fg?`<div class="kbmiss warn">⚠️ ${fg} ${fg>1?'Spieler aus dem Kader stehen':'Spieler aus dem Kader steht'} nicht auf der Liste. Vergessen? <button class="lnk" data-kb-fg="${p.id}">Ansehen</button></div>`:''}
       <div class="btnrow"><button class="btn sm${p.geteilt_at?' ghost':''}" data-kb-share="${p.id}">${SVI('share')} ${p.geteilt_at?'Nochmal teilen':'In die Gruppe teilen'}</button>${s.offen.length?`<button class="btn ghost sm" data-kb-nudge="${p.id}">${SVI('bell')} Nachhaken (${s.offen.length})</button>`:''}<button class="btn ghost sm" data-kb-det="${p.id}">Details</button></div></div>`; };
-  B.innerHTML=`${!open.length?`<div class="card kbempty"><h3 class="trh">${SVI('users')} Wer ist dabei?</h3><p>Leg eine Abstimmung an, teile den Link in der WhatsApp-Gruppe – die Spieler tippen ihren Namen und sagen mit einem Klick zu oder ab. Kein Login, keine App nötig. Du siehst sofort, wer fehlt, und kannst gezielt nachhaken.</p></div>`:''}
+  B.innerHTML=`${!open.length?`<div class="card kbempty"><h3 class="trh">${SVI('users')} Wer ist dabei?</h3><p>Leg eine Abstimmung an, teile den Link in der WhatsApp-Gruppe, die Spieler tippen ihren Namen und sagen mit einem Klick zu oder ab. Kein Login, keine App nötig. Du siehst sofort, wer fehlt, und kannst gezielt nachhaken.</p></div>`:''}
     ${sug.length?`<div class="kbsug"><span>Schnell anlegen:</span>${sug.map((x,i)=>`<button class="pchip" data-kb-sug="${i}">${svEsc(x.titel)} · ${kbWd(x.datum)}</button>`).join('')}</div>`:''}
     ${open.map(card).join('')}
     ${old.length?`<button class="btn ghost sm" id="kbOld">${KB.showOld?'Vergangene ausblenden':`Vergangene Abstimmungen (${old.length})`}</button>${KB.showOld?`<div class="kbold">${old.map(p=>{ const s=kbStat(p); return `<div class="kbo" data-kb-det="${p.id}"><b>${svEsc(p.titel)}</b><small>${kbWd(p.datum)}</small><span class="ok">${s.zu.length}</span><span class="bad">${s.ab.length}</span><span>${s.offen.length} offen</span></div>`; }).join('')}</div>`:''}`:''}`;
@@ -5754,14 +5760,14 @@ function kbViewPolls(B){
   B.querySelectorAll('[data-kb-fg]').forEach(b=>b.onclick=()=>kbPollDetail(b.dataset.kbFg));
   const ob=document.getElementById('kbOld'); if(ob)ob.onclick=()=>{ KB.showOld=!KB.showOld; kbViewPolls(B); };
   B.insertAdjacentHTML('beforeend',`<div class="kbpop-set"><span>${SVI('bell')} Einladen-Pop-up für mich</span><button class="btn ghost sm" id="kbPopT">${KB.popup?'An':'Aus'}</button></div>`);
-  document.getElementById('kbPopT').onclick=async()=>{ const {data,error}=await SVB.sb.rpc('kabine_popup_set',{p_an:!KB.popup}); if(error)return kToast('⚠️ '+error.message); KB.popup=!!data; kToast(KB.popup?'✓ Pop-up an – du wirst vor jedem Training ans Einladen erinnert':'✓ Pop-up aus'); kbViewPolls(B); };
+  document.getElementById('kbPopT').onclick=async()=>{ const {data,error}=await SVB.sb.rpc('kabine_popup_set',{p_an:!KB.popup}); if(error)return kToast('⚠️ '+error.message); KB.popup=!!data; kToast(KB.popup?'✓ Pop-up an: du wirst vor jedem Training ans Einladen erinnert':'✓ Pop-up aus'); kbViewPolls(B); };
 }
 function kbSquadAll(){ return players.filter(p=>p.own&&!p.isJugend&&!p.verzicht&&(p.kader===1||p.kader===2)).sort((a,b)=>(a.kader||1)-(b.kader||1)||a.name.localeCompare(b.name,'de')); }
 function kbPollEditor(id,pre){
   const p0=id?KB.polls.find(x=>x.id===id):null, pr=pre||{};
   const st={titel:p0?p0.titel:(pr.titel||'Training'),art:p0?p0.art:(pr.art||'training'),datum:p0?p0.datum:(pr.datum||TRC.addDays(trToday(),1)),zeit:p0?p0.zeit||'':(pr.zeit||'19:00'),ort:p0?p0.ort||'':(pr.ort||''),notiz:p0?p0.notiz||'':'',
     frist:p0&&p0.frist?p0.frist.slice(0,16):'', sel:new Set(p0?(p0.teilnehmer||[]).map(t=>t.id):vrKader(false).map(x=>x.id))};
-  svModal(`<div class="mhead"><div class="rm-ic" style="width:46px;height:46px">${SVI('users')}</div><div><h2 style="margin:0">${p0?'Abstimmung bearbeiten':'Neue Abstimmung'}</h2><div class="msub">Danach „In WhatsApp teilen“ – die Spieler stimmen über den Link ab</div></div></div><div id="kbEd"></div>`);
+  svModal(`<div class="mhead"><div class="rm-ic" style="width:46px;height:46px">${SVI('users')}</div><div><h2 style="margin:0">${p0?'Abstimmung bearbeiten':'Neue Abstimmung'}</h2><div class="msub">Danach „In WhatsApp teilen“. Die Spieler stimmen über den Link ab</div></div></div><div id="kbEd"></div>`);
   const draw=()=>{ const E=document.getElementById('kbEd'); if(!E)return; const all=kbSquadAll();
     E.innerHTML=`<div class="kbform"><div class="field"><label>Titel</label><input id="kbT" maxlength="120" value="${svEsc(st.titel)}"></div>
       <div class="field"><label>Art</label><select id="kbA">${Object.entries(KB_ART).map(([k,t])=>`<option value="${k}"${st.art===k?' selected':''}>${t}</option>`).join('')}</select></div>
@@ -5787,7 +5793,7 @@ function kbPollEditor(id,pre){
       const b=document.getElementById('kbSave'); b.disabled=true;
       const q=p0?SVB.sb.from('polls').update(row).eq('id',p0.id).select().single():SVB.sb.from('polls').insert(row).select().single();
       const {data,error}=await q; if(error){ b.disabled=false; return kToast('⚠️ '+error.message); }
-      closeOverlay(); await kbLoad(true); kToast(p0?'✓ Gespeichert':'✓ Abstimmung angelegt – jetzt in WhatsApp teilen');
+      closeOverlay(); await kbLoad(true); kToast(p0?'✓ Gespeichert':'✓ Abstimmung angelegt: jetzt in WhatsApp teilen');
       if(!p0&&data){ try{ await kbLink(); if(confirm('Direkt in WhatsApp teilen?'))kbWa(kbInviteText(data)); }catch(e){} } };
   };
   draw();
@@ -5802,7 +5808,7 @@ function kbPollDetail(id){
       ${fg.length?`<div class="sbsec"><h4>Im Kader, aber nicht auf der Liste <small>${fg.length}</small></h4><div class="chips">${fg.map(x=>`<button type="button" class="pchip" data-add="${svEsc(x.id)}">+ ${svEsc(x.name)}</button>`).join('')}</div></div>`:''}
       <div class="btnrow sbact"><button class="btn" id="kbTr">${SVI('activity')} ${p.art==='spiel'?'Spiel':'Anwesenheit'} vorbereiten</button><button class="btn ghost" id="kbSh">${SVI('share')} ${p.geteilt_at?'Nochmal teilen':'In die Gruppe teilen'}</button><button class="btn ghost" id="kbCp">${SVI('copy')} Link kopieren</button><button class="btn ghost" id="kbEdit">Bearbeiten</button>
         <button class="btn ghost" id="kbClose">${p.geschlossen?'Wieder öffnen':'Abstimmung schließen'}</button></div>
-      <div class="note">„Vorbereiten“ übernimmt die Antworten ins Training bzw. Spiel: Zusagen als da (beim Spiel: im Kader), Absagen mit Grund. Beim Spiel danach „Aus Spielbericht übernehmen“ – Startelf und Einwechslungen kommen automatisch.</div>`;
+      <div class="note">„Vorbereiten“ übernimmt die Antworten ins Training bzw. Spiel: Zusagen als da (beim Spiel: im Kader), Absagen mit Grund. Beim Spiel danach „Aus Spielbericht übernehmen“. Startelf und Einwechslungen kommen automatisch.</div>`;
     E.querySelectorAll('[data-set]').forEach(b=>b.onclick=async()=>{ const [pid,a]=b.dataset.set.split(':'); const cur=kbVotes(p).find(v=>v.player_id===pid);
       const q=cur&&cur.antwort===a?SVB.sb.from('poll_votes').delete().eq('poll_id',p.id).eq('player_id',pid):SVB.sb.from('poll_votes').upsert({poll_id:p.id,player_id:pid,antwort:a,grund:a==='ab'?(cur&&cur.grund)||null:null,via:'app',at:new Date().toISOString()});
       const {error}=await q; if(error)return kToast('⚠️ '+error.message); await kbLoad(true); draw(); });
@@ -5855,16 +5861,16 @@ function kbViewKasse(B){
   B.innerHTML=`<div class="kbstats"><div class="kbst kbflipw">${kbFlipHtml(S.konten,'kbFlip')}</div><div class="kbst"><span>Noch offen</span><b class="mid">${kbEur(S.offen)}</b></div>
       <div class="kbst"><span>Zu prüfen</span><b class="${S.gemeldet.length?'mid':''}">${S.gemeldet.length}</b></div><div class="kbst"><span>Gesamt · alle Konten</span><b class="${S.stand<0?'bad':''}">${kbEur(S.stand)}</b></div></div>
     ${darf?`<div class="btnrow kbmoney"><button class="btn ghost sm" id="kbAbg">${SVI('check')} Kontostand abgleichen</button><button class="btn ghost sm" id="kbBu2">${SVI('plus')} Zuzahlung · Gebühr · Umbuchung</button></div>`:''}
-    ${!cfg.paypal?`<div class="card kbhint">${SVI('info')} <div><b>PayPal.me hinterlegen</b><span>Dann können die Spieler ihre Strafen direkt über den Team-Link bezahlen – mit „Freunde &amp; Familie“ kostenlos.</span></div><button class="btn sm" id="kbCfg1">Einrichten</button></div>`:''}
+    ${!cfg.paypal?`<div class="card kbhint">${SVI('info')} <div><b>PayPal.me hinterlegen</b><span>Dann können die Spieler ihre Strafen direkt über den Team-Link bezahlen, mit „Freunde &amp; Familie“ kostenlos.</span></div><button class="btn sm" id="kbCfg1">Einrichten</button></div>`:''}
     ${S.gemeldet.length?kbGemeldetHtml(S.gemeldet,darf):''}
-    ${V.length?`<div class="card"><h3 class="trh">${SVI('bell')} Vorschläge <small>${V.length}</small></h3><div class="note" style="margin-top:0">Aus Anwesenheit und Abstimmungen – nichts wird automatisch gebucht.</div>${V.slice(0,15).map((v,i)=>`<div class="kbb"><b>${svEsc(trP(v.pid).name)}</b><span>${svEsc(v.titel)} <small>${svEsc(v.why)}</small></span><em>${kbEur(v.betrag)}</em><div class="btnrow"><button class="btn sm" data-vb="${i}">Buchen</button><button class="btn ghost sm" data-vi="${i}">Ignorieren</button></div></div>`).join('')}
+    ${V.length?`<div class="card"><h3 class="trh">${SVI('bell')} Vorschläge <small>${V.length}</small></h3><div class="note" style="margin-top:0">Aus Anwesenheit und Abstimmungen. Nichts wird automatisch gebucht.</div>${V.slice(0,15).map((v,i)=>`<div class="kbb"><b>${svEsc(trP(v.pid).name)}</b><span>${svEsc(v.titel)} <small>${svEsc(v.why)}</small></span><em>${kbEur(v.betrag)}</em><div class="btnrow"><button class="btn sm" data-vb="${i}">Buchen</button><button class="btn ghost sm" data-vi="${i}">Ignorieren</button></div></div>`).join('')}
       ${V.length>1?`<button class="btn ghost sm" id="kbAllV">Alle ${Math.min(V.length,15)} buchen</button>`:''}</div>`:''}
     <div class="vrgrid"><div class="card"><h3 class="trh">${SVI('users')} Spieler</h3>${BP.length?BP.map(x=>`<div class="kbpl" data-kbp="${svEsc(x.pid)}"><b>${svEsc(x.name)}</b><span>${x.offen?`<i class="mid">${kbEur(x.offen)} offen</i>`:'<i class="ok">alles bezahlt</i>'}</span><small>${kbEur(x.bez)} bezahlt</small></div>`).join(''):'<div class="note">Noch keine Strafen oder Beiträge gebucht.</div>'}</div>
       <div class="card"><div class="vrat-h"><h3 class="trh" style="margin:0">${SVI('book')} Strafenkatalog</h3><button class="btn ghost sm" id="kbKat">Bearbeiten</button></div>${KB.kat.filter(k=>k.aktiv).length?`<div class="kbkat">${KB.kat.filter(k=>k.aktiv).map(k=>`<div><span>${svEsc(k.titel)}</span><b>${kbEur(k.betrag)}</b></div>`).join('')}</div>`:`<div class="note">Noch kein Katalog. <button class="lnk" id="kbKatDef">Standard-Katalog laden</button> (11 übliche Strafen, alles änderbar)</div>`}
         <div class="btnrow" style="margin-top:10px"><button class="btn ghost sm" id="kbCfg">${SVI('sliders')} Kasse einstellen</button></div></div></div>
     <div class="card"><div class="vrat-h"><h3 class="trh" style="margin:0">${SVI('clock')} Buchungen</h3><div class="trtabs sm">${[['offen','Offen'],['bewegung','Ein-/Ausgaben'],['alle','Alle']].map(([k,t])=>`<button class="${KB.kf===k?'on':''}" data-kf="${k}">${t}</button>`).join('')}</div></div>
       ${list.length?list.map(b=>{ const s=stat(b); return `<div class="kbb" data-bu="${b.id}"><b>${b.art==='einzahlung'?'➕ ':b.art==='ausgabe'?'➖ ':''}${svEsc(b.player_id?((trP(b.player_id)||{}).name||b.name||''):(b.art==='ausgabe'?'Ausgabe':'Einzahlung'))}</b><span>${svEsc(b.titel)} <small>${TRC.fmt(b.datum)}${b.status==='bezahlt'?' · '+KB_KONTO[b.konto||'bank'][1]:b.status==='gemeldet'&&b.zahlweg?' · per '+KB_KONTO[b.zahlweg][1]:''}</small></span><em class="${b.art==='ausgabe'?'bad':''}">${b.art==='ausgabe'?'−':''}${kbEur(b.betrag)}</em><span class="trpill ${s[1]}">${s[0]}</span></div>`; }).join(''):'<div class="note">Keine Buchungen in dieser Ansicht.</div>'}
-      <div class="note">Alle Spieler sehen Kassenstand, Katalog und alle Strafen über den Team-Link – volle Transparenz. Antippen ändert eine Buchung.</div></div>`;
+      <div class="note">Alle Spieler sehen Kassenstand, Katalog und alle Strafen über den Team-Link, volle Transparenz. Antippen ändert eine Buchung.</div></div>`;
   const upd=async(id,patch)=>{ const {error}=await SVB.sb.from('kasse_buchungen').update(patch).eq('id',id); if(error)return kToast('⚠️ '+error.message); await kbLoad(true); };
   kbGemeldetWire(B,()=>kbViewKasse(B)); kbFlipWire('kbFlip',S.konten);
   const ab=document.getElementById('kbAbg'); if(ab)ab.onclick=()=>kbAbgleich(KB.flipK||'bank');
@@ -5879,7 +5885,7 @@ function kbViewKasse(B){
   B.querySelectorAll('[data-bu]').forEach(b=>b.onclick=()=>kbBuchEdit(b.dataset.bu));
   const kc=document.getElementById('kbCfg'), kc1=document.getElementById('kbCfg1'); if(kc)kc.onclick=kbCfgEditor; if(kc1)kc1.onclick=kbCfgEditor;
   const kk=document.getElementById('kbKat'); if(kk)kk.onclick=kbKatEditor;
-  const kd=document.getElementById('kbKatDef'); if(kd)kd.onclick=async()=>{ const {error}=await SVB.sb.from('kasse_katalog').insert(KB_DEFAULT_KAT.map(([t,b,k],i)=>({titel:t,betrag:b,kategorie:k,sort:i}))); if(error)return kToast('⚠️ '+error.message); await kbLoad(true); kToast('✓ Standard-Katalog geladen – alles änderbar'); };
+  const kd=document.getElementById('kbKatDef'); if(kd)kd.onclick=async()=>{ const {error}=await SVB.sb.from('kasse_katalog').insert(KB_DEFAULT_KAT.map(([t,b,k],i)=>({titel:t,betrag:b,kategorie:k,sort:i}))); if(error)return kToast('⚠️ '+error.message); await kbLoad(true); kToast('✓ Standard-Katalog geladen: alles änderbar'); };
 }
 function kbPlayerDetail(pid){
   const p=trP(pid), L=KB.buch.filter(b=>b.player_id===pid);
@@ -5949,7 +5955,7 @@ function kbBuchEdit(id,back){
   document.getElementById('kbDelB').onclick=async()=>{ if(!confirm('Buchung löschen?'))return; const {error}=await SVB.sb.from('kasse_buchungen').delete().eq('id',id); if(error)return kToast('⚠️ '+error.message); fin(); };
 }
 function kbKatEditor(){
-  svModal(`<div class="mhead"><div class="rm-ic" style="width:46px;height:46px">${SVI('book')}</div><div><h2 style="margin:0">Strafenkatalog</h2><div class="msub">Für alle Spieler sichtbar – am besten gemeinsam in der Mannschaft beschließen</div></div></div><div id="kbKe"></div>`);
+  svModal(`<div class="mhead"><div class="rm-ic" style="width:46px;height:46px">${SVI('book')}</div><div><h2 style="margin:0">Strafenkatalog</h2><div class="msub">Für alle Spieler sichtbar. Am besten gemeinsam in der Mannschaft beschließen</div></div></div><div id="kbKe"></div>`);
   const draw=()=>{ const E=document.getElementById('kbKe'); if(!E)return;
     E.innerHTML=`${KB.kat.map(k=>`<div class="kbkrow" data-id="${k.id}"><input value="${svEsc(k.titel)}" maxlength="80" data-f="titel"><input type="number" min="0" max="500" step="0.5" value="${+k.betrag}" data-f="betrag"><label class="kbchk"><input type="checkbox" data-f="aktiv"${k.aktiv?' checked':''}> aktiv</label><button class="lnk" data-del="${k.id}">✕</button></div>`).join('')}
       <div class="kbkrow"><input id="kbNt" maxlength="80" placeholder="Neue Strafe, z.B. „Torwarthandschuhe vergessen“"><input id="kbNb" type="number" min="0" max="500" step="0.5" placeholder="€"><button class="btn sm" id="kbAdd">${SVI('plus')}</button></div>
@@ -5967,17 +5973,17 @@ function kbKatEditor(){
 }
 function kbCfgEditor(){
   const c=KB.cfg||{};
-  svModal(`<div class="mhead"><div class="rm-ic" style="width:46px;height:46px">${SVI('sliders')}</div><div><h2 style="margin:0">Kasse einstellen</h2><div class="msub">Bezahlen per PayPal.me oder Überweisung – kostenlos</div></div></div>
+  svModal(`<div class="mhead"><div class="rm-ic" style="width:46px;height:46px">${SVI('sliders')}</div><div><h2 style="margin:0">Kasse einstellen</h2><div class="msub">Bezahlen per PayPal.me oder Überweisung: kostenlos</div></div></div>
     <div class="kbform"><div class="field"><label>PayPal.me-Name des Kassenwarts</label><input id="kcP" maxlength="40" value="${svEsc(c.paypal||'')}" placeholder="z.B. MaxMustermann (aus paypal.me/MaxMustermann)"></div>
       <div class="field"><label>Kassenwart</label><input id="kcK" maxlength="60" value="${svEsc(c.kassenwart||'')}" placeholder="Name"></div>
       <div class="field"><label>Anfangsbestand Bank (€)</label><input id="kcA" type="number" step="0.01" value="${+c.anfang||0}"></div>
       <div class="field"><label>Anfangsbestand PayPal (€)</label><input id="kcAp" type="number" step="0.01" value="${+c.anfang_paypal||0}"></div>
       <div class="field"><label>Anfangsbestand Bar (€)</label><input id="kcAb" type="number" step="0.01" value="${+c.anfang_bar||0}"></div>
-      <div class="field kbwide"><label>Kassenwart in der App <small>(bekommt die gemeldeten Zahlungen zum Abhaken – nur er bzw. der Admin kann bestätigen)</small></label><div class="chips" id="kcW"><span class="note">Lade …</span></div></div>
+      <div class="field kbwide"><label>Kassenwart in der App <small>(bekommt die gemeldeten Zahlungen zum Abhaken, nur er bzw. der Admin kann bestätigen)</small></label><div class="chips" id="kcW"><span class="note">Lade …</span></div></div>
       <div class="field"><label>IBAN für Überweisung (optional)</label><input id="kcI" maxlength="42" value="${svEsc(c.iban||'')}" placeholder="DE.." autocomplete="off"></div>
       <div class="field"><label>Kontoinhaber</label><input id="kcO" maxlength="70" value="${svEsc(c.kontoinhaber||'')}" placeholder="Name"></div>
-      <div class="field kbwide"><label>Hinweis für die Spieler (optional)</label><input id="kcH" maxlength="300" value="${svEsc(c.hinweis||'')}" placeholder="z.B. Bar geht auch – beim Kassenwart nach dem Training"></div></div>
-    <div class="note">Die Spieler sehen einen „Mit PayPal bezahlen“-Knopf mit dem offenen Betrag und melden danach „Habe bezahlt“. Du bestätigst den Eingang – so bleibt alles nachvollziehbar. Stripe bräuchte ein Händlerkonto mit Gebühren je Zahlung und lohnt sich für eine Mannschaftskasse nicht.</div>
+      <div class="field kbwide"><label>Hinweis für die Spieler (optional)</label><input id="kcH" maxlength="300" value="${svEsc(c.hinweis||'')}" placeholder="z.B. Bar geht auch: beim Kassenwart nach dem Training"></div></div>
+    <div class="note">Die Spieler sehen einen „Mit PayPal bezahlen“-Knopf mit dem offenen Betrag und melden danach „Habe bezahlt“. Du bestätigst den Eingang, so bleibt alles nachvollziehbar. Stripe bräuchte ein Händlerkonto mit Gebühren je Zahlung und lohnt sich für eine Mannschaftskasse nicht.</div>
     <div class="btnrow sbact"><button class="btn" id="kcS">Speichern</button><button class="btn ghost" id="kcC">Abbrechen</button></div>`);
   document.getElementById('kcC').onclick=()=>closeOverlay();
   SVB.sb.rpc('kasse_team').then(r=>{ KB.team=r.data||[]; const W=document.getElementById('kcW'); if(!W)return; const ids=new Set(c.kassenwart_ids||[]);
@@ -5986,7 +5992,7 @@ function kbCfgEditor(){
   document.getElementById('kcS').onclick=async()=>{ let pp=document.getElementById('kcP').value.trim().replace(/^https?:\/\/(www\.)?paypal\.me\//i,'').replace(/\/.*$/,'');
     if(pp&&!/^[A-Za-z0-9._-]{2,40}$/.test(pp))return kToast('PayPal.me-Name: nur Buchstaben, Ziffern, Punkt, Minus');
     const iban=document.getElementById('kcI').value.replace(/\s+/g,'').toUpperCase();
-    if(iban&&!kbIbanOk(iban))return kToast('Die IBAN scheint nicht zu stimmen – bitte prüfen');
+    if(iban&&!kbIbanOk(iban))return kToast('Die IBAN scheint nicht zu stimmen, bitte prüfen');
     const kw=[...document.querySelectorAll('#kcW [data-kw].on')].map(x=>x.dataset.kw), kwn=document.getElementById('kcK').value.trim()||(kw.length?(((KB.team||[]).find(x=>x.id===kw[0])||{}).name||''):'');
     const patch={paypal:pp||null,kassenwart:kwn||null,anfang:+document.getElementById('kcA').value||0,anfang_paypal:+document.getElementById('kcAp').value||0,anfang_bar:+document.getElementById('kcAb').value||0,hinweis:document.getElementById('kcH').value.trim()||null,iban:iban||null,kontoinhaber:document.getElementById('kcO').value.trim()||null};
     if(JSON.stringify(kw.slice().sort())!==JSON.stringify((c.kassenwart_ids||[]).slice().sort()))patch.kassenwart_ids=kw;
@@ -6000,17 +6006,17 @@ async function kbViewLink(B){
   try{ await kbLink(); }catch(e){ B.innerHTML=`<div class="card"><div class="empty">${svEsc(e.message)}</div></div>`; return; }
   const u=kbUrl();
   B.innerHTML=`<div class="card kblink"><h3 class="trh">${SVI('link')} Kabinen-Link für die Mannschaft</h3>
-      <p>Ein Link für alles: Abstimmungen und Mannschaftskasse. Einmal in die WhatsApp-Gruppe posten – jeder Spieler tippt einmal seinen Namen an, danach reicht ein Klick. Kein Login, keine App-Installation.</p>
+      <p>Ein Link für alles: Abstimmungen und Mannschaftskasse. Einmal in die WhatsApp-Gruppe posten. Jeder Spieler tippt einmal seinen Namen an, danach reicht ein Klick. Kein Login, keine App-Installation.</p>
       <div class="kburl"><code>${svEsc(u)}</code></div>
       <div class="btnrow"><button class="btn" id="klWa">${SVI('share')} In WhatsApp teilen</button><button class="btn ghost" id="klCp">${SVI('copy')} Kopieren</button><button class="btn ghost" id="klOpen">${SVI('eye')} Ansehen wie ein Spieler</button></div></div>
-    <div class="card"><h3 class="trh">${SVI('shield')} Sicherheit</h3><div class="note" style="margin-top:0">Wer den Link hat, sieht die Abstimmungen und die Kasse der Mannschaft (Namen, Strafen, Kassenstand) – aber nichts vom Scouting, keine Notizen, keine Kontakte. Nur in der Mannschaftsgruppe teilen.
-      Wenn der Link in falsche Hände gerät: erneuern – der alte funktioniert dann sofort nicht mehr.</div>
+    <div class="card"><h3 class="trh">${SVI('shield')} Sicherheit</h3><div class="note" style="margin-top:0">Wer den Link hat, sieht die Abstimmungen und die Kasse der Mannschaft (Namen, Strafen, Kassenstand), aber nichts vom Scouting, keine Notizen, keine Kontakte. Nur in der Mannschaftsgruppe teilen.
+      Wenn der Link in falsche Hände gerät: erneuern: der alte funktioniert dann sofort nicht mehr.</div>
       <button class="btn ghost sm" id="klNew" style="margin-top:10px;color:#fca5a5">${SVI('refresh')} Link erneuern</button></div>`;
   const bc=document.createElement('div'); bc.innerHTML=kbBotCard(); B.prepend(bc.firstElementChild); kbBotWire(B);
-  document.getElementById('klWa').onclick=()=>kbWa(`⚽ Unsere Kabine: Abstimmungen fürs Training & Spiel und die Mannschaftskasse – ein Klick, kein Login.\nEinmal Namen antippen, fertig:\n${u}`);
+  document.getElementById('klWa').onclick=()=>kbWa(`⚽ Unsere Kabine: Abstimmungen fürs Training & Spiel und die Mannschaftskasse, ein Klick, kein Login.\nEinmal Namen antippen, fertig:\n${u}`);
   document.getElementById('klCp').onclick=()=>kbCopy(u);
   document.getElementById('klOpen').onclick=()=>window.open(u,'_blank','noopener');
-  document.getElementById('klNew').onclick=async()=>{ if(!confirm('Neuen Link erzeugen? Der alte Link funktioniert danach nicht mehr – ihr müsst den neuen in die Gruppe posten.'))return; try{ await kbLink(true); kToast('✓ Neuer Link erzeugt'); kbViewLink(B); }catch(e){ kToast('⚠️ '+e.message); } };
+  document.getElementById('klNew').onclick=async()=>{ if(!confirm('Neuen Link erzeugen? Der alte Link funktioniert danach nicht mehr, ihr müsst den neuen in die Gruppe posten.'))return; try{ await kbLink(true); kToast('✓ Neuer Link erzeugt'); kbViewLink(B); }catch(e){ kToast('⚠️ '+e.message); } };
 }
 
 /* ---------- Home: nächste Abstimmung ---------- */
@@ -6028,7 +6034,7 @@ function kbHomeCard(){
 }
 { const _si6=svInsights; svInsights=function(){ const base=_si6.apply(this,arguments), add=[];
   try{ if(KB.loaded&&canTraining()){ const today=trToday(); KB.polls.filter(p=>p.datum>=today&&!p.geschlossen&&TRC.diffDays(p.datum,today)<=3).forEach(p=>{ const s=kbStat(p);
-      if(s.offen.length)add.push({prio:svRole()==='trainer'?0.3:3,lvl:TRC.diffDays(p.datum,today)<=1?'hoch':'mittel',t:`${s.offen.length} ohne Antwort: ${p.titel} (${kbWd(p.datum)})`,d:s.offen.slice(0,5).map(x=>x.name.split(' ')[0]).join(', ')+(s.offen.length>5?' …':'')+' – jetzt nachhaken',go:()=>{ KB.view='abst'; goTab('kabine'); }}); });
+      if(s.offen.length)add.push({prio:svRole()==='trainer'?0.3:3,lvl:TRC.diffDays(p.datum,today)<=1?'hoch':'mittel',t:`${s.offen.length} ohne Antwort: ${p.titel} (${kbWd(p.datum)})`,d:s.offen.slice(0,5).map(x=>x.name.split(' ')[0]).join(', ')+(s.offen.length>5?' …':'')+' · jetzt nachhaken',go:()=>{ KB.view='abst'; goTab('kabine'); }}); });
     const g=KB.buch.filter(b=>b.status==='gemeldet').length; if(g)add.push({prio:KB.ich&&KB.ich.kassenwart?0.2:4,lvl:'info',t:`Kasse: ${g} Zahlung${g>1?'en':''} gemeldet`,d:'Eingang prüfen und bestätigen',go:()=>{ KB.view='kasse'; goTab('kabine'); }}); } }catch(e){}
   return add.concat(base).sort((a,b)=>a.prio-b.prio).slice(0,6); }; }
 SV_ACTIONS.trainer.splice(2,0,['users','Abstimmung',()=>{ KB.view='abst'; goTab('kabine'); setTimeout(()=>kbPollEditor(null,kbSuggest()[0]),80); }]); SV_ACTIONS.trainer.length=4;
@@ -6047,25 +6053,25 @@ function kbFlipWire(id,K){ const el=document.getElementById(id); if(!el)return; 
     setTimeout(()=>{ front.innerHTML=kbFaceHtml(K,nx); inn.style.transition='none'; inn.classList.remove('turn'); void inn.offsetWidth; inn.style.transition=''; KB.flipK=nx; busy=false; },620); }; }
 function kbAbgleich(k){
   const S=kbSaldo(), cur=S.konten[k];
-  svModal(`<div class="mhead"><div class="rm-ic" style="width:46px;height:46px">${SVI('check')}</div><div><h2 style="margin:0">Kontostand abgleichen</h2><div class="msub">Stand laut Bank- bzw. PayPal-App eintragen – die App bucht die Differenz</div></div></div>
+  svModal(`<div class="mhead"><div class="rm-ic" style="width:46px;height:46px">${SVI('check')}</div><div><h2 style="margin:0">Kontostand abgleichen</h2><div class="msub">Stand laut Bank- bzw. PayPal-App eintragen: die App bucht die Differenz</div></div></div>
     <div class="chips">${['bank','paypal','bar'].map(x=>`<button type="button" class="pchip${x===k?' on':''}" data-ak="${x}">${KB_KONTO[x][0]} ${KB_KONTO[x][1]}</button>`).join('')}</div>
     <div class="kbform"><div class="field"><label>In der App</label><input disabled value="${kbEur(cur)}"></div><div class="field"><label>Tatsächlich auf dem Konto (€)</label><input id="kbIst" type="number" step="0.01" inputmode="decimal" placeholder="${(+cur).toFixed(2)}"></div>
       <div class="field kbwide"><label>Grund</label><input id="kbGr" maxlength="100" value="Kontoabgleich (Gebühren/Zinsen)"></div></div><div class="note" id="kbDiff"></div>
     <div class="btnrow sbact"><button class="btn" id="kbAbS">Differenz buchen</button><button class="btn ghost" id="kbAbC">Abbrechen</button></div>`);
   document.querySelectorAll('#modal [data-ak]').forEach(b=>b.onclick=()=>kbAbgleich(b.dataset.ak));
   const ist=document.getElementById('kbIst'), D=document.getElementById('kbDiff'), diff=()=>Math.round((parseFloat(String(ist.value).replace(',','.'))-cur)*100)/100;
-  ist.oninput=()=>{ const d=diff(); D.textContent=isFinite(d)?(d===0?'Passt – keine Differenz.':`Es wird ${d>0?'eine Einnahme':'eine Ausgabe'} von ${kbEur(Math.abs(d))} auf ${KB_KONTO[k][1]} gebucht.`):''; };
+  ist.oninput=()=>{ const d=diff(); D.textContent=isFinite(d)?(d===0?'Passt, keine Differenz.':`Es wird ${d>0?'eine Einnahme':'eine Ausgabe'} von ${kbEur(Math.abs(d))} auf ${KB_KONTO[k][1]} gebucht.`):''; };
   document.getElementById('kbAbC').onclick=()=>closeOverlay();
   document.getElementById('kbAbS').onclick=async()=>{ const d=diff(); if(!isFinite(d))return kToast('Bitte den tatsächlichen Stand eintragen'); if(d===0){ closeOverlay(); return kToast('✓ Stimmt überein'); }
     const {error}=await SVB.sb.from('kasse_buchungen').insert({art:d>0?'einzahlung':'ausgabe',titel:document.getElementById('kbGr').value.trim()||'Kontoabgleich',betrag:Math.abs(d),konto:k,status:'bezahlt',bezahlt_am:trToday(),quelle:'abgleich'});
     if(error)return kToast('⚠️ '+error.message); closeOverlay(); await kbLoad(true); kToast('✓ '+KB_KONTO[k][1]+' abgeglichen'); };
 }
 function kbGemeldetHtml(G,darf){
-  return `<div class="card kbgem"><h3 class="trh">${SVI('check')} Als bezahlt gemeldet – bitte aufs Konto schauen <small>${G.length}</small></h3>
+  return `<div class="card kbgem"><h3 class="trh">${SVI('check')} Als bezahlt gemeldet, bitte aufs Konto schauen <small>${G.length}</small></h3>
     ${G.map(b=>`<div class="kbb"><b>${svEsc((trP(b.player_id)||{}).name||b.name||'')}</b><span>${svEsc(b.titel)} <small>${b.zahlweg?'per '+KB_KONTO[b.zahlweg][1]:''}${b.gemeldet_at?' · '+new Date(b.gemeldet_at).toLocaleString('de-DE',{weekday:'short',day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}):''}</small></span><em>${kbEur(b.betrag)}</em>
       ${darf?`<div class="btnrow"><select class="kbkto" data-kto="${b.id}">${['bank','paypal','bar'].map(k=>`<option value="${k}"${(b.zahlweg||'bank')===k?' selected':''}>${KB_KONTO[k][1]}</option>`).join('')}</select><button class="btn sm" data-ok="${b.id}">✓ Angekommen</button><button class="btn ghost sm" data-back="${b.id}">Nicht da</button></div>`:''}</div>`).join('')}
     ${darf&&G.length>1?`<button class="btn sm" id="kbOkAll">✓ Alle ${G.length} angekommen (${kbEur(G.reduce((a,b)=>a+ +b.betrag,0))})</button>`:''}
-    ${darf?'':`<div class="note">Abhaken kann nur der Kassenwart${KB.cfg&&KB.cfg.kassenwart?' ('+svEsc(KB.cfg.kassenwart)+')':''} – erst dann zählt es im Kassenstand.</div>`}</div>`;
+    ${darf?'':`<div class="note">Abhaken kann nur der Kassenwart${KB.cfg&&KB.cfg.kassenwart?' ('+svEsc(KB.cfg.kassenwart)+')':''} · erst dann zählt es im Kassenstand.</div>`}</div>`;
 }
 function kbGemeldetWire(R,after){
   const go=async(ids,ok,konto)=>{ const {data,error}=await SVB.sb.rpc('kasse_bestaetigen',{p_ids:ids,p_ok:ok,p_konto:konto||null}); if(error)return kToast('⚠️ '+error.message);
@@ -6084,7 +6090,7 @@ function kbKassePopup(){
   const g=document.getElementById('gate'); if(g&&!g.classList.contains('done'))return;
   window.__kbKPop=last;
   svModal(`<div class="kbpop"><div class="kbpop-ic kasse">${SVI('check')}</div><span class="trpill">Mannschaftskasse</span><h2>${G.length} Zahlung${G.length>1?'en':''} gemeldet</h2>
-    <p class="note">Kurz aufs Konto schauen und abhaken, was angekommen ist – erst dann zählt es im Kassenstand.</p><div id="kbKp" style="text-align:left"></div>
+    <p class="note">Kurz aufs Konto schauen und abhaken, was angekommen ist, erst dann zählt es im Kassenstand.</p><div id="kbKp" style="text-align:left"></div>
     <div class="btnrow"><button class="btn ghost sm" id="kbKpL">Später</button></div></div>`);
   const draw=()=>{ const E=document.getElementById('kbKp'); if(!E)return; const G2=KB.buch.filter(b=>b.status==='gemeldet'); if(!G2.length){ closeOverlay(); return; } E.innerHTML=kbGemeldetHtml(G2,true); kbGemeldetWire(E,draw); };
   draw();
@@ -6111,7 +6117,7 @@ function kbPopup(){
   window.__kbPopShown=p.id; const s=kbStat(p);
   svModal(`<div class="kbpop"><div class="kbpop-ic">${SVI('users')}</div><span class="trpill">Einladen</span><h2>Spieler zum Training einladen</h2>
     <div class="kbpop-when">${svEsc(kbWd(p.datum))}${p.zeit?' · '+svEsc(p.zeit)+' Uhr':''}${p.ort?' · '+svEsc(p.ort):''}</div>
-    <p class="note">Der Abstimmungslink ist fertig. Einmal in die Mannschaftsgruppe stellen – jeder tippt seinen Vor- und Nachnamen an und sagt zu oder ab.${s.zu.length+s.ab.length?` Schon ${s.zu.length+s.ab.length} Antworten.`:''}</p>
+    <p class="note">Der Abstimmungslink ist fertig. Einmal in die Mannschaftsgruppe stellen. Jeder tippt seinen Vor- und Nachnamen an und sagt zu oder ab.${s.zu.length+s.ab.length?` Schon ${s.zu.length+s.ab.length} Antworten.`:''}</p>
     <button class="btn kbpop-go" id="kbPopGo">${SVI('share')} In die WhatsApp-Gruppe teilen</button>
     <div class="btnrow"><button class="btn ghost sm" id="kbPopCp">${SVI('copy')} Link kopieren</button><button class="btn ghost sm" id="kbPopDone">Hat schon jemand geteilt</button><button class="btn ghost sm" id="kbPopLater">Später</button></div>
     <p class="note small">Sobald einer von euch geteilt hat, verschwindet das Pop-up bei allen Trainern.</p></div>`);
@@ -6130,7 +6136,7 @@ function kbBotCard(){
   const emp=(c.empfaenger||[]).concat([{name:'',tel:''},{name:'',tel:''}]).slice(0,Math.max(2,(c.empfaenger||[]).length+1)).slice(0,5);
   const ready=c.versand&&c.sc_channel&&c.sc_template&&(c.empfaenger||[]).length;
   return `<div class="card kbbot"><div class="vrat-h"><h3 class="trh" style="margin:0">${SVI('clock')} Automatik fürs Training</h3><label class="kbsw"><input type="checkbox" id="kbA_on"${c.aktiv?' checked':''}><span></span>${c.aktiv?'an':'aus'}</label></div>
-    <p class="note" style="margin-top:6px">Die App legt die Abstimmung für jedes Training selbst an${ready?' und schickt den Link per WhatsApp an die Trainer – die leiten ihn nur noch in die Gruppe weiter':''}. Am Trainingstag kommt eine Liste, wer noch nicht geantwortet hat. Spieler können ihre Antwort bis zum Training jederzeit ändern.</p>
+    <p class="note" style="margin-top:6px">Die App legt die Abstimmung für jedes Training selbst an${ready?' und schickt den Link per WhatsApp an die Trainer, die leiten ihn nur noch in die Gruppe weiter':''}. Am Trainingstag kommt eine Liste, wer noch nicht geantwortet hat. Spieler können ihre Antwort bis zum Training jederzeit ändern.</p>
     <div class="kbform"><div class="field kbwide"><label>Trainingstage</label><div class="chips">${KB_WD.map(([n,t])=>`<button type="button" class="pchip${(c.tage||[]).includes(n)?' on':''}" data-wd="${n}">${t}</button>`).join('')}</div></div>
       <div class="field"><label>Uhrzeit Training</label><input id="kbA_z" value="${svEsc(c.zeit||'19:00')}" maxlength="5"></div><div class="field"><label>Ort (optional)</label><input id="kbA_o" value="${svEsc(c.ort||'')}" maxlength="120"></div>
       <div class="field"><label>Abstimmung verschicken</label><select id="kbA_v">${[0,1,2,3].map(n=>`<option value="${n}"${+c.vorlauf===n?' selected':''}>${n===0?'am Trainingstag':n===1?'1 Tag vorher':n+' Tage vorher'}</option>`).join('')}</select></div>
@@ -6139,7 +6145,7 @@ function kbBotCard(){
     <div class="sbsec"><h4>WhatsApp an die Trainer <small>über Superchat${ready?' · eingerichtet ✓':''}</small></h4>
       ${emp.map((e,i)=>`<div class="kbemp"><input data-en="${i}" placeholder="Name, z.B. Nico" value="${svEsc(e.name||'')}" maxlength="40"><input data-et="${i}" placeholder="Handy, z.B. 0171 1234567" value="${svEsc(e.tel||'')}" inputmode="tel" maxlength="20"></div>`).join('')}
       <div class="kbform"><div class="field"><label>Superchat Kanal-ID</label><input id="kbA_ch" value="${svEsc(c.sc_channel||'')}" placeholder="mc_…" maxlength="60"></div><div class="field"><label>Vorlagen-ID (WhatsApp-Vorlage mit 1 Text-Variable)</label><input id="kbA_tp" value="${svEsc(c.sc_template||'')}" placeholder="tn_…" maxlength="60"></div>
-        <div class="field kbwide"><div class="note" style="margin:0">${c.versand==='server'?'✓ Versand über Superchat – der Zugang liegt sicher auf dem Server, nicht in der App.':c.versand==='n8n'?'✓ Versand läuft über euren n8n-Server – der Superchat-Zugang liegt dort, nicht in der App.':c.versand==='direkt'?'Versand direkt über Superchat.':'WhatsApp-Versand noch nicht verbunden – der Admin hinterlegt den Superchat-Zugang einmal auf dem Server (Verwaltung → Versand & Zugänge).'}</div></div></div>
+        <div class="field kbwide"><div class="note" style="margin:0">${c.versand==='server'?'✓ Versand über Superchat. Der Zugang liegt sicher auf dem Server, nicht in der App.':c.versand==='n8n'?'✓ Versand läuft über euren n8n-Server. Der Superchat-Zugang liegt dort, nicht in der App.':c.versand==='direkt'?'Versand direkt über Superchat.':'WhatsApp-Versand noch nicht verbunden. Der Admin hinterlegt den Superchat-Zugang einmal auf dem Server (Verwaltung → Versand & Zugänge).'}</div></div></div>
       <div class="note">Nachrichten außerhalb eines offenen Chats brauchen bei WhatsApp eine genehmigte Vorlage, z.B. „SV/BSC Kabine: {{1}}“ (Kategorie „Utility“). Die App setzt den Text mit Link in die Variable ein.</div></div>
     <div class="sbsec"><h4>Spieler einzeln per WhatsApp <small>${c.nummern||0} Nummern hinterlegt · diesen Monat ${c.monat||0} von max. ${c.max_monat||400} Nachrichten</small></h4>
       <label class="kbchk"><input type="checkbox" id="kbA_ee"${c.einzeln_erinnern?' checked':''}> Am Trainingstag nur die, die noch nicht geantwortet haben, persönlich erinnern <small>(günstig: meist 3–8 Nachrichten)</small></label>
@@ -6165,7 +6171,7 @@ function kbBotWire(B){
   const pl=document.getElementById('kbA_pl'); if(pl)pl.onclick=()=>kbSpielerLinks();
   const call=async(body,btn)=>{ btn.disabled=true; try{ const {data,error}=await SVB.sb.functions.invoke('kabine-bot',{body}); if(error){ let t=error.message; try{ const x=await error.context.json(); if(x&&x.error)t=x.error; }catch(_){} throw new Error(t); } return data; }finally{ btn.disabled=false; } };
   const tb=document.getElementById('kbA_test'); if(tb)tb.onclick=async()=>{ try{ const d=await call({mode:'test'},tb); if(!d.ok&&d.error)throw new Error(d.error); kToast((d.ergebnis||[]).map(x=>x.name+(x.ok?' ✓':' ✗ '+(x.fehler||''))).join(' · ')||'Gesendet'); }catch(e){ kToast('⚠️ '+e.message); } };
-  document.getElementById('kbA_run').onclick=async e=>{ const bt=e.currentTarget; if(!(await save(true)))return; try{ const d=await call({},document.getElementById('kbA_run')||bt); await kbLoad(true); kToast(d.aktiv===false?'Automatik ist aus':(d.log&&d.log.length?d.log.join(' · '):'Alles aktuell – nichts zu tun')); }catch(err){ kToast('⚠️ '+err.message); } };
+  document.getElementById('kbA_run').onclick=async e=>{ const bt=e.currentTarget; if(!(await save(true)))return; try{ const d=await call({},document.getElementById('kbA_run')||bt); await kbLoad(true); kToast(d.aktiv===false?'Automatik ist aus':(d.log&&d.log.length?d.log.join(' · '):'Alles aktuell: nichts zu tun')); }catch(err){ kToast('⚠️ '+err.message); } };
 }
 
 /* ---------- Handynummern & persönliche Links ---------- */
@@ -6178,7 +6184,7 @@ async function kbSpielerLinks(){
   E.innerHTML=`<div class="kbpls">${all.map(p=>{ const x=M.get(p.id)||{}; return `<div class="kbplr"><b>${svEsc(p.name)}${p.kader===2?' <small>II</small>':''}${x.optout?' <span class="trpill mid">abgemeldet</span>':''}</b>
       <input data-tel="${svEsc(p.id)}" value="${svEsc(x.tel||'')}" placeholder="Handy" inputmode="tel" maxlength="20">
       <button class="btn ghost sm" data-cp="${svEsc(p.id)}" title="Persönlichen Link kopieren">${SVI('copy')}</button><button class="btn ghost sm" data-wa="${svEsc(p.id)}" title="Selbst per WhatsApp schicken">${SVI('share')}</button></div>`; }).join('')}</div>
-    <div class="note">Tipp ohne Kosten: Mit ${SVI('share')} schickst du einem Spieler seinen persönlichen Link einmal selbst per WhatsApp – er speichert ihn und stimmt künftig mit einem Klick ab.</div>
+    <div class="note">Tipp ohne Kosten: Mit ${SVI('share')} schickst du einem Spieler seinen persönlichen Link einmal selbst per WhatsApp, er speichert ihn und stimmt künftig mit einem Klick ab.</div>
     <div class="btnrow sbact"><button class="btn" id="kbPlS">Nummern speichern</button><button class="btn ghost" id="kbPlC">Schließen</button></div>`;
   E.querySelectorAll('[data-cp]').forEach(b=>b.onclick=()=>{ const x=M.get(b.dataset.cp); if(x)kbCopy(url(x.token)); });
   E.querySelectorAll('[data-wa]').forEach(b=>b.onclick=()=>{ const x=M.get(b.dataset.wa), p=trP(b.dataset.wa); if(!x)return; const tel=(E.querySelector(`[data-tel="${b.dataset.wa}"]`).value||'').replace(/[^0-9+]/g,'').replace(/^00/,'+').replace(/^0/,'+49').replace(/^\+/,'');
@@ -6197,29 +6203,29 @@ function kbIbanOk(i){ if(!/^[A-Z]{2}[0-9]{2}[A-Z0-9]{11,30}$/.test(i))return fal
 /* ---------- Runde 18: Kassen-Transparenz-Seite (mannschaftskasse.albertklee.de) in die Gruppe teilen ---------- */
 const KB_MK='https://mannschaftskasse.albertklee.de/';
 function kbMkUrl(){ return KB_MK+'#k='+encodeURIComponent(KB.link||''); }
-function kbMkText(){ return '💰 Mannschaftskasse – alles transparent: Kassenstand, Top-Supporter 🏆 und die offenen Deckel 🧾\n'+kbMkUrl(); }
+function kbMkText(){ return '💰 Mannschaftskasse: alles transparent: Kassenstand, Top-Supporter 🏆 und die offenen Deckel 🧾\n'+kbMkUrl(); }
 function kbMkShare(copy){ const go=()=>copy?kbCopy(kbMkUrl()):kbWa(kbMkText()); if(KB.link)return go(); kbLink().then(go).catch(e=>kToast('⚠️ '+e.message)); }
 { const _kvk2=kbViewKasse; kbViewKasse=function(B){ const r=_kvk2.apply(this,arguments); try{ const row=B.querySelector('.kbstats'); if(row&&!B.querySelector('[data-kbmk]')){
-    row.insertAdjacentHTML('afterend',`<div class="kbmk" data-kbmk><span class="kbmk-ic">🏆</span><div class="kbmk-t"><b>Transparenz-Seite für die Mannschaft</b><small>Kassenstand gesamt, Top-Supporter und offene Deckel – mannschaftskasse.albertklee.de</small></div>
+    row.insertAdjacentHTML('afterend',`<div class="kbmk" data-kbmk><span class="kbmk-ic">🏆</span><div class="kbmk-t"><b>Transparenz-Seite für die Mannschaft</b><small>Kassenstand gesamt, Top-Supporter und offene Deckel, unter mannschaftskasse.albertklee.de</small></div>
       <div class="kbmk-b"><button class="btn sm" data-kbmk-wa>${SVI('share')} In die Gruppe</button><button class="btn ghost sm" data-kbmk-cp>${SVI('copy')} Link</button></div></div>`);
     B.querySelector('[data-kbmk-wa]').onclick=()=>kbMkShare(false); B.querySelector('[data-kbmk-cp]').onclick=()=>kbMkShare(true); } }catch(e){} return r; }; }
 
 /* =====================================================================
    SV/BSC Scout · Runde 16: Persönliche Einführung
-   - Beim ersten Öffnen: „Hi Julian, schön dass du dabei bist“ – zugeschnitten auf Rolle und Aufgaben (Training, Kasse, Scouting, Kader)
+   - Beim ersten Öffnen: „Hi Julian, schön dass du dabei bist“, zugeschnitten auf Rolle und Aufgaben (Training, Kasse, Scouting, Kader)
    - Erst fragen, dann melden: Erlaubnis für Pop-ups je Bereich, Einverständnis für Daten & Uploads (Co-Trainer)
    - Geführte Tour mit Maske und Pfeil: Co-Trainer, Kabine, Training, Scouting, Mein Konto
    - Pop-ups (Einladen, Kasse, Radar) erscheinen erst nach der Einführung und nur, wenn erlaubt
    ===================================================================== */
 let SV_PREFS=null;
 const SV_AUF={
-  training:{ic:'activity',t:'Training & Kabine',c:'#22c55e',d:['Vor jedem Training (Di & Do) erinnert dich die App: Abstimmungslink in die Gruppe – die Jungs sagen mit einem Klick zu oder ab.','Anwesenheit, Spiele und Saison-Statistik: Startelf, eingewechselt, Kader, zugeschaut, nicht da.'],
-    pop:'Vor jedem Training: „Spieler einladen“ – damit der Link rechtzeitig in der Gruppe ist.'},
-  kasse:{ic:'check',t:'Mannschaftskasse',c:'#0ea5e9',d:['Spieler melden „bezahlt“ – du schaust aufs Konto und hakst ab. Erst dann zählt es im Kassenstand.','Bank, PayPal und Bar getrennt – antippen, und die Karte dreht sich. Abgleich und Umbuchung mit einem Klick.'],
-    pop:'Neue gemeldete Zahlungen zum Abhaken – damit niemand zweimal zahlt oder vergessen wird.'},
-  scouting:{ic:'search',t:'Scouting',c:'#a78bfa',d:['Das Radar meldet neue Talente, Wechselkandidaten und Rohdiamanten aus der Region.','Datenbank, Vergleich und Dossiers – alles unter Scouting.'],
-    pop:'Neue Radar-Treffer seit deinem letzten Besuch – damit uns kein Talent durchrutscht.'},
-  kader:{ic:'plan',t:'Kaderplanung',c:'#fbbf24',d:['Kaderplan, Kandidaten und Schattenelf für die nächste Saison.','Wer bleibt, wer kommt, wo fehlt es – gemeinsam im Blick.'],pop:null}
+  training:{ic:'activity',t:'Training & Kabine',c:'#22c55e',d:['Vor jedem Training (Di & Do) erinnert dich die App: Abstimmungslink in die Gruppe. Die Jungs sagen mit einem Klick zu oder ab.','Anwesenheit, Spiele und Saison-Statistik: Startelf, eingewechselt, Kader, zugeschaut, nicht da.'],
+    pop:'Vor jedem Training: „Spieler einladen“, damit der Link rechtzeitig in der Gruppe ist.'},
+  kasse:{ic:'check',t:'Mannschaftskasse',c:'#0ea5e9',d:['Spieler melden „bezahlt“: du schaust aufs Konto und hakst ab. Erst dann zählt es im Kassenstand.','Bank, PayPal und Bar getrennt. Antippen, und die Karte dreht sich. Abgleich und Umbuchung mit einem Klick.'],
+    pop:'Neue gemeldete Zahlungen zum Abhaken, damit niemand zweimal zahlt oder vergessen wird.'},
+  scouting:{ic:'search',t:'Scouting',c:'#a78bfa',d:['Das Radar meldet neue Talente, Wechselkandidaten und Rohdiamanten aus der Region.','Datenbank, Vergleich und Dossiers. Alles unter Scouting.'],
+    pop:'Neue Radar-Treffer seit deinem letzten Besuch, damit uns kein Talent durchrutscht.'},
+  kader:{ic:'plan',t:'Kaderplanung',c:'#fbbf24',d:['Kaderplan, Kandidaten und Schattenelf für die nächste Saison.','Wer bleibt, wer kommt, wo fehlt es, gemeinsam im Blick.'],pop:null}
 };
 function svAufgaben(){ return (SV_PREFS&&SV_PREFS.aufgaben)||[]; }
 function svPopOk(area){
@@ -6256,26 +6262,26 @@ function svOnbDraw(){
   let h='';
   if(st==='hallo')h=`<div class="onb-hero"><div class="onb-av r-${svEsc(svRole())}">${svEsc(svIni(SVU.name||SVU.email))}</div><div class="onb-wave">👋</div></div>
     <h1>Hi ${svEsc(vn)}, schön, dass du dabei bist!</h1>
-    <p>Das ist die App der Ersten vom <b>SV/BSC Mörlenbach</b> – Kader, Training, Scouting und Kabine an einem Ort. In einer Minute zeig ich dir, was für dich wichtig ist.</p>
+    <p>Das ist die App der Ersten vom <b>SV/BSC Mörlenbach</b> · Kader, Training, Scouting und Kabine an einem Ort. In einer Minute zeig ich dir, was für dich wichtig ist.</p>
     <div class="onb-chips"><span class="rolechip r-${svEsc(svRole())}"><i></i>${svEsc(R)}</span>${auf.map(a=>`<span class="onb-chip" style="--c:${a.c}">${SVI(a.ic)} ${svEsc(a.t)}</span>`).join('')}</div>
     <div class="onb-btns"><button class="btn onb-go" data-next>Los geht's</button></div>`;
-  if(st==='revier')h=`<h2>Das ist dein Revier</h2><p class="onb-sub">Zugeschnitten auf deine Aufgaben${auf.length?'':' – der Admin kann dir jederzeit Bereiche zuteilen'}.</p>
+  if(st==='revier')h=`<h2>Das ist dein Revier</h2><p class="onb-sub">Zugeschnitten auf deine Aufgaben${auf.length?'':' · der Admin kann dir jederzeit Bereiche zuteilen'}.</p>
     <div class="onb-cards">${auf.map(a=>`<div class="onb-card" style="--c:${a.c}"><div class="onb-ic">${SVI(a.ic)}</div><div><b>${svEsc(a.t)}</b>${a.d.map(x=>`<span>${svEsc(x)}</span>`).join('')}</div></div>`).join('')}
-      ${canTraining()?`<div class="onb-card" style="--c:#5b9bff"><div class="onb-ic">${SVI('chat')}</div><div><b>Dein Co-Trainer</b><span>Frag die KI zu Aufstellung, Gegner, Training oder einem Spieler – auch mit Foto, Screenshot oder Sprache.</span></div></div>`:''}</div>
+      ${canTraining()?`<div class="onb-card" style="--c:#5b9bff"><div class="onb-ic">${SVI('chat')}</div><div><b>Dein Co-Trainer</b><span>Frag die KI zu Aufstellung, Gegner, Training oder einem Spieler, auch mit Foto, Screenshot oder Sprache.</span></div></div>`:''}</div>
     <div class="onb-btns"><button class="btn onb-go" data-next>Weiter</button></div>`;
   if(st==='popups'){ const keys=Object.keys(ONB.pop);
     h=`<div class="onb-big">🔔</div><h2>Darf ich dich anstupsen?</h2>
-    <p class="onb-sub">Damit nichts liegen bleibt, meldet sich die App mit kleinen Pop-ups – <b>nur wenn wirklich etwas zu tun ist</b>, nie Werbung. Ohne dein OK kommt keins. Ändern kannst du das jederzeit unter „Mein Konto“.</p>
+    <p class="onb-sub">Damit nichts liegen bleibt, meldet sich die App mit kleinen Pop-ups · <b>nur wenn wirklich etwas zu tun ist</b>, nie Werbung. Ohne dein OK kommt keins. Ändern kannst du das jederzeit unter „Mein Konto“.</p>
     ${keys.length?`<div class="onb-toggles">${keys.map(k=>`<button type="button" class="onb-tg${ONB.pop[k]?' on':''}" data-tg="${k}"><div class="onb-ic" style="--c:${SV_AUF[k].c}">${SVI(SV_AUF[k].ic)}</div><div><b>${svEsc(SV_AUF[k].t)}</b><span>${svEsc(SV_AUF[k].pop)}</span></div><i class="onb-sw"></i></button>`).join('')}</div>`:'<p class="onb-sub">Für deine Rolle gibt es gerade keine Pop-ups.</p>'}
     <div class="onb-btns"><button class="btn onb-go" id="onbPopYes">${keys.length?'Ja, so passt es':'Weiter'}</button>${keys.length?'<button class="btn ghost" id="onbPopNo">Lieber keine Pop-ups</button>':''}</div>`; }
   if(st==='daten')h=`<div class="onb-big">🔒</div><h2>Deine Daten & Uploads</h2>
     <div class="onb-list"><div>📝 <span>Was du einträgst (Anwesenheit, Notizen, Strafen, Scouting) wird für das Trainerteam gespeichert.</span></div>
       <div>📎 <span>Fotos, Screenshots oder Dateien, die du dem Co-Trainer gibst, werden hochgeladen und von der KI ausgewertet.</span></div>
       <div>👀 <span>Nutzungszeit und Fragen an den Co-Trainer sieht ausschließlich der Admin.</span></div>
-      <div>🏟️ <span>Alles bleibt im Verein – keine Werbung, kein Weitergeben.</span></div></div>
-    <p class="onb-sub">Beim ersten Foto fragt dein Handy noch einmal nach Zugriff auf Kamera bzw. Fotos – einfach erlauben.</p>
+      <div>🏟️ <span>Alles bleibt im Verein, keine Werbung, kein Weitergeben.</span></div></div>
+    <p class="onb-sub">Beim ersten Foto fragt dein Handy noch einmal nach Zugriff auf Kamera bzw. Fotos: einfach erlauben.</p>
     <div class="onb-btns"><button class="btn onb-go" id="onbDatYes">Einverstanden</button><button class="btn ghost" id="onbDatNo">Ohne Uploads weiter</button></div>`;
-  if(st==='tour')h=`<div class="onb-big">🧭</div><h2>Kurzer Rundgang?</h2><p class="onb-sub">Ich zeig dir in ${svOnbTourSteps().length} Schritten, wo alles ist – mit Pfeil direkt in der App.</p>
+  if(st==='tour')h=`<div class="onb-big">🧭</div><h2>Kurzer Rundgang?</h2><p class="onb-sub">Ich zeig dir in ${svOnbTourSteps().length} Schritten, wo alles ist, mit Pfeil direkt in der App.</p>
     <div class="onb-btns"><button class="btn onb-go" id="onbTour">Zeig's mir</button><button class="btn ghost" id="onbEnd">Überspringen</button></div>`;
   el.innerHTML=`<div class="onb-box" data-step="${st}">${svOnbDots()}${h}</div>`;
   el.querySelectorAll('.onb-chip svg,.onb-ic svg').forEach(s=>s.setAttribute('aria-hidden','true'));
@@ -6295,19 +6301,19 @@ function svOnbDraw(){
 async function svOnbDone(){
   const el=document.getElementById('onb'); if(el)el.remove(); svTourEnd(); document.body.classList.remove('onb-open');
   try{ await svPrefsSet({onboarding:true}); }catch(e){ console.warn(e); }
-  kToast(`✓ Alles klar, ${svFirst(SVU.name)||'Coach'} – viel Spaß!`); svPopupsRun();
+  kToast(`✓ Alles klar, ${svFirst(SVU.name)||'Coach'} · viel Spaß!`); svPopupsRun();
 }
 
 /* ---------- Rundgang mit Maske und Pfeil ---------- */
 function svVis(sels){ for(const s of sels){ for(const el of document.querySelectorAll(s)){ const r=el.getBoundingClientRect(); if(r.width>4&&r.height>4&&r.bottom>0&&r.top<innerHeight&&getComputedStyle(el).visibility!=='hidden')return el; } } return null; }
 function svOnbTourSteps(){
   const A=svAufgaben(), S=[];
-  if(canTraining())S.push({sel:['#trFab'],t:'Dein Co-Trainer',d:'Hier fragst du die KI – Aufstellung, Gegner, Trainingsplan. Tipp auf 📎 für Fotos oder Screenshots, auf 🎙️ zum Sprechen.'});
+  if(canTraining())S.push({sel:['#trFab'],t:'Dein Co-Trainer',d:'Hier fragst du die KI. Aufstellung, Gegner, Trainingsplan. Tipp auf 📎 für Fotos oder Screenshots, auf 🎙️ zum Sprechen.'});
   if(A.includes('training')||A.includes('kasse'))S.push({sel:['.tabbar .ti[data-tab="kabine"]','.snav [data-tab="kabine"]','#tMore'],t:'Kabine',d:A.includes('kasse')&&!A.includes('training')?'Hier ist die Mannschaftskasse: gemeldete Zahlungen abhaken, Kontostand Bank/PayPal, Strafen.':'Abstimmungen fürs Training und die Mannschaftskasse. Das Einladen-Pop-up kommt vor jedem Training von selbst.'});
-  if(A.includes('training'))S.push({sel:['.tabbar .ti[data-tab="training"]','.snav [data-tab="training"]'],t:'Training',d:'Anwesenheit, Spiele und die Saison-Statistik – vieles kommt automatisch aus den Spielberichten.'});
+  if(A.includes('training'))S.push({sel:['.tabbar .ti[data-tab="training"]','.snav [data-tab="training"]'],t:'Training',d:'Anwesenheit, Spiele und die Saison-Statistik. Vieles kommt automatisch aus den Spielberichten.'});
   if(A.includes('scouting'))S.push({sel:['.tabbar .ti[data-tab="scout"]','.snav [data-tab="scout"]','#tMore'],t:'Scouting',d:'Radar, Datenbank und Rohdiamanten. Neue Treffer melden sich per Pop-up, wenn du es erlaubt hast.'});
   if(A.includes('kader'))S.push({sel:['.tabbar .ti[data-tab="kaderplan"]','.tabbar .ti[data-tab="kandidaten"]','.snav [data-tab="kaderplan"]','#tMore'],t:'Kaderplanung',d:'Kaderplan, Kandidaten und Schattenelf für die nächste Saison.'});
-  S.push({sel:['#tMore','.snav [data-me]','[data-me]'],t:'Alles Weitere & Mein Konto',d:'Unter „Mehr“ findest du alle Bereiche und dein Konto – dort kannst du Pop-ups jederzeit an- oder ausschalten und diese Einführung nochmal ansehen.'});
+  S.push({sel:['#tMore','.snav [data-me]','[data-me]'],t:'Alles Weitere & Mein Konto',d:'Unter „Mehr“ findest du alle Bereiche und dein Konto, dort kannst du Pop-ups jederzeit an- oder ausschalten und diese Einführung nochmal ansehen.'});
   return S;
 }
 const TOUR={i:0,S:[]};
@@ -6365,7 +6371,7 @@ function svAccountPrefs(){
   const keys=['training','kasse','scouting'].filter(k=>A.includes(k)||(k==='kasse'&&SV_PREFS.kassenwart));
   const sec=document.createElement('div'); sec.className='editsec'; sec.id='svPrefSec';
   sec.innerHTML=`<h4>Pop-ups & Einführung</h4>${keys.length?`<div class="onb-toggles sm">${keys.map(k=>`<button type="button" class="onb-tg${(SV_PREFS.popups||{})[k]!==false?' on':''}" data-ptg="${k}"><div class="onb-ic" style="--c:${SV_AUF[k].c}">${SVI(SV_AUF[k].ic)}</div><div><b>${svEsc(SV_AUF[k].t)}</b><span>${svEsc(SV_AUF[k].pop)}</span></div><i class="onb-sw"></i></button>`).join('')}</div>`:'<p class="note">Für deine Aufgaben gibt es keine Pop-ups.</p>'}
-    <p class="note">Daten & Uploads: ${SV_PREFS.daten_ok_at?'✓ einverstanden':'noch nicht zugestimmt – der Co-Trainer fragt beim ersten Upload.'}</p>
+    <p class="note">Daten & Uploads: ${SV_PREFS.daten_ok_at?'✓ einverstanden':'noch nicht zugestimmt: der Co-Trainer fragt beim ersten Upload.'}</p>
     <div class="btnrow"><button class="btn ghost sm" id="svOnbAgain">${SVI('refresh')} Einführung nochmal ansehen</button></div>`;
   const first=M.querySelector('.editsec'); if(first)first.before(sec); else M.appendChild(sec);
   sec.querySelectorAll('[data-ptg]').forEach(b=>b.onclick=async()=>{ const k=b.dataset.ptg, on=!b.classList.contains('on');
@@ -6427,7 +6433,7 @@ function svAufEdit(id){
 /* =====================================================================
    SV/BSC Scout · Runde 17: Schlaues Scouting
    - Jede Empfehlung: ⭐ Merkliste · 🔔 Beobachten (Spieltag-Updates) · 🚫 Kein Interesse (dann nie wieder gemeldet) · 🔎 KI-Bericht
-   - Positions-Bedarf (Prio, Horizont, Soll) steuert, was überhaupt gemeldet wird – 5 Stürmer im Kader = keine Stürmer-Tipps
+   - Positions-Bedarf (Prio, Horizont, Soll) steuert, was überhaupt gemeldet wird. 5 Stürmer im Kader = keine Stürmer-Tipps
    - Saisonplanung über drei Spielzeiten, Lücken → KI-Suche per Knopf
    - KI-Scouting-Aufträge laufen im Hintergrund, Meldung (App + Push), sobald fertig
    - Statt 35 Meldungen: ein Scouting-Briefing mit den 3 wichtigsten
@@ -6477,11 +6483,11 @@ function sc2Realtime(){
 function sc2Bedarf(pos){ return SC2.bedarf.find(b=>b.pos===pos)||null; }
 function sc2Vorschlag(pos){
   const own=sc2Own().filter(p=>sc2Pos(p)===pos), soll=(sc2Bedarf(pos)||{}).soll??SC2_SOLL[pos], ist=own.length, alt=own.filter(p=>(sc2Age(p)||0)>=31).length;
-  if(ist<soll-1)return {prio:'hoch',horizont:'sofort',why:`${ist} von ${soll} – es fehlen Spieler`};
-  if(ist<soll)return {prio:'mittel',horizont:'sommer',why:`${ist} von ${soll} – eine Lücke`};
-  if(alt&&ist-alt<soll)return {prio:'mittel',horizont:'langfristig',why:`${alt} Spieler 31+ – Nachfolge planen`};
-  if(ist>soll)return {prio:'kein',horizont:'sommer',why:`${ist} im Kader – mehr als genug`};
-  return {prio:'niedrig',horizont:'langfristig',why:`${ist} von ${soll} – besetzt`};
+  if(ist<soll-1)return {prio:'hoch',horizont:'sofort',why:`${ist} von ${soll} · es fehlen Spieler`};
+  if(ist<soll)return {prio:'mittel',horizont:'sommer',why:`${ist} von ${soll} · eine Lücke`};
+  if(alt&&ist-alt<soll)return {prio:'mittel',horizont:'langfristig',why:`${alt} Spieler 31+ · Nachfolge planen`};
+  if(ist>soll)return {prio:'kein',horizont:'sommer',why:`${ist} im Kader: mehr als genug`};
+  return {prio:'niedrig',horizont:'langfristig',why:`${ist} von ${soll} · besetzt`};
 }
 function sc2Need(pos){ if(!pos)return 1.5; const b=sc2Bedarf(pos); const w={hoch:3,mittel:2,niedrig:1,kein:0}; return b?w[b.prio]:{hoch:3,mittel:2,niedrig:1,kein:0.4}[sc2Vorschlag(pos).prio]; }
 function sc2NeedOf(p){ const pos=sc2Pos(p); if(!pos)return 1.5; let n=sc2Need(pos); if(p.pos2&&SC2_PN[p.pos2])n=Math.max(n,sc2Need(p.pos2)); const b=sc2Bedarf(pos); if(!(b&&b.prio==='kein'))(SC2_NAH[pos]||[]).forEach(x=>n=Math.max(n,sc2Need(x)*0.6)); return n; }  // „Kein Bedarf“ gilt – verwandte Positionen retten es nicht
@@ -6499,11 +6505,11 @@ function sc2Relevant(rows,n){ return rows.filter(r=>r.player_id&&!sc2No(r.player
 /* ---------- Entscheidungen je Spieler ---------- */
 function sc2Btns(p,compact){
   if(!p||p.own)return ''; const C=crmOf(p), f=SC2.follow.has(p.id), no=C.s==='no';
-  if(no)return `<div class="sc2b${compact?' sm':''}" data-sc2p="${svEsc(p.id)}"><span class="sc2no">🚫 Kein Interesse – wird nicht mehr gemeldet</span><button type="button" data-sc2="undo">Rückgängig</button></div>`;
+  if(no)return `<div class="sc2b${compact?' sm':''}" data-sc2p="${svEsc(p.id)}"><span class="sc2no">🚫 Kein Interesse, wird nicht mehr gemeldet</span><button type="button" data-sc2="undo">Rückgängig</button></div>`;
   return `<div class="sc2b${compact?' sm':''}" data-sc2p="${svEsc(p.id)}">
     <button type="button" class="${p.star?'on':''}" data-sc2="star" title="Merkliste">⭐${compact?'':' Merkliste'}</button>
     <button type="button" class="${f?'on':''}" data-sc2="follow" title="Spieltag für Spieltag auf dem Laufenden">🔔${compact?'':f?' Beobachtet':' Beobachten'}</button>
-    <button type="button" data-sc2="no" title="Kein Interesse – nie wieder melden">🚫${compact?'':' Kein Interesse'}</button>
+    <button type="button" data-sc2="no" title="Kein Interesse, nie wieder melden">🚫${compact?'':' Kein Interesse'}</button>
     <button type="button" data-sc2="job" title="Großen Scouting-Bericht erstellen">🔎${compact?'':' KI-Bericht'}</button></div>`;
 }
 function sc2Wire(root,after){
@@ -6512,7 +6518,7 @@ function sc2Wire(root,after){
       if(k==='star'){ const on=!p.star; crmSet(p.id,{f:on?1:undefined}); try{crmApply();}catch(x){} kToast(on?'⭐ '+p.name+' auf der Merkliste':'Von der Merkliste genommen'); }
       if(k==='follow'){ if(SC2.follow.has(p.id)){ const {error}=await SVB.sb.from('scout_follow').delete().eq('player_id',p.id); if(error)throw error; SC2.follow.delete(p.id); kToast('🔕 '+p.name+' nicht mehr beobachtet'); }
         else { const {error}=await SVB.sb.from('scout_follow').insert({player_id:p.id}); if(error)throw error; SC2.follow.add(p.id); kToast('🔔 Du bekommst nach jedem Spieltag ein Update zu '+p.name); } }
-      if(k==='no'){ crmSet(p.id,{s:'no'}); try{crmApply();}catch(x){} if(SC2.follow.has(p.id)){ await SVB.sb.from('scout_follow').delete().eq('player_id',p.id); SC2.follow.delete(p.id); } kToast('🚫 '+p.name+' – keine Meldungen mehr'); }
+      if(k==='no'){ crmSet(p.id,{s:'no'}); try{crmApply();}catch(x){} if(SC2.follow.has(p.id)){ await SVB.sb.from('scout_follow').delete().eq('player_id',p.id); SC2.follow.delete(p.id); } kToast('🚫 '+p.name+' · keine Meldungen mehr'); }
       if(k==='undo'){ crmSet(p.id,{s:undefined}); try{crmApply();}catch(x){} kToast('↩️ '+p.name+' wird wieder gemeldet'); }
       if(k==='job'){ await sc2JobStart({art:'spieler',player_id:p.id}); }
     }catch(x){ kToast('⚠️ '+(x.message||x)); }
@@ -6542,10 +6548,10 @@ function sc2ScoutBox(){
       ${unread.slice(0,6).map(m=>`<div class="sc2m" data-m="${m.id}"><b>${svEsc(m.titel)}</b><span>${svEsc(m.text||'')}</span><small>${new Date(m.created_at).toLocaleString('de-DE',{weekday:'short',day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'})}</small></div>`).join('')}</div>`:''}
     <div class="vrgrid"><div class="card"><div class="svc-h"><h3>${SVI('eye')} Beobachtet <small>${F.length}</small></h3></div>
       ${F.length?F.map(p=>{ const m=last(p.id), c=p.cur||{}; return `<div class="sc2f" data-sc2open="${svEsc(p.id)}"><span class="tra-av">${avaHtml(p)}</span><div><b>${svEsc(p.name)}</b><span>${svEsc(m?m.text:(c.spiele!=null?`${c.tore||0} Tore in ${c.spiele} Spielen · ${c.club||p.club}`:p.club||''))}</span></div></div>`; }).join('')
-        :'<div class="note">Noch niemand. Tipp bei einem Spieler auf 🔔 – dann kommt nach jedem Spieltag ein kurzes Update, wie er performt.</div>'}</div>
+        :'<div class="note">Noch niemand. Tipp bei einem Spieler auf 🔔, dann kommt nach jedem Spieltag ein kurzes Update, wie er performt.</div>'}</div>
     <div class="card"><div class="svc-h"><h3>${SVI('search')} KI-Aufträge</h3><button class="btn sm" id="sc2New">${SVI('plus')} Neuer Auftrag</button></div>
       ${J.length?J.map(j=>`<div class="sc2j s-${j.status}" data-job="${j.id}"><b>${svEsc(j.titel||'Auftrag')}</b><span>${{wartet:'⏳ wartet',laeuft:'⚙️ läuft …',fertig:'✓ fertig',fehler:'⚠️ '+svEsc(j.fehler||'Fehler')}[j.status]} · ${new Date(j.created_at).toLocaleDateString('de-DE',{day:'2-digit',month:'2-digit'})}</span></div>`).join('')
-        :'<div class="note">„Scout mir den Spieler X“ oder „Wir brauchen einen Torwart“ – die Suche läuft im Hintergrund, du bekommst eine Meldung, sobald sie fertig ist.</div>'}
+        :'<div class="note">„Scout mir den Spieler X“ oder „Wir brauchen einen Torwart“, die Suche läuft im Hintergrund, du bekommst eine Meldung, sobald sie fertig ist.</div>'}
       <div class="btnrow" style="margin-top:10px"><button class="btn ghost sm" id="sc2Exp">${SVI('download')} Scouting-Bericht (PDF/Excel)</button></div></div></div>`;
   const rd=document.getElementById('sc2Read'); if(rd)rd.onclick=async()=>{ await SVB.sb.rpc('meldungen_gelesen',{p_ids:null}); SC2.meld.forEach(m=>m.gelesen_at=m.gelesen_at||new Date().toISOString()); sc2After(); };
   el.querySelectorAll('[data-m]').forEach(x=>x.onclick=async()=>{ const m=SC2.meld.find(y=>y.id==x.dataset.m); await SVB.sb.rpc('meldungen_gelesen',{p_ids:[+x.dataset.m]}); if(m)m.gelesen_at=new Date().toISOString();
@@ -6569,11 +6575,11 @@ async function sc2JobStart(o){
   const {data:id,error}=await SVB.sb.rpc('scout_job_neu',{p_art:o.art,p_player:o.player_id||null,p_pos:o.pos||null,p_saison:o.saison||null,p_frage:o.frage||null});
   if(error)throw new Error(error.message);
   SVB.sb.functions.invoke('scout-auftrag',{body:{job:id}}).then(()=>setTimeout(()=>sc2Load(true),1500)).catch(()=>{});
-  kToast('🔎 Auftrag läuft – du bekommst eine Meldung, sobald der Bericht fertig ist'); await sc2Load(true); return id;
+  kToast('🔎 Auftrag läuft: du bekommst eine Meldung, sobald der Bericht fertig ist'); await sc2Load(true); return id;
 }
 function sc2JobNew(pre){
   const P=pre||{};
-  svModal(`<div class="mhead"><div class="rm-ic" style="width:46px;height:46px">${SVI('search')}</div><div><h2 style="margin:0">KI-Scouting-Auftrag</h2><div class="msub">Läuft im Hintergrund – Meldung, sobald fertig</div></div></div>
+  svModal(`<div class="mhead"><div class="rm-ic" style="width:46px;height:46px">${SVI('search')}</div><div><h2 style="margin:0">KI-Scouting-Auftrag</h2><div class="msub">Läuft im Hintergrund: Meldung, sobald fertig</div></div></div>
     <div class="trtabs" id="sc2Art"><button class="${P.pos?'':'on'}" data-a="spieler">Einen Spieler scouten</button><button class="${P.pos?'on':''}" data-a="position">Position besetzen</button></div>
     <div id="sc2Form"></div>`);
   let art=P.pos?'position':'spieler', sel=P.player_id||null;
@@ -6616,14 +6622,14 @@ async function sc2JobView(id){
     <div class="trkpi"><div><b>${st.tore??'–'}</b><span>Tore</span></div><div><b>${st.spiele??'–'}</b><span>Spiele</span></div><div><b>${st.platz?st.platz+'.':'–'}</b><span>Tabelle${st.teams?' / '+st.teams:''}</span></div><div><b>${e.realismus?e.realismus.w:'–'}</b><span>Realismus</span></div></div>
     ${sec('Aus unseren Daten',`${(e.fazit.plus||[]).map(x=>`<div class="sc2plus">＋ ${svEsc(x)}</div>`).join('')}${(e.fazit.minus||[]).map(x=>`<div class="sc2minus">－ ${svEsc(x)}</div>`).join('')}${(e.realismus&&e.realismus.f||[]).map(x=>`<div class="sc2info">• ${svEsc(x)}</div>`).join('')}`)}
     ${sec('Spieltag für Spieltag',(e.verlauf||[]).filter(v=>v.spiele).length?`<div class="sc2verl">${e.verlauf.filter(v=>v.spiele).map(v=>`<div title="${svEsc(v.stand)}"><i style="height:${Math.min(100,v.tore*34+6)}%"></i><small>${v.tore}</small></div>`).join('')}</div>`:'')}
-    ${sec('Team',e.team?`${svEsc(e.verein||'')} – Platz ${e.team.platz}, ${e.team.punkte} Punkte, ${e.team.tore}:${e.team.gegentore} Tore nach ${e.team.spiele} Spielen`:'')}
+    ${sec('Team',e.team?`${svEsc(e.verein||'')} · Platz ${e.team.platz}, ${e.team.punkte} Punkte, ${e.team.tore}:${e.team.gegentore} Tore nach ${e.team.spiele} Spielen`:'')}
     ${sec('Unsere Notizen',e.crm&&(e.crm.notiz||e.crm.wechselchance||e.crm.kontaktiert)?`${e.crm.wechselchance?'Wechselchance '+e.crm.wechselchance+'/4 · ':''}${e.crm.kontaktiert?'kontaktiert'+(e.crm.letzter_kontakt?' ('+TRC.fmt(e.crm.letzter_kontakt)+')':'')+' · ':''}${svEsc(e.crm.notiz||'')}`:'')}
-    ${sec('Unsere '+svEsc(e.pos_name||''),(e.eigene||[]).length?(e.eigene||[]).map(x=>`${svEsc(x.name)}${x.alter?' ('+x.alter+')':''}`).join(', '):'Niemand – Lücke!')}
+    ${sec('Unsere '+svEsc(e.pos_name||''),(e.eigene||[]).length?(e.eigene||[]).map(x=>`${svEsc(x.name)}${x.alter?' ('+x.alter+')':''}`).join(', '):'Niemand: Lücke!')}
     ${sec('Ähnliche Spieler',(e.aehnliche||[]).map(x=>`<div class="sc2f" data-sc2open="${svEsc(x.id)}"><div><b>${svEsc(x.name)}</b><span>${svEsc(x.verein||'')} · ${svEsc(x.liga||'')} · ${x.tore??'–'} Tore in ${x.spiele??'–'}</span></div></div>`).join(''))}
     ${ki&&(ki.naechste_schritte||[]).length?sec('Nächste Schritte',ki.naechste_schritte.map(x=>`<div>→ ${svEsc(x)}</div>`).join('')):''}
     ${ki&&(ki.quellen||[]).length?sec('Quellen',ki.quellen.map(u=>`<a href="${svEsc(u)}" target="_blank" rel="noopener">${svEsc(u.replace(/^https:\/\/(www\.)?/,'').slice(0,60))}</a>`).join('<br>')):''}
     ${sc2Btns(trP(e.player_id),false)}`
-  :`${ki?`<div class="sc2ki"><b>KI-Einschätzung</b><p>${svEsc(ki.kommentar)}</p>${(ki.top||[]).map(t=>{ const k=(e.kandidaten||[]).find(x=>x.id===t.id); return k?`<div>🥇 <b>${svEsc(k.name)}</b> – ${svEsc(t.begruendung)}</div>`:''; }).join('')}</div>`:`<div class="note">${svEsc(e.ki_hinweis||'Vorschläge aus unseren Daten.')}</div>`}
+  :`${ki?`<div class="sc2ki"><b>KI-Einschätzung</b><p>${svEsc(ki.kommentar)}</p>${(ki.top||[]).map(t=>{ const k=(e.kandidaten||[]).find(x=>x.id===t.id); return k?`<div>🥇 <b>${svEsc(k.name)}</b> · ${svEsc(t.begruendung)}</div>`:''; }).join('')}</div>`:`<div class="note">${svEsc(e.ki_hinweis||'Vorschläge aus unseren Daten.')}</div>`}
     ${sec('Unser Kader auf der Position',(e.eigene||[]).length?(e.eigene||[]).map(x=>`${svEsc(x.name)}${x.alter?' ('+x.alter+')':''}`).join(', '):'Niemand!')}
     ${sec(`Kandidaten <small>${e.geprueft} geprüft · ohne „Kein Interesse“</small>`,(e.kandidaten||[]).map(k=>`<div class="sc2k"><div class="sc2k-h" data-sc2open="${svEsc(k.id)}"><b>${svEsc(k.name)}</b><em>${k.score}</em></div><span>${svEsc(k.verein||'')} · ${svEsc(k.liga||'')}${k.alter?' · '+k.alter+' J.':''}${k.km!=null?' · '+k.km+' km':''} · ${k.tore} Tore/${k.spiele} Sp.</span><small>${(k.gruende||[]).map(svEsc).join(' · ')}</small>
       <div class="btnrow">${sc2Btns(trP(k.id),true)}${j.saison?`<button class="btn ghost sm" data-plan="${svEsc(k.id)}">＋ Saison ${sc2SN(j.saison)}</button>`:''}</div></div>`).join('')||'Keine passenden Kandidaten gefunden.')}`;
@@ -6668,7 +6674,7 @@ function sc2PlanBox(){
   el.querySelectorAll('[data-ho]').forEach(b=>b.onclick=()=>{ const [k,x]=b.dataset.ho.split(':'); save(k,{horizont:x}); });
   el.querySelectorAll('[data-soll]').forEach(i=>i.onchange=()=>save(i.dataset.soll,{soll:Math.max(0,Math.min(10,+i.value||0))}));
   document.getElementById('sc2Auto').onclick=async()=>{ const rows=SC2_POS.map(([k])=>{ const v=sc2Vorschlag(k), b=sc2Bedarf(k); return {pos:k,prio:v.prio,horizont:v.horizont,soll:b&&b.soll!=null?b.soll:SC2_SOLL[k]}; });
-    const {error}=await SVB.sb.from('kader_bedarf').upsert(rows); if(error)return kToast('⚠️ '+error.message); SC2.bedarf=rows; kToast('✓ Bedarf übernommen – jederzeit änderbar'); sc2PlanBox(); };
+    const {error}=await SVB.sb.from('kader_bedarf').upsert(rows); if(error)return kToast('⚠️ '+error.message); SC2.bedarf=rows; kToast('✓ Bedarf übernommen: jederzeit änderbar'); sc2PlanBox(); };
   el.querySelectorAll('[data-sai]').forEach(b=>b.onclick=()=>{ SC2.season=b.dataset.sai; sc2PlanBox(); });
   sc2SeasonWire(el);
   document.getElementById('sc2PExp').onclick=()=>sxExport('kader');
@@ -6721,7 +6727,7 @@ svScoutPopup=function(){
   if(shown>=last||window.__svSPop===last)return; window.__svSPop=last;
   const rest=sc2Relevant(N,99).length-top.length;
   svModal(`<div class="kbpop sc2brief"><div class="kbpop-ic scout">${SVI('radar')}</div><span class="trpill">Scouting-Briefing</span><h2>${top.length?`Die ${top.length} wichtigsten Tipps`:'Neues von deinen Spielern'}</h2>
-    <p class="note">${top.length?`Nach eurem Positions-Bedarf sortiert${rest>0?` – ${rest} weitere stehen im Radar`:''}. Direkt entscheiden: ⭐ merken · 🔔 beobachten · 🚫 kein Interesse.`:''}</p>
+    <p class="note">${top.length?`Nach eurem Positions-Bedarf sortiert${rest>0?` · ${rest} weitere stehen im Radar`:''}. Direkt entscheiden: ⭐ merken · 🔔 beobachten · 🚫 kein Interesse.`:''}</p>
     <div class="onb-rd">${top.map(x=>rdItem(x.r)).join('')}</div>
     ${U.length?`<div class="sc2bu"><b>🔔 ${U.length} Update${U.length>1?'s':''} von beobachteten Spielern</b>${U.slice(0,3).map(m=>`<div><b>${svEsc(m.titel.replace(/ · Spieltag-Update$/,''))}</b> ${svEsc(m.text||'')}</div>`).join('')}</div>`:''}
     <button class="btn kbpop-go" id="svSpGo">${SVI('radar')} Zum Scouting</button><div class="btnrow"><button class="btn ghost sm" id="svSpL">Später</button></div></div>`);
@@ -6815,7 +6821,7 @@ function sxScript(src,test){ if(test())return Promise.resolve(); return new Prom
 const sxB64=buf=>{ const u=new Uint8Array(buf); let s=''; for(let i=0;i<u.length;i+=0x8000)s+=String.fromCharCode.apply(null,u.subarray(i,i+0x8000)); return btoa(s); };
 async function sxXlsx(R){
   const X=await vrXlsx(), wb=X.utils.book_new(), used=new Set();
-  R.sections.forEach(s=>{ const rows=s.rows.map(r=>Array.isArray(r)?r:s.cols.map(c=>r[c]??'')); const ws=X.utils.aoa_to_sheet([[R.titel+' – '+s.t],[R.sub],[],s.cols,...rows]);
+  R.sections.forEach(s=>{ const rows=s.rows.map(r=>Array.isArray(r)?r:s.cols.map(c=>r[c]??'')); const ws=X.utils.aoa_to_sheet([[R.titel+' · '+s.t],[R.sub],[],s.cols,...rows]);
     ws['!cols']=s.cols.map((c,i)=>({wch:Math.min(60,Math.max(8,String(c).length+2,...rows.map(r=>String(r[i]??'').length+1)))}));
     let n=s.t.replace(/[\\/?*[\]:]/g,'').slice(0,31)||'Blatt'; while(used.has(n))n=n.slice(0,28)+used.size; used.add(n); X.utils.book_append_sheet(wb,ws,n); });
   return X.write(wb,{type:'base64',bookType:'xlsx'});
@@ -6845,7 +6851,7 @@ async function sxExport(kind,o){
   let ok={n8n:false,drive:false,mail:false}; try{ const r=await SVB.sb.rpc('bericht_versand_ok'); if(r.data)ok=r.data; }catch(e){}
   const mail=(typeof SVU!=='undefined'&&SVU.email)||'';
   const st={fmt:new Set(['pdf']),weg:new Set(['down'])};
-  svModal(`<div class="mhead"><div class="rm-ic" style="width:46px;height:46px">${SVI('file')}</div><div><h2 style="margin:0">${svEsc(kind==='job'&&o&&o.job?o.job.titel:K[0])}</h2><div class="msub">Format und Weg wählen – beides mit Mehrfachauswahl</div></div></div>
+  svModal(`<div class="mhead"><div class="rm-ic" style="width:46px;height:46px">${SVI('file')}</div><div><h2 style="margin:0">${svEsc(kind==='job'&&o&&o.job?o.job.titel:K[0])}</h2><div class="msub">Format und Weg wählen. Beides mit Mehrfachauswahl</div></div></div>
     <h4 class="sx-h">Format</h4><div class="sx-grid" id="sxF"><button type="button" class="sx-t on" data-f="pdf"><b>📄 PDF</b><span>zum Lesen & Weiterleiten</span></button><button type="button" class="sx-t" data-f="xlsx"><b>📊 Excel</b><span>zum Weiterrechnen</span></button></div>
     <h4 class="sx-h">Wohin?</h4><div class="sx-grid" id="sxW">
       <button type="button" class="sx-t on" data-w="down"><b>⬇️ Herunterladen</b><span>auf dieses Gerät</span></button>
@@ -6872,7 +6878,7 @@ async function sxExport(kind,o){
       if(st.weg.has('wa')){ const fl=files.map(x=>new File([sxBlob(x.b64,x.mime)],x.name,{type:x.mime}));
         let shared=false; try{ if(navigator.canShare&&navigator.canShare({files:fl})){ await navigator.share({files:fl,title:R.titel,text:`${R.titel} · SV/BSC Mörlenbach`}); shared=true; } }catch(e){ if(e&&e.name==='AbortError')shared=true; }
         if(!shared){ const txt=`📄 ${R.titel} (${R.sub})\n${files.map(x=>`${x.f==='pdf'?'PDF':'Excel'}: ${x.url}`).join('\n')}`; window.open('https://wa.me/?text='+encodeURIComponent(txt),'_blank','noopener'); }
-        log(shared?'💬 Über das Teilen-Menü geteilt':'💬 WhatsApp geöffnet – mit Link zum Bericht','ok'); }
+        log(shared?'💬 Über das Teilen-Menü geteilt':'💬 WhatsApp geöffnet, mit Link zum Bericht','ok'); }
       go.textContent='Fertig'; go.onclick=()=>closeOverlay(); go.disabled=false;
     }catch(e){ log('⚠️ '+svEsc(e.message||String(e)),'bad'); go.disabled=false; go.innerHTML=SVI('send')+' Nochmal'; } };
 }
@@ -6948,7 +6954,7 @@ function kxBoxHtml(p){
       <button class="kx-b ic" data-kx-edit="${f}" title="Korrigieren" aria-label="Korrigieren">✎</button>${adm?`<button class="kx-b ic del" data-kx-del="${f}" title="Löschen (nur Admin)" aria-label="Löschen">${SVI('trash')}</button>`:''}</span></div>`; };
   return `<div class="kx-h"><h3>📇 Kontakt</h3><button class="kx-lnk" data-kx-hist>${SVI('clock')} Verlauf</button></div>
     ${!KX.loaded?'<div class="note">Lade …</div>':row('tel')+row('email')}
-    ${k.optout?'<p class="note small">Hat sich von automatischen WhatsApp-Nachrichten abgemeldet – persönliche Nachrichten gehen natürlich.</p>':''}
+    ${k.optout?'<p class="note small">Hat sich von automatischen WhatsApp-Nachrichten abgemeldet. Persönliche Nachrichten gehen natürlich.</p>':''}
     <div id="kxHist"></div><p class="note small kx-foot">🔒 Nur fürs Team sichtbar · jede Änderung steht im Verlauf${adm?'':' · löschen kann nur der Admin'}</p>`;
 }
 function kxBox(M,id){
@@ -6966,14 +6972,14 @@ function kxWire(d,p,draw){
   d.querySelectorAll('[data-kx-del]').forEach(b=>b.onclick=async()=>{
     if(!b.classList.contains('sure')){ b.classList.add('sure'); b.innerHTML='Wirklich löschen?'; setTimeout(()=>{ if(document.body.contains(b)){ b.classList.remove('sure'); b.innerHTML=SVI('trash'); } },4000); return; }
     const {error}=await SVB.sb.rpc('kontakt_loeschen',{p_player:p.id,p_feld:b.dataset.kxDel}); if(error)return kToast('⚠️ '+error.message);
-    const k=Object.assign({},kxOf(p.id)); k[b.dataset.kxDel]=null; KX.map.set(p.id,k); kToast('Gelöscht – steht im Verlauf'); draw(); kxRefreshViews(); });
+    const k=Object.assign({},kxOf(p.id)); k[b.dataset.kxDel]=null; KX.map.set(p.id,k); kToast('Gelöscht: steht im Verlauf'); draw(); kxRefreshViews(); });
   const h=d.querySelector('[data-kx-hist]'); if(h)h.onclick=()=>kxHist(d.querySelector('#kxHist'),p,draw);
 }
 async function kxSave(id,tel,email,via){
   const p=trP(id); const {data,error}=await SVB.sb.rpc('kontakt_set',{p_player:id,p_name:p?p.name:id,p_tel:tel,p_email:email,p_via:via||'app'});
   if(error){ kToast('⚠️ '+error.message); return null; }
   const k=data.kontakt||{}; KX.map.set(id,Object.assign({},kxOf(id),{id,name:p&&p.name,tel:k.tel,email:k.email}));
-  const was=[data.tel,data.email].filter(x=>x&&x!=='gleich'); kToast(was.includes('korrektur')?'✓ Korrigiert – alter Wert steht im Verlauf':was.length?'✓ Gespeichert':'Unverändert');
+  const was=[data.tel,data.email].filter(x=>x&&x!=='gleich'); kToast(was.includes('korrektur')?'✓ Korrigiert: alter Wert steht im Verlauf':was.length?'✓ Gespeichert':'Unverändert');
   kxRefreshViews(); return data;
 }
 async function kxHist(el,p,draw){
@@ -6997,7 +7003,7 @@ function kxView(B){
   const f=KX.filter||'erste', L=S.filter(p=>f==='zweite'?p.kader===2:f==='ohne'?p.kader!==2&&!(kxOf(p.id).tel&&kxOf(p.id).email):p.kader!==2);
   const mails=S.map(p=>kxOf(p.id).email).filter(Boolean);
   B.innerHTML=`<div class="kbstats kxstats"><div class="kbst"><span>Handynummern</span><b class="${withT<K.length?'mid':'ok'}">${withT}/${K.length}</b></div><div class="kbst"><span>E-Mails</span><b class="${withM<K.length?'mid':'ok'}">${withM}/${K.length}</b></div></div>
-    <details class="card kxcard kx-imp"${KX.imp?' open':''}><summary><span class="trh">${SVI('upload')} Liste einfügen</span><small>Excel · WhatsApp · Text</small></summary><p class="note">Namen mit Handynummer und/oder E-Mail einfügen – eine Zeile pro Spieler, z. B. aus Excel oder WhatsApp kopiert. Es wird nur ergänzt, was noch fehlt; abweichende Nummern werden angezeigt, aber nie überschrieben.</p>
+    <details class="card kxcard kx-imp"${KX.imp?' open':''}><summary><span class="trh">${SVI('upload')} Liste einfügen</span><small>Excel · WhatsApp · Text</small></summary><p class="note">Namen mit Handynummer und/oder E-Mail einfügen. Eine Zeile pro Spieler, z. B. aus Excel oder WhatsApp kopiert. Es wird nur ergänzt, was noch fehlt; abweichende Nummern werden angezeigt, aber nie überschrieben.</p>
       <textarea class="kx-ta" id="kxTa" rows="5" placeholder="Max Mustermann 0171 1234567 max@web.de&#10;Tim Beispiel; +49 160 7654321"></textarea>
       <div class="btnrow"><button class="btn sm" id="kxPrev">${SVI('check')} Prüfen</button></div><div id="kxImp"></div></details>
     <div class="card kxcard"><div class="vrat-h"><h3 class="trh" style="margin:0">${SVI('users')} Spieler-Kontakte</h3><div class="kx-seg"><button class="${f==='erste'?'on':''}" data-kxf="erste">1. Mannschaft</button><button class="${f==='zweite'?'on':''}" data-kxf="zweite">2.</button><button class="${f==='ohne'?'on':''}" data-kxf="ohne">Fehlt was</button></div></div>
@@ -7013,14 +7019,14 @@ function kxPreview(text,el,B){
   const R=kxParse(text,{list:true}); KX.imp=R;
   if(!R.actions.length&&!R.miss.length){ el.innerHTML='<p class="note">Keine Nummern oder E-Mails gefunden.</p>'; return; }
   el.innerHTML=`<div class="kx-prev">${R.actions.map(a=>{ const k=kxOf(a.input.player_id), dT=a.input.tel&&k.tel&&k.tel!==a.input.tel, dM=a.input.email&&k.email&&k.email!==a.input.email;
-      return `<div class="kx-pr"><b>${svEsc(trName(a.input.player_id))}</b><small>${a.input.tel?'📱 '+svEsc(kxTelFmt(a.input.tel))+(dT?' <em class="mid">(hinterlegt: '+svEsc(kxTelFmt(k.tel))+' – bleibt)</em>':k.tel===a.input.tel?' <em>schon da</em>':''):''}${a.input.email?' ✉️ '+svEsc(a.input.email)+(dM?' <em class="mid">(hinterlegt: '+svEsc(k.email)+' – bleibt)</em>':k.email===a.input.email?' <em>schon da</em>':''):''}</small></div>`; }).join('')}
-    ${R.miss.map(m=>`<div class="kx-pr bad"><b>${svEsc(m.txt)}</b><small>${m.names&&m.names.length?'Mehrdeutig: '+m.names.map(svEsc).join(', '):'Spieler nicht erkannt – bitte vollen Namen schreiben'}</small></div>`).join('')}</div>
+      return `<div class="kx-pr"><b>${svEsc(trName(a.input.player_id))}</b><small>${a.input.tel?'📱 '+svEsc(kxTelFmt(a.input.tel))+(dT?' <em class="mid">(hinterlegt: '+svEsc(kxTelFmt(k.tel))+' · bleibt)</em>':k.tel===a.input.tel?' <em>schon da</em>':''):''}${a.input.email?' ✉️ '+svEsc(a.input.email)+(dM?' <em class="mid">(hinterlegt: '+svEsc(k.email)+' · bleibt)</em>':k.email===a.input.email?' <em>schon da</em>':''):''}</small></div>`; }).join('')}
+    ${R.miss.map(m=>`<div class="kx-pr bad"><b>${svEsc(m.txt)}</b><small>${m.names&&m.names.length?'Mehrdeutig: '+m.names.map(svEsc).join(', '):'Spieler nicht erkannt, bitte vollen Namen schreiben'}</small></div>`).join('')}</div>
     ${R.actions.length?`<button class="btn" id="kxGo">${SVI('check')} ${R.actions.length} Spieler übernehmen</button>`:''}`;
   const g=document.getElementById('kxGo'); if(g)g.onclick=async()=>{ g.disabled=true;
     const rows=R.actions.map(a=>({id:a.input.player_id,name:trName(a.input.player_id),tel:a.input.tel||null,email:a.input.email||null}));
     const {data,error}=await SVB.sb.rpc('kontakt_import',{p_rows:rows}); g.disabled=false; if(error)return kToast('⚠️ '+error.message);
     await kxLoad(true); kToast(`✓ ${data.neu} Einträge ergänzt${data.konflikt.length?` · ${data.konflikt.length} Abweichung${data.konflikt.length>1?'en':''} nicht überschrieben`:''}${data.fehler.length?` · ${data.fehler.length} Fehler`:''}`);
-    kxView(B); if(data.konflikt.length||data.fehler.length){ const e=document.getElementById('kxImp'); if(e)e.innerHTML=`<div class="kx-prev">${data.konflikt.map(c=>`<div class="kx-pr"><b>${svEsc(c.name)}</b><small>${c.feld==='tel'?'📱':'✉️'} hinterlegt ${svEsc(c.feld==='tel'?kxTelFmt(c.alt):c.alt)} · in der Liste ${svEsc(c.feld==='tel'?kxTelFmt(c.neu):c.neu)} – im Profil korrigieren, falls die neue stimmt</small></div>`).join('')}${data.fehler.map(x=>`<div class="kx-pr bad"><b>${svEsc(x.name)}</b><small>${svEsc(x.fehler)}</small></div>`).join('')}</div>`; } };
+    kxView(B); if(data.konflikt.length||data.fehler.length){ const e=document.getElementById('kxImp'); if(e)e.innerHTML=`<div class="kx-prev">${data.konflikt.map(c=>`<div class="kx-pr"><b>${svEsc(c.name)}</b><small>${c.feld==='tel'?'📱':'✉️'} hinterlegt ${svEsc(c.feld==='tel'?kxTelFmt(c.alt):c.alt)} · in der Liste ${svEsc(c.feld==='tel'?kxTelFmt(c.neu):c.neu)} · im Profil korrigieren, falls die neue stimmt</small></div>`).join('')}${data.fehler.map(x=>`<div class="kx-pr bad"><b>${svEsc(x.name)}</b><small>${svEsc(x.fehler)}</small></div>`).join('')}</div>`; } };
 }
 
 /* ---------- Text verstehen: „Nummer von Max: 0171 …“, Listen, E-Mails ---------- */
@@ -7057,7 +7063,7 @@ function kxParse(text,opt){
 }
 const KX_DEL=/(lösch|losch|entfern|leer|weg\s*mach|raus\s*nehm|clear|delete)/i, KX_WHAT=/(nummer|handy|telefon|e-?mail|mail|kontakt)/i;
 function kxDeleteAsk(text){ return KX_DEL.test(text)&&KX_WHAT.test(text); }
-const KX_NO='Kontaktdaten lösche ich nicht – das geht aus Sicherheitsgründen weder über den Co-Trainer noch in einem Rutsch. Der Admin kann einzelne Einträge im Spielerprofil löschen; Korrekturen gehen dort für alle im Team (die alte Nummer bleibt im Verlauf).';
+const KX_NO='Kontaktdaten lösche ich nicht. Das geht aus Sicherheitsgründen weder über den Co-Trainer noch in einem Rutsch. Der Admin kann einzelne Einträge im Spielerprofil löschen; Korrekturen gehen dort für alle im Team (die alte Nummer bleibt im Verlauf).';
 
 /* ---------- Co-Trainer: Vorschlag „Kontakt eintragen“ ---------- */
 { const _as=trActSummary; trActSummary=function(a){ if(a.type!=='kontakt')return _as.apply(this,arguments); const i=a.input||{}, k=kxOf(i.player_id);
@@ -7319,7 +7325,7 @@ function sv4Score(p,base){
     {k:'pot',t:'Potenzial',v:Math.round(pot),w:Wt.pot,art:'auto',basis:p.alter!=null?`Alter ${p.alter}${p.geb?'':' (geschätzt)'}`:'Alter unbekannt → neutral'},
     {k:'trend',t:'Form',v:Math.round(trend),w:Wt.trend,art:'auto',basis:tratio!=null?`Quote aktuell vs. Vorsaison: ${tratio>=1?'+':''}${Math.round((tratio-1)*100)} %`:'noch kein Vergleich möglich → neutral'},
     {k:'presse',t:'Presse',v:Math.round(presse),w:Wt.presse,art:'auto',basis:p.pressIdx!=null?`Presse-Index aus ${(p.pressNews||[]).length} Nennungen`:'keine Presse → neutral 50'},
-    {k:'scout',t:'Eye-Test',v:eye==null?null:Math.round(eye),w:Wt.scout,art:'manuell',basis:ev?`Ø aus ${ev.E.n} Bewertung${ev.E.n>1?'en':''} (${ev.E.list.map(e=>sv4Esc(e.rater_name||'?')).join(', ')})${ev.E.alt?' · aus Saison '+sv4SL(ev.E.alt):''}, positionsgewichtet für ${sv4Esc(p.pos||'–')}`:'noch kein Eye-Test – zählt dann nicht mit (Gewicht wird verteilt)'}];
+    {k:'scout',t:'Eye-Test',v:eye==null?null:Math.round(eye),w:Wt.scout,art:'manuell',basis:ev?`Ø aus ${ev.E.n} Bewertung${ev.E.n>1?'en':''} (${ev.E.list.map(e=>sv4Esc(e.rater_name||'?')).join(', ')})${ev.E.alt?' · aus Saison '+sv4SL(ev.E.alt):''}, positionsgewichtet für ${sv4Esc(p.pos||'–')}`:'noch kein Eye-Test: zählt dann nicht mit (Gewicht wird verteilt)'}];
   return {prod:Math.round(prod),share:Math.round(share),ctx:Math.round(ctx),pot:Math.round(pot),trend:Math.round(trend),presse:Math.round(presse),scout:eye==null?50:Math.round(eye),level:Math.round(level),
     total:Math.round(total*10)/10,mvp:mvpVal,mvpAdj,mvpD,mvpBase:Math.round(mvpBase*10)/10,gpg,proj,tratio,defMode,gaTxt,defRaw,sdsB,adjD,adjBase,
     shareRaw:tTall>0?(t25+t26)/tTall:null,cur:c,q,E,eye,eyeE:ev?ev.E:null,comps,sum};
@@ -7363,9 +7369,9 @@ const SV4_OF={kader:'kader',elf:'kader',gespr:'kader',sxi:'kader',kaderplan:'kad
 const SV4_SIDEKEY={kader:'kader',scouting:'scout',mannschaft:'training',spieltag:'gegner',wissen:'play'};
 Object.assign(SV_PAGES,{
   kader:['Kader','Aktueller Kader, Zukunft je Spieler, Aufstellung und was fehlt'],gespr:['Spielergespräche','Wer bleibt? Letztes Gespräch, offene Themen, Entscheidung'],
-  elf:['Aufstellung','Startelf der laufenden Saison planen'],sxi:['Schattenelf','Backups und Wunschspieler je Position'],kaderplan:['Rollen & Skills','Rollen, Special Skills und Fuß – was haben wir, was fehlt'],
-  scout:['Scouting','Spielermarkt: alle Spieler der Region – filtern, sortieren, merken'],db:['Scouting','Spielermarkt als Tabelle'],bedarf:['Bedarf & Aufträge','Vom konkreten Bedarf zum passenden Spieler'],
-  kandidaten:['Kandidaten','Externe Kandidaten: Kontakt, Wechselchance, Zuständigkeit'],radar:['Radar','Torserien, heiße Läufe, Rohdiamanten – was in keiner Liste auffällt'],gems:['Radar','Rohdiamanten: unterschätzte Spieler'],
+  elf:['Aufstellung','Startelf der laufenden Saison planen'],sxi:['Schattenelf','Backups und Wunschspieler je Position'],kaderplan:['Rollen & Skills','Rollen, Special Skills und Fuß. Was haben wir, was fehlt'],
+  scout:['Scouting','Spielermarkt: alle Spieler der Region. Filtern, sortieren, merken'],db:['Scouting','Spielermarkt als Tabelle'],bedarf:['Bedarf & Aufträge','Vom konkreten Bedarf zum passenden Spieler'],
+  kandidaten:['Kandidaten','Externe Kandidaten: Kontakt, Wechselchance, Zuständigkeit'],radar:['Radar','Torserien, heiße Läufe, Rohdiamanten. Was in keiner Liste auffällt'],gems:['Radar','Rohdiamanten: unterschätzte Spieler'],
   jugend:['A-Jugend extern','Talente der Region (U19)'],cmp:['Vergleich','Spieler einer Position oder eines Auftrags nebeneinander'],
   training:['Mannschaft','Training, Spiele, Verletzungen, Abstimmungen und Kontakte'],kabine:['Mannschaft','Abstimmungen, Kontakte und Automatik'],kasse:['Mannschaftskasse','Strafen, Beiträge, Kassenstand'],
   gegner:['Spieltag','Gegnercheck: der nächste Gegner in Zahlen'],totw:['Spieltag','Elf der Woche: wer ist gerade in Form?'],ejugend:['Eigene Jugend','A- und B-Jugend: Statistik, Entwicklung, Einschätzungen der Trainer'],
@@ -7473,7 +7479,7 @@ function pf4Build(id){
   const hints=[];
   if(p.risiko)hints.push(['⚠️',sv4Esc(p.risiko),'warn']);
   if(p.info)hints.push(['💡',sv4Esc(p.info)]);
-  if(p.adjTo!=null)hints.push(['🎯',`Insider-Rating ${p.adjTo}${s.adjBase!=null?` (Modell: ${sv4Num(s.adjBase,1)})`:''}${p.adjWhy?' – '+sv4Esc(String(p.adjWhy).replace(/^Insider-Rating[^:]*:\s*/,'').replace(/\s*Rating manuell.*$/,'')):''}`]);
+  if(p.adjTo!=null)hints.push(['🎯',`Insider-Rating ${p.adjTo}${s.adjBase!=null?` (Modell: ${sv4Num(s.adjBase,1)})`:''}${p.adjWhy?' · '+sv4Esc(String(p.adjWhy).replace(/^Insider-Rating[^:]*:\s*/,'').replace(/\s*Rating manuell.*$/,'')):''}`]);
   try{ gemsOf(p).forEach(g=>hints.push(['💎',`<b>${sv4Esc(g.k)}</b>: ${sv4Esc(g.t)}`])); }catch(e){}
 
   // ---- Kopf ----
@@ -7515,7 +7521,7 @@ function pf4Build(id){
   eyeLine.innerHTML=EY?`<b>Eye-Test</b> Ø aus ${EY.n} Bewertung${EY.n>1?'en':''}${EY.alt?` (${sv4SL(EY.alt)})`:''} ${sv4I('Eye-Test',{art:'manuell',quelle:'Bewertungen von Trainern, Kaderplanern und Scouts',stand:sv4D(EY.last),
       txt:'Die Karte zeigt den Schnitt aller Bewertungen dieser Saison. Jede Person bewertet selbst und kann nur ihre eigene Bewertung ändern.',
       rows:EY.list.map(e=>[sv4Esc(e.rater_name||'?')+' · '+sv4D(e.updated_at),SV4_EYE.map(([k,,ab])=>e[k]!=null?ab+' '+sv4Num(e[k],e[k]%1?1:0):'').filter(Boolean).join(' · ')])})}`
-    :`<span>Werte auf der Karte aus den Daten – ${team?'noch kein Eye-Test':'kein Eye-Test'}</span>`;
+    :`<span>Werte auf der Karte aus den Daten · ${team?'noch kein Eye-Test':'kein Eye-Test'}</span>`;
   cardBox.appendChild(eyeLine);
   const eyeBox=document.createElement('div'); eyeBox.className='pf4-eye'; eyeBox.hidden=!PF4.eyeOpen; cardBox.appendChild(eyeBox);
   if(PF4.eyeOpen)pf4EyeForm(eyeBox,p);
@@ -7527,18 +7533,18 @@ function pf4Build(id){
     const lig=LIGA_NAME[ligaBase(x.liga)]||x.liga||'';
     tiles.push(`<div class="g4"><span>Einsätze ${sv4Esc(x.y)} ${sv4I('Einsätze '+x.y,{art:'auto',quelle:x.src||'Tabelle FUSSBALL.DE',stand:i===0&&p.cur&&p.cur.stand?sv4D(p.cur.stand):DATA.generated,
         rows:[['Verein',sv4Esc(x.club||'–')],['Liga',sv4Esc(lig)],['Team-Spiele',x.teamSp||'–'],['Einsätze',x.sp!=null?x.sp:(x.doc?`${x.docS} Startelf in ${x.doc} dok. Spielen`:'unbekannt')],['Minuten',x.min?x.min.toLocaleString('de-DE'):'–'],['Tore',x.tore!=null?(x.belegt?'min. ':'')+x.tore:'–']],
-        txt:x.sp==null&&!x.doc?'Für diesen Spieler sind keine Einsätze bekannt – nur die Spiele seiner Mannschaft.':''})}</span>
+        txt:x.sp==null&&!x.doc?'Für diesen Spieler sind keine Einsätze bekannt, nur die Spiele seiner Mannschaft.':''})}</span>
       <b>${x.sp!=null?x.sp:x.doc?x.docS:'?'}<i>/${x.teamSp||'–'}</i></b><small>${sv4Esc(x.club||'')} · ${sv4Esc(lig)}${x.min?' · '+x.min.toLocaleString('de-DE')+' Min.':''}</small></div>`); });
   if(p.pos==='TW'&&s.gaTxt)tiles.push(`<div class="g4"><span>Gegentore ${sv4I('Gegentore',{art:'auto',quelle:'Tabellen FUSSBALL.DE',txt:'Gegentore der Mannschaft pro Spiel. Wie viel davon auf ihn geht, hängt von seinen Einsätzen ab (siehe Einsatzquote).',rows:[['Einsatzquote',s.q==null?'unbekannt':Math.round(s.q*100)+' %']]})}</span><b>${sv4Esc(s.gaTxt.split(' ')[0])}</b><small>pro Spiel (Team) · Liga-Ø ${sv4Esc(s.gaTxt.split(' ').pop())}</small></div>`);
   else tiles.push(`<div class="g4"><span>Tore ${sv4I('Tore',{art:'auto',quelle:'Torjägerlisten FUSSBALL.DE, Vereinsheft, Spielberichte',stand:DATA.generated,rows:E.seasons.map(x=>[x.y,(x.belegt?'min. ':'')+(x.tore!=null?x.tore:'–')])})}</span><b>${E.seasons.map(x=>x.tore!=null?x.tore:'–').join(' <i>|</i> ')}</b><small>${E.seasons.map(x=>x.y).join(' | ')}</small></div>`);
   if(own&&team){
     const z=sv4Zuk(p,nx)||'bleibt'; const g=SV4.gs.filter(x=>x.player_id===p.id)[0];
-    tiles.push(`<div class="g4 zk"><span>Zukunft ${sv4SL(nx)} ${sv4I('Zukunft',{art:'manuell',txt:'Standard: Spieler bleibt. Ändern, sobald es Signale gibt – der Kaderplan rechnet damit weiter.',stand:(sv4SS(p.id,nx)||{}).updated_at?sv4D(sv4SS(p.id,nx).updated_at):'Standard (bleibt)'})}</span>
+    tiles.push(`<div class="g4 zk"><span>Zukunft ${sv4SL(nx)} ${sv4I('Zukunft',{art:'manuell',txt:'Standard: Spieler bleibt. Ändern, sobald es Signale gibt. Der Kaderplan rechnet damit weiter.',stand:(sv4SS(p.id,nx)||{}).updated_at?sv4D(sv4SS(p.id,nx).updated_at):'Standard (bleibt)'})}</span>
       <div class="zk4">${['bleibt','unsicher','geht',sv4Team(p)==='1'?'runter':'hoch'].map(k=>`<button type="button" class="${z===k?'on '+SV4_ZUK[k][1]:''}" data-zk="${k}">${SV4_ZUK[k][0]}</button>`).join('')}</div></div>`);
     tiles.push(`<div class="g4"><span>Letztes Gespräch</span><b>${g?sv4D(g.datum):'–'}</b><small>${g?sv4Esc(({bleibt:'will bleiben',unsicher:'unsicher',geht:'will gehen',offen:'offen',karriereende:'Karriereende'})[g.zukunft]||'')+(g.naechstes_am?' · nächstes '+sv4D(g.naechstes_am):''):'noch keins dokumentiert'}</small></div>`);
   } else if(!own&&!p.isJugend){
     const Wv=typeof wscoreSafe==='function'?wscoreSafe(p):null;
-    if(Wv)tiles.push(`<div class="g4"><span>Wechselchance ${sv4I('Wechsel-Index',{art:'auto',quelle:'Digital-Scout (öffentliche Signale)',txt:'Start bei 50, Signale werden addiert oder abgezogen – Details unten unter „Wechselchance“.'})}</span><b style="color:${tierColor(Wv.w)}">${Wv.w}</b><small>Transfer-Chance ${Wv.k}</small></div>`);
+    if(Wv)tiles.push(`<div class="g4"><span>Wechselchance ${sv4I('Wechsel-Index',{art:'auto',quelle:'Digital-Scout (öffentliche Signale)',txt:'Start bei 50, Signale werden addiert oder abgezogen. Details unten unter „Wechselchance“.'})}</span><b style="color:${tierColor(Wv.w)}">${Wv.w}</b><small>Transfer-Chance ${Wv.k}</small></div>`);
   }
   G.innerHTML=tiles.join('');
   G.querySelectorAll('[data-zk]').forEach(b=>b.onclick=async()=>{ try{ const z=b.dataset.zk; await sv4SSSet(p.id,nx,{zukunft:z,team:z==='geht'||z==='karriereende'?null:z==='hoch'?'1':z==='runter'?'2':sv4Team(p,sv4S())}); kToast('✓ '+svFirst(p.name)+' · '+sv4SL(nx)+': '+SV4_ZUK[z][0]); pf4Refresh(p.id); }catch(e){ kToast('⚠️ '+e.message); } });
@@ -7559,7 +7565,7 @@ function pf4Build(id){
       add('kand','Kandidat & Kontakt',bl?`<div class="pf4-bk"><h5>In Bedarfen</h5>${bl}</div>`:'',[crm,lat,crmnote],B.k!=='extern'?`<em>${sv4Esc(B.t)}</em>`:''); }
     if(k==='train'&&(trprof||vrprof))add('train','Training & Fitness','',[trprof,vrprof]);
     if(k==='stat'){ add('stat','Statistik & Saison-Records',pf4SeasonsHtml(p,s),[sEin,!own?vrprof:null]); }
-    if(k==='score'){ add('score','MScore – so entsteht der Wert',pf4ScoreHtml(p,s),[proj,mgrid&&mgrid.querySelector('.radarbox')],`<em>${sv4Num(s.total,1)}</em>`); }
+    if(k==='score'){ add('score','MScore, so entsteht der Wert',pf4ScoreHtml(p,s),[proj,mgrid&&mgrid.querySelector('.radarbox')],`<em>${sv4Num(s.total,1)}</em>`); }
     if(k==='wechsel'&&sWV)add('wechsel','Wechselchance (Digital-Scout)','',[sWV]);
     if(k==='bogen'&&sbside)add('bogen','Spielerbogen: Rolle, Skills, Charakter','',[sbside]);
     if(k==='kontakt'&&kx)add('kontakt','Kontakt & Wohnort','',[kx]);
@@ -7593,7 +7599,7 @@ function pf4SeasonsHtml(p,s){
   const ys=Object.keys(by).sort().reverse();
   ys.forEach(y=>{ const o=by[y]; rows.push(`<tr class="arc"><th>${sv4Esc(y.slice(2,4)+'/'+y.slice(5))}</th><td>SV/BSC Mörlenbach<small>1. Mannschaft · Vereinsdaten</small></td><td><b>${o.sp}</b> Sp.${o.pk?` (davon ${o.pk} Pokal)`:''}${o.st!=null?` · ${o.st}× Startelf`:''}</td><td><b>${o.t}</b> T${o.v?` · ${o.v} V`:''}</td></tr>`); });
   const tot=ys.reduce((a,y)=>({sp:a.sp+by[y].sp,t:a.t+by[y].t}),{sp:0,t:0});
-  const sds=p.sds?`<div class="pf4-sds">🏅 Elf der Woche (FuPa) 25/26: <b>${p.sds}×</b> ${sv4I('Elf der Woche',{art:(CRM[p.id]||{}).sds!=null?'manuell':'Datenbestand',quelle:'FuPa „Elf der Woche“ – übernommen in den Datenbestand',stand:DATA.generated,txt:'Diese Zahl wurde nicht automatisch geprüft. Stimmt sie nicht, unter „Bearbeiten“ korrigieren – sie gibt +2 MScore je Nominierung (max. +6).'})}</div>`:'';
+  const sds=p.sds?`<div class="pf4-sds">🏅 Elf der Woche (FuPa) 25/26: <b>${p.sds}×</b> ${sv4I('Elf der Woche',{art:(CRM[p.id]||{}).sds!=null?'manuell':'Datenbestand',quelle:'FuPa „Elf der Woche“. Übernommen in den Datenbestand',stand:DATA.generated,txt:'Diese Zahl wurde nicht automatisch geprüft. Stimmt sie nicht, unter „Bearbeiten“ korrigieren. Sie gibt +2 MScore je Nominierung (max. +6).'})}</div>`:'';
   return `<table class="pf4-st"><thead><tr><th>Saison</th><th>Verein · Liga</th><th>Einsätze</th><th>Tore</th></tr></thead><tbody>${rows.join('')}</tbody></table>
     ${ys.length?`<p class="note small">Archiv 13/14–22/23 aus den Vereinsdaten (Lukas): <b>${tot.sp}</b> Pflichtspiele, <b>${tot.t}</b> Tore für die Erste. 23/24 fehlt noch (FuPa-Daten folgen).</p>`:(p.own?'<p class="note small">Ältere Saisons: keine Vereinsdaten zu diesem Namen gefunden.</p>':'')}
     ${sds}`;
@@ -7625,7 +7631,7 @@ function pf4EyeForm(box,p){
     ${E&&E.all.length?`<div class="ey4-l"><h5>Alle Bewertungen</h5>${E.all.map(e=>`<div class="ey4-i"><b>${sv4Esc(e.rater_name||'?')}</b><span>${sv4SL(e.saison)} · ${sv4D(e.updated_at)}${e.gesehen_bei?' · '+sv4Esc(e.gesehen_bei):''}</span>
       <em>${SV4_EYE.map(([k,,ab])=>e[k]!=null?`${ab} ${sv4Num(e[k],e[k]%1?1:0)}`:'').filter(Boolean).join(' · ')}</em>${e.notiz?`<p>${sv4Esc(e.notiz)}</p>`:''}
       ${e.rater===me||boss?`<button class="kx-b ic del" data-eyd="${e.id}" title="Löschen">${SVI('trash')}</button>`:''}</div>`).join('')}</div>`:''}
-    <p class="note small">Jeder bewertet selbst – die Karte zeigt den Schnitt. Fremde Bewertungen löschen nur Admin und Vorstand.${own?'':' Externe Spieler nur bewerten, wenn du ihn gesehen hast.'}</p></div>`;
+    <p class="note small">Jeder bewertet selbst: die Karte zeigt den Schnitt. Fremde Bewertungen löschen nur Admin und Vorstand.${own?'':' Externe Spieler nur bewerten, wenn du ihn gesehen hast.'}</p></div>`;
   box.querySelectorAll('[data-ey]').forEach(i=>i.oninput=()=>{ const x=+i.value; i.nextElementSibling.textContent=x<1?'–':sv4Num(x,x%1?1:0); });
   box.querySelector('[data-eyc]').onclick=()=>{ PF4.eyeOpen=false; box.hidden=true; };
   box.querySelector('[data-eys]').onclick=async e=>{ const b=e.currentTarget; const o={player_id:p.id,saison:sv4S()}; let any=false;
@@ -7633,7 +7639,7 @@ function pf4EyeForm(box,p){
     box.querySelectorAll('[data-eyf]').forEach(i=>o[i.dataset.eyf]=i.value.trim()||null);
     if(!any)return kToast('Mindestens eine Kategorie bewerten');
     if(!own&&!o.gesehen_am)return kToast('Wann hast du ihn gesehen?');
-    b.disabled=true; try{ await sv4EyeSave(o); kToast('✓ Eye-Test gespeichert – Karte & MScore aktualisiert'); PF4.eyeOpen=false; try{ renderAll(); }catch(x){} pf4Refresh(p.id); }catch(x){ kToast('⚠️ '+x.message); b.disabled=false; } };
+    b.disabled=true; try{ await sv4EyeSave(o); kToast('✓ Eye-Test gespeichert: Karte & MScore aktualisiert'); PF4.eyeOpen=false; try{ renderAll(); }catch(x){} pf4Refresh(p.id); }catch(x){ kToast('⚠️ '+x.message); b.disabled=false; } };
   box.querySelectorAll('[data-eyd]').forEach(b=>b.onclick=async()=>{ if(!b.classList.contains('sure')){ b.classList.add('sure'); b.textContent='Löschen?'; return; }
     try{ await sv4EyeDel(+b.dataset.eyd); kToast('Bewertung gelöscht'); try{ renderAll(); }catch(x){} pf4Refresh(p.id); }catch(x){ kToast('⚠️ '+x.message); } });
 }
@@ -7684,19 +7690,19 @@ if(typeof kxBoxHtml==='function'){ const _kb4=kxBoxHtml; kxBoxHtml=function(p){ 
   if(s&&s.comps&&typeof radarChart!=='undefined'&&radarChart&&radarChart.data){ const C=s.comps; radarChart.data.labels=C.map(c=>c.t); radarChart.data.datasets[0].data=C.map(c=>c.v==null?0:c.v); radarChart.update(); } }catch(e){} return r; }; }
 
 /* ---------- Wissen → Modell: MScore 2.0 verständlich erklärt ---------- */
-const SV4_MODEL=[['prod','Produktion / Defensivwert','Tore pro Spiel, gewichtet mit der Liga (1,0 Tore/Spiel in der A-Liga = 100). Abwehr & Torwart: Gegentore der Mannschaft im Vergleich zur Liga – aber nur so viel, wie der Spieler selbst gespielt hat, und ligagewichtet.'],
+const SV4_MODEL=[['prod','Produktion / Defensivwert','Tore pro Spiel, gewichtet mit der Liga (1,0 Tore/Spiel in der A-Liga = 100). Abwehr & Torwart: Gegentore der Mannschaft im Vergleich zur Liga, aber nur so viel, wie der Spieler selbst gespielt hat, und ligagewichtet.'],
   ['level','Einsatz & Liga','Wer in einer höheren Liga regelmäßig spielt, ist schon deshalb gut: Liga-Grundwert (GL 100 … D 27) × Einsatzquote (Minuten bzw. Einsätze je Team-Spiel).'],
   ['share','Teamrolle','Anteil an den Toren der Mannschaft (40 % = volle Punktzahl); bei Abwehrspielern ohne Tore die Einsatzquote.'],
-  ['ctx','Teamstärke','Tabellenplatz der Mannschaft – bei Abwehrspielern neutral, weil er schon in den Gegentoren steckt.'],
+  ['ctx','Teamstärke','Tabellenplatz der Mannschaft: bei Abwehrspielern neutral, weil er schon in den Gegentoren steckt.'],
   ['pot','Potenzial','Alter: ≤ 20 J. = 100 … ≥ 33 J. = 18. Ohne Geburtsdatum geschätzt (im Profil markiert).'],
   ['trend','Form','Quote der laufenden Saison gegen die Vorsaison (ab 3 Spielen).'],
-  ['presse','Presse','Tenor der Presse-Nennungen (Tore, Lob, Kritik, Verletzungen) – ohne Nennungen neutral 50.'],
-  ['scout','Eye-Test','Schnitt aller Eye-Tests dieser Saison (Tempo, Schuss, Pass, Dribbling, Defensive, Physis), gewichtet nach Position. Ohne Eye-Test zählt der Baustein nicht – sein Gewicht wird verteilt.']];
+  ['presse','Presse','Tenor der Presse-Nennungen (Tore, Lob, Kritik, Verletzungen), ohne Nennungen neutral 50.'],
+  ['scout','Eye-Test','Schnitt aller Eye-Tests dieser Saison (Tempo, Schuss, Pass, Dribbling, Defensive, Physis), gewichtet nach Position. Ohne Eye-Test zählt der Baustein nicht. Sein Gewicht wird verteilt.']];
 function sv4ModelCard(){
   const P=document.getElementById('panel-model'); if(!P)return; let c=P.querySelector('.m4'); if(!c){ c=document.createElement('div'); c.className='card m4'; P.prepend(c);
     const old=[...P.querySelectorAll('.card')].find(x=>/So rechnet das Modell/.test(x.textContent)); if(old&&!old.closest('details')){ const d=document.createElement('details'); d.className='pf4-sec'; d.innerHTML='<summary><span>Frühere Modell-Notizen (Versionen bis 3.5)</span></summary><div class="pf4-b"></div>'; old.before(d); d.querySelector('.pf4-b').appendChild(old); } }
   const sum=Object.values(W).reduce((a,b)=>a+(+b||0),0)||1;
-  c.innerHTML=`<h3>MScore 2.0 – so entsteht der Wert</h3><p class="note">Ein Gesamtwert ist nur so gut wie seine Nachvollziehbarkeit: Jeder Baustein steht im Spielerprofil mit ⓘ (Quelle, automatisch oder manuell, Stand, Grundlage). Die Gewichte stellst du unten live ein; mit mehr Daten wird das Modell besser.</p>
+  c.innerHTML=`<h3>MScore 2.0, so entsteht der Wert</h3><p class="note">Ein Gesamtwert ist nur so gut wie seine Nachvollziehbarkeit: Jeder Baustein steht im Spielerprofil mit ⓘ (Quelle, automatisch oder manuell, Stand, Grundlage). Die Gewichte stellst du unten live ein; mit mehr Daten wird das Modell besser.</p>
     <table class="pf4-st"><thead><tr><th>Baustein</th><th>Gewicht</th><th>So wird gerechnet</th></tr></thead><tbody>${SV4_MODEL.map(([k,t,d])=>`<tr><th>${sv4Esc(t)}</th><td><b>${Math.round((W[k]||0)/sum*100)} %</b></td><td>${sv4Esc(d)}</td></tr>`).join('')}</tbody></table>
     <p class="note small">Dazu (falls vorhanden): Elf der Woche +2 je Nominierung (max. +6) · FuPa-MVP ±6 % · Insider-Rating der Sportlichen Leitung überschreibt transparent.</p>`;
 }
@@ -7816,7 +7822,7 @@ function sc4Bedarf(){
           <span>${sv4Esc(SV4_POSL[b.pos]||b.pos)} · ${SV4_TEAM[b.team]} · ${sv4SL(b.saison)} · ${SC4_ZP[b.zeitpunkt]||''}</span>
           <small>${sv4Esc(SC4_GRUND[b.grund]||'')}${fp?' für '+sv4Esc(fp.name):''} · ${K.length} Kandidaten${K.filter(x=>x.status==='shortlist').length?' · '+K.filter(x=>x.status==='shortlist').length+' Shortlist':''}</small>
           <i class="st4"><u style="width:${Math.round(st/7*100)}%"></u></i><em>${SC4_FLOW[st]}</em></button>`; }).join('')}</div>`
-      :`<div class="empty">${f==='offen'?'Kein offener Bedarf. Im Kader unter „Bedarfsanalyse“ siehst du, wo etwas fehlt – oder lege hier einen an.':'Nichts in dieser Auswahl.'}</div>`}
+      :`<div class="empty">${f==='offen'?'Kein offener Bedarf. Im Kader unter „Bedarfsanalyse“ siehst du, wo etwas fehlt, oder lege hier einen an.':'Nichts in dieser Auswahl.'}</div>`}
     </div>${open?sc4Detail(open):''}`;
   host.querySelector('[data-bnew]').onclick=()=>sc4BedarfEditor(null,{});
   host.querySelectorAll('[data-bf]').forEach(b=>b.onclick=()=>{ SC4.flt=b.dataset.bf; sc4Bedarf(); });
@@ -7837,9 +7843,9 @@ function sc4Detail(b){
   return `<div class="card bd4d" id="bd4D"><div class="kd4-lh"><h3>${sv4Esc(b.titel)}</h3><div class="btnrow"><button class="btn sm ghost" data-bedit>${SVI('sliders')} Bearbeiten</button>${K.length>1?`<button class="btn sm ghost" data-bcmp>${SVI('chart')} Vergleichen</button>`:''}</div></div>
     <div class="flow4">${SC4_FLOW.map((t,i)=>`<span class="${i<=st?'on':''}${i===st?' now':''}">${t}</span>`).join('<i>›</i>')}</div>
     <div class="bd4-p"><span><b>${sv4Esc(SV4_POSL[b.pos]||b.pos)}</b> · ${SV4_TEAM[b.team]} · ${sv4SL(b.saison)} · ${SC4_ZP[b.zeitpunkt]}</span><span>Prio <b>${sv4Esc(b.prio)}</b> · ${sv4Esc(SC4_GRUND[b.grund]||'')}${b.fuer_player&&sv4P(b.fuer_player)?' für '+sv4Esc(sv4P(b.fuer_player).name):''}</span>
-      <span>Suchprofil: ${prof.length?prof.join(' · '):'<i>noch offen – unter „Bearbeiten“ festlegen</i>'}</span>${b.notiz?`<span class="note small">${sv4Esc(b.notiz)}</span>`:''}</div>
+      <span>Suchprofil: ${prof.length?prof.join(' · '):'<i>noch offen: unter „Bearbeiten“ festlegen</i>'}</span>${b.notiz?`<span class="note small">${sv4Esc(b.notiz)}</span>`:''}</div>
     <h5 class="bd4h">Kandidaten <i>${K.length}</i></h5>
-    ${K.length?`<div class="bk4l">${SC4_ST.concat([['verworfen','']]).map(([k])=>K.filter(x=>x.status===k).map(row).join('')).join('')}</div>`:'<p class="note">Noch keine Kandidaten – aus den Vorschlägen übernehmen, per KI-Auftrag suchen oder im Spielermarkt bei einem Spieler „+ Bedarf“ tippen.</p>'}
+    ${K.length?`<div class="bk4l">${SC4_ST.concat([['verworfen','']]).map(([k])=>K.filter(x=>x.status===k).map(row).join('')).join('')}</div>`:'<p class="note">Noch keine Kandidaten: aus den Vorschlägen übernehmen, per KI-Auftrag suchen oder im Spielermarkt bei einem Spieler „+ Bedarf“ tippen.</p>'}
     ${intern.length?`<h5 class="bd4h">Interne Lösung prüfen</h5><div class="sg4">${intern.map(({p,q})=>`<button type="button" class="sg4c" data-badd="${sv4Esc(p.id)}" data-bq="${q}"><b>${sv4Esc(p.name)}</b><span>${q==='zweite'?'2. Mannschaft':'A-Jugend'} · ${sv4Esc(p.pos||'')} · ${Math.round(scores(p).total)}</span><i>+ prüfen</i></button>`).join('')}</div>`:''}
     <h5 class="bd4h">Vorschläge nach Suchprofil</h5>${sug.length?`<div class="sg4">${sug.map(p=>{ const W=typeof wscoreSafe==='function'&&!p.isJugend?wscoreSafe(p):null; return `<button type="button" class="sg4c" data-badd="${sv4Esc(p.id)}" data-bq="manuell"><b>${sv4Esc(p.name)}</b><span>${sv4Esc((p.cur&&p.cur.club)||p.club)} · ${p.alter!=null?p.alter+' J. · ':''}${Math.round(scores(p).total)}${W?' · 🔁 '+W.w:''}</span><i>+ Kandidat</i></button>`; }).join('')}</div>`:'<p class="note small">Keine weiteren Treffer mit diesem Profil.</p>'}
     <h5 class="bd4h">KI-Scouting-Aufträge</h5>
@@ -7875,7 +7881,7 @@ async function sc4Job(b){
   try{ const {data:id,error:e1}=await SVB.sb.rpc('scout_job_neu',{p_art:'position',p_player:null,p_pos:b.pos==='Flügel'?'ST':b.pos,p_saison:b.saison,p_frage:frage.slice(0,500)}); if(e1)throw new Error(e1.message);
     const {error}=await SVB.sb.rpc('scout_job_bedarf',{p_job:id,p_bedarf:b.id,p_profil:Object.keys(pr).length?pr:null}); if(error)console.warn(error);
     SVB.sb.functions.invoke('scout-auftrag',{body:{job:id}}).then(()=>setTimeout(()=>sc2Load(true).then(()=>{ if(svCurTab()==='bedarf')sc4Bedarf(); }),1500)).catch(()=>{});
-    kToast('🔎 Scouts sind los – Meldung kommt, sobald der Bericht fertig ist');
+    kToast('🔎 Scouts sind los. Meldung kommt, sobald der Bericht fertig ist');
     await sc2Load(true); const j=SC2.jobs.find(x=>x.id===id); if(j)j.bedarf_id=b.id; if(b.status==='offen'){ await SVB.sb.from('bedarfe').update({status:'suche'}).eq('id',b.id); b.status='suche'; } sc4Bedarf(); }
   catch(e){ kToast('⚠️ '+e.message); }
 }
@@ -7883,7 +7889,7 @@ function sc4BedarfEditor(id,pre){
   const b=id?SV4.bed.find(x=>x.id===id):null, P=Object.assign({pos:'IV',team:'1',saison:sv4SAdd(sv4S(),1),zeitpunkt:'sommer',grund:'verstaerkung',prio:'mittel'},pre||{},b||{}), pr=(b&&b.profil)||{};
   const kad=players.filter(p=>sv4Team(p)===P.team||sv4Team(p)==='1').sort((a,c)=>a.name.localeCompare(c.name));
   const sel=(id2,opts,v)=>`<select id="${id2}">${opts.map(([k,t])=>`<option value="${k}"${String(v)===String(k)?' selected':''}>${t}</option>`).join('')}</select>`;
-  const M=svModal(`<div class="mhead"><div class="rm-ic" style="width:46px;height:46px">${SVI('target')}</div><div><h2 style="margin:0">${b?'Bedarf bearbeiten':'Neuer Bedarf'}</h2><div class="msub">Erst der Bedarf, dann die Suche – Kandidaten und KI-Aufträge hängen darunter</div></div></div>
+  const M=svModal(`<div class="mhead"><div class="rm-ic" style="width:46px;height:46px">${SVI('target')}</div><div><h2 style="margin:0">${b?'Bedarf bearbeiten':'Neuer Bedarf'}</h2><div class="msub">Erst der Bedarf, dann die Suche. Kandidaten und KI-Aufträge hängen darunter</div></div></div>
     <div class="editgrid bd4f">
       <div class="field w"><label>Titel</label><input id="b4t" maxlength="120" value="${sv4Esc(b?b.titel:'')}" placeholder="z. B. Neuer Innenverteidiger für ${sv4SL(P.saison)}"></div>
       <div class="field"><label>Position</label>${sel('b4p',SV4_POS.map(k=>[k,SV4_POSL[k]]),P.pos)}</div>
@@ -7902,7 +7908,7 @@ function sc4BedarfEditor(id,pre){
       <div class="field w"><label>Notiz</label><input id="b4n" maxlength="800" value="${sv4Esc(b?b.notiz||'':'')}"></div>
     </div>
     <div class="btnrow" style="margin-top:12px"><button class="btn" id="b4save">${SVI('check')} ${b?'Speichern':'Bedarf anlegen'}</button>${b?`<button class="btn ghost" id="b4del">${SVI('trash')} Löschen</button>`:''}<button class="btn ghost" id="b4x">Abbrechen</button></div>`);
-  const upT=()=>{ const t=M.querySelector('#b4t'); if(!b&&!t.dataset.touched){ const p=M.querySelector('#b4p').value, s=M.querySelector('#b4s').value, f=M.querySelector('#b4f'), fn=f.value&&sv4P(f.value); t.value=(fn?'Ersatz für '+fn.name+' – ':'Neuer ')+(SV4_POSL[p]||p)+' '+sv4SL(s); } };
+  const upT=()=>{ const t=M.querySelector('#b4t'); if(!b&&!t.dataset.touched){ const p=M.querySelector('#b4p').value, s=M.querySelector('#b4s').value, f=M.querySelector('#b4f'), fn=f.value&&sv4P(f.value); t.value=(fn?'Ersatz für '+fn.name+' · ':'Neuer ')+(SV4_POSL[p]||p)+' '+sv4SL(s); } };
   M.querySelector('#b4t').oninput=e=>e.target.dataset.touched='1'; ['#b4p','#b4s','#b4f'].forEach(s=>M.querySelector(s).onchange=upT); upT();
   M.querySelector('#b4x').onclick=()=>closeOverlay();
   M.querySelector('#b4save').onclick=async e=>{ const v=s=>M.querySelector(s).value.trim();
@@ -7910,7 +7916,7 @@ function sc4BedarfEditor(id,pre){
     const row={titel:v('#b4t')||'Bedarf',pos:v('#b4p'),team:v('#b4m'),saison:v('#b4s'),zeitpunkt:v('#b4z'),grund:v('#b4g'),fuer_player:v('#b4f')||null,prio:v('#b4r'),profil:prof,notiz:v('#b4n')||null};
     e.currentTarget.disabled=true;
     try{ const r=b?await SVB.sb.from('bedarfe').update(row).eq('id',b.id).select().single():await SVB.sb.from('bedarfe').insert(row).select().single(); if(r.error)throw new Error(r.error.message);
-      SV4.bed=[r.data].concat(SV4.bed.filter(x=>x.id!==r.data.id)); SC4.open=r.data.id; SC4.flt='offen'; closeOverlay(); kToast(b?'✓ Gespeichert':'✓ Bedarf angelegt – jetzt Kandidaten sammeln');
+      SV4.bed=[r.data].concat(SV4.bed.filter(x=>x.id!==r.data.id)); SC4.open=r.data.id; SC4.flt='offen'; closeOverlay(); kToast(b?'✓ Gespeichert':'✓ Bedarf angelegt: jetzt Kandidaten sammeln');
       if(svCurTab()!=='bedarf')goTab('bedarf'); else sc4Bedarf(); }catch(x){ kToast('⚠️ '+x.message); e.currentTarget.disabled=false; } };
   const d=M.querySelector('#b4del'); if(d)d.onclick=async()=>{ if(!d.classList.contains('sure')){ d.classList.add('sure'); d.textContent='Wirklich löschen?'; return; }
     const {error}=await SVB.sb.from('bedarfe').delete().eq('id',b.id); if(error)return kToast('⚠️ '+error.message); SV4.bed=SV4.bed.filter(x=>x.id!==b.id); SV4.bk=SV4.bk.filter(x=>x.bedarf_id!==b.id); SC4.open=null; closeOverlay(); sc4Bedarf(); };
@@ -8019,7 +8025,7 @@ function kd4Render(){
       <div class="seg4">${[['1','1. Mannschaft'],['2','2. Mannschaft'],['A','A-Jugend']].map(([k,t])=>`<button type="button" class="${team===k?'on':''}" data-kt="${k}">${t}</button>`).join('')}</div>
       <div class="seg4 sm">${sv4Seasons().map(x=>`<button type="button" class="${s===x?'on':''}" data-ks="${x}">${sv4SL(x)}${x===sv4S()?' <i>jetzt</i>':''}</button>`).join('')}</div>
       <div class="kd4-sum"><span><b>${im.length}</b> im Kader</span>${cnt('unsicher')?`<span class="warn"><b>${cnt('unsicher')}</b> unsicher</span>`:''}${cnt('geht')+cnt('karriereende')?`<span class="bad"><b>${cnt('geht')+cnt('karriereende')}</b> gehen</span>`:''}${cnt('neu')?`<span class="ok"><b>${cnt('neu')}</b> neu</span>`:''}${cnt('ziel')?`<span class="info"><b>${cnt('ziel')}</b> Wunsch</span>`:''}<span>Ø Alter <b>${ages.length?sv4Num(ages.reduce((a,b)=>a+b,0)/ages.length,1):'–'}</b></span></div>
-      <p class="note small">${s===sv4S()?'Laufende Saison. Tippe beim Spieler auf die Zukunft für '+sv4SL(sv4SAdd(s,1))+' – Standard ist „bleibt“.':'Planung '+sv4SL(s)+': Grundlage ist die Zukunft aus '+sv4SL(sv4SAdd(s,-1))+'. Neuzugänge kommen über Bedarf & Scouting oder „+ Spieler“.'}</p>
+      <p class="note small">${s===sv4S()?'Laufende Saison. Tippe beim Spieler auf die Zukunft für '+sv4SL(sv4SAdd(s,1))+' · Standard ist „bleibt“.':'Planung '+sv4SL(s)+': Grundlage ist die Zukunft aus '+sv4SL(sv4SAdd(s,-1))+'. Neuzugänge kommen über Bedarf & Scouting oder „+ Spieler“.'}</p>
     </div>
     <div class="kd4-main">
       <div class="card kd4-list">${kd4ListHtml(all,s,team)}</div>
@@ -8060,7 +8066,7 @@ function kd4PitchHtml(){
   const rest=kd4Members(KD4.team,kd4S()).filter(p=>!used.has(p.id)&&!bank.includes(p.id)&&!['geht','karriereende','weg','ziel'].includes(kd4Status(p,kd4S(),KD4.team)));
   return `<div class="kd4-ph"><div class="seg4 sm">${[['haupt','Hauptaufstellung'],['alt1','Alternative']].map(([k,t])=>`<button type="button" class="${KD4.art===k?'on':''}" data-ka="${k}">${t}</button>`).join('')}</div>
       <select data-kf aria-label="Formation">${Object.keys(FORMATIONS).map(f=>`<option${f===L.formation?' selected':''}>${f}</option>`).join('')}</select></div>
-    ${L.live?`<p class="note small">Das ist die aktuelle Startelf aus „Aufstellung“ – Änderungen gelten für beide.</p>`:L.auto?`<p class="note small">Vorschlag nach Position und MScore – antippen und ändern, dann wird gespeichert.</p>`:''}
+    ${L.live?`<p class="note small">Das ist die aktuelle Startelf aus „Aufstellung“. Änderungen gelten für beide.</p>`:L.auto?`<p class="note small">Vorschlag nach Position und MScore. Antippen und ändern, dann wird gespeichert.</p>`:''}
     <div class="pitch4 fut-noflip"><div class="pl4"></div>${F.map(([role],i)=>card(L.slots[i],role,i)).join('')}</div>
     <div class="bank4"><h5>Bank <i>${bank.length}/7</i></h5><div>${bank.map(id=>{ const p=sv4P(id); return `<button type="button" class="bk4c" data-bank="${sv4Esc(id)}"><em style="--c:${tierColor(kd4Ovr(p))}">${kd4Ovr(p)}</em>${sv4Esc(p.name.split(' ').slice(-1)[0])}<span>${sv4Esc(p.pos||'')}</span></button>`; }).join('')}${bank.length<7?`<button type="button" class="bk4c add" data-bank="">+</button>`:''}</div></div>
     ${rest.length?`<div class="bank4 rest"><h5>Weitere Kaderplätze <i>${rest.length}</i></h5><div>${rest.slice(0,24).map(p=>`<span class="rs4">${sv4Esc(p.name.split(' ').slice(-1)[0])} <i>${sv4Esc(p.pos||'')}</i></span>`).join('')}</div></div>`:''}`;
@@ -8134,7 +8140,7 @@ function kd4ZukMenu(btn,pid){
 }
 function kd4AddPicker(){
   const s=kd4S(), team=KD4.team;
-  const M=svModal(`<h2 style="margin:0 0 4px">Spieler für ${SV4_TEAM[team]} · ${sv4SL(s)}</h2><p class="note">Neuzugang, aus der Zweiten/Jugend oder Wunschspieler. Wird als Beziehung zum Verein gespeichert – die Spielerdaten bleiben, wo sie sind.</p>
+  const M=svModal(`<h2 style="margin:0 0 4px">Spieler für ${SV4_TEAM[team]} · ${sv4SL(s)}</h2><p class="note">Neuzugang, aus der Zweiten/Jugend oder Wunschspieler. Wird als Beziehung zum Verein gespeichert. Die Spielerdaten bleiben, wo sie sind.</p>
     <input class="kx-in" id="kd4Q" placeholder="Name oder Verein …" autocomplete="off"><div class="seg4 sm" style="margin:8px 0"><button type="button" class="on" data-am="neu">Neuzugang / fest</button><button type="button" data-am="ziel">Wunschspieler</button></div><div id="kd4R" class="pk4"></div>`);
   let mode='neu'; const q=M.querySelector('#kd4Q'), R=M.querySelector('#kd4R');
   M.querySelectorAll('[data-am]').forEach(b=>b.onclick=()=>{ mode=b.dataset.am; M.querySelectorAll('[data-am]').forEach(x=>x.classList.toggle('on',x===b)); });
@@ -8215,7 +8221,7 @@ function kd4Gespr(){
    - „Training“ heißt jetzt Mannschaft: Training, Spiele, Spieler, Verletzungen + Abstimmungen, Kontakte, Automatik
    - Spiele und Einheiten je Saison (inkl. Archiv 13/14–22/23), Spieler nach dem Spiel bewerten (Noten 1–6, auch per Sprache)
    - Gegnercheck ohne KI-Matchplan, dafür Grundordnung des Gegners (vom Trainer notiert); auf der Übersicht nur noch eine Zeile
-   - Eigene Jugend (A/B): Kader, Statistik, Entwicklung und Einschätzungen der Jugendtrainer – ohne Kontaktdaten und Fotos
+   - Eigene Jugend (A/B): Kader, Statistik, Entwicklung und Einschätzungen der Jugendtrainer, ohne Kontaktdaten und Fotos
    - Übersicht je Rolle: was heute zu tun ist statt Funktionsliste
    ===================================================================== */
 const TM4={gs:null,ss:null,arch:null,archBusy:false};
@@ -8257,8 +8263,8 @@ function tm4ArchView(B,s){
   const now=sv4S(), arch=tm4Seasons();
   const G=TM4.arch.filter(g=>g.saison===s), st=SV4.stat.filter(r=>r.saison===s);
   if(!G.length&&!st.length){ const bet=typeof SV41!=='undefined'?SV41.bet.filter(r=>r.saison===s):[];
-    B.innerHTML=tm4Chips([[now,sv4SL(now)]].concat(arch.map(y=>[y,y.slice(2,4)+'/'+y.slice(5)])),s,'data-tgs')+`<div class="card"><div class="vrat-h"><h3 class="trh" style="margin:0">${SVI('ball')} Saison ${sv4Esc(s)} – 1. Mannschaft</h3></div>
-      <p class="note">Für diese Saison liegen keine Einzelspiele im Archiv.${bet.length?` Aus Julians Liste: <b>${bet[0].spiele_max}</b> Spiele (Pflicht + Test) und <b>${bet[0].training_max}</b> Trainings – wer wie oft dabei war, steht unter <a href="#" data-tm4bet>Beteiligung</a>.`:''}</p></div>`;
+    B.innerHTML=tm4Chips([[now,sv4SL(now)]].concat(arch.map(y=>[y,y.slice(2,4)+'/'+y.slice(5)])),s,'data-tgs')+`<div class="card"><div class="vrat-h"><h3 class="trh" style="margin:0">${SVI('ball')} Saison ${sv4Esc(s)} · 1. Mannschaft</h3></div>
+      <p class="note">Für diese Saison liegen keine Einzelspiele im Archiv.${bet.length?` Aus Julians Liste: <b>${bet[0].spiele_max}</b> Spiele (Pflicht + Test) und <b>${bet[0].training_max}</b> Trainings: wer wie oft dabei war, steht unter <a href="#" data-tm4bet>Beteiligung</a>.`:''}</p></div>`;
     B.querySelectorAll('[data-tgs]').forEach(x=>x.onclick=()=>{ TM4.gs=x.dataset.tgs; trViewGames(B); });
     const a=B.querySelector('[data-tm4bet]'); if(a)a.onclick=e=>{ e.preventDefault(); SV41.bs=s; sv4Go('training:bet'); };
     return; }
@@ -8266,7 +8272,7 @@ function tm4ArchView(B,s){
   const rows=Object.values(by).sort((a,b)=>b.sp-a.sp||b.t-a.t);
   const w=G.filter(g=>g.tore>g.gegentore).length, d=G.filter(g=>g.tore===g.gegentore).length, l=G.filter(g=>g.tore<g.gegentore).length;
   const I=sv4StatIdx();
-  B.innerHTML=tm4Chips([[now,sv4SL(now)]].concat(arch.map(y=>[y,y.slice(2,4)+'/'+y.slice(5)])),s,'data-tgs')+`<div class="card"><div class="vrat-h"><h3 class="trh" style="margin:0">${SVI('ball')} Saison ${sv4Esc(s)} – 1. Mannschaft <small>Vereinsarchiv</small></h3></div>
+  B.innerHTML=tm4Chips([[now,sv4SL(now)]].concat(arch.map(y=>[y,y.slice(2,4)+'/'+y.slice(5)])),s,'data-tgs')+`<div class="card"><div class="vrat-h"><h3 class="trh" style="margin:0">${SVI('ball')} Saison ${sv4Esc(s)} · 1. Mannschaft <small>Vereinsarchiv</small></h3></div>
     <div class="kd4-sum"><span><b>${G.length}</b> Spiele</span><span class="ok"><b>${w}</b> S</span><span><b>${d}</b> U</span><span class="bad"><b>${l}</b> N</span><span><b>${G.reduce((a,g)=>a+(g.tore||0),0)}:${G.reduce((a,g)=>a+(g.gegentore||0),0)}</b> Tore</span></div>
     <div class="trtw"><table class="trtab"><thead><tr><th>Spieler</th><th>Spiele</th><th>Startelf</th><th>Tore</th><th>Vorl.</th></tr></thead><tbody>
     ${rows.map(r=>{ const pid=[...I.byP.entries()].find(([,L])=>L.some(x=>x.name===r.n)); return `<tr${pid?` data-svp="${sv4Esc(pid[0])}"`:''}><td><b>${sv4Esc(r.n)}</b>${r.pk?` <small>${r.pk} Pokal</small>`:''}</td><td>${r.sp}</td><td>${r.st!=null?r.st:'–'}</td><td>${r.t}</td><td>${r.v||'–'}</td></tr>`; }).join('')}</tbody></table></div>
@@ -8301,7 +8307,7 @@ function tm4Rate(){
     kToast(`✓ ${Object.keys(st).length} Noten erkannt`); };
   sv4Mic(M.querySelector('#r4mic'),M.querySelector('#r4t'));
   M.querySelector('#r4save').onclick=async e=>{ const ids=Object.keys(st); if(!ids.length)return kToast('Noch keine Note vergeben'); e.currentTarget.disabled=true;
-    const sp=ids.map(pid=>{ const n=st[pid], k=(M.querySelector(`[data-r4="${CSS.escape(pid)}"] input`)||{}).value||''; return {player_id:pid,status:'da',motivation:Math.max(1,Math.min(5,Math.round(6-n*0.8))),notiz:(`Note ${n}`+(k?' – '+k:'')).slice(0,500)}; });
+    const sp=ids.map(pid=>{ const n=st[pid], k=(M.querySelector(`[data-r4="${CSS.escape(pid)}"] input`)||{}).value||''; return {player_id:pid,status:'da',motivation:Math.max(1,Math.min(5,Math.round(6-n*0.8))),notiz:(`Note ${n}`+(k?' · '+k:'')).slice(0,500)}; });
     try{ const gg=(M.querySelector('#r4g').value||'').trim().slice(0,80); await trSaveSession(Object.assign({datum:M.querySelector('#r4d').value||sv4Today(),typ:/^training$/i.test(gg)?'training':'spiel',spieler:sp},gg&&!/^training$/i.test(gg)?{gegner:gg}:{})); closeOverlay(); kToast('✓ '+ids.length+' Bewertungen gespeichert'); try{ trRender(); }catch(x){} }
     catch(x){ kToast('⚠️ '+x.message); e.currentTarget.disabled=false; } };
 }
@@ -8322,7 +8328,7 @@ function sv4Mic(btn,inp){
   }catch(e){ console.warn(e); } return r; }; }
 
 /* ---------- Gegnercheck: ohne KI-Matchplan, mit Grundordnung ---------- */
-spAi=function(){ kToast('Der KI-Matchplan ist entfallen – der Trainer macht den Plan.'); };
+spAi=function(){ kToast('Der KI-Matchplan ist entfallen. Der Trainer macht den Plan.'); };
 try{ const gp=document.getElementById('panel-gegner'); if(gp&&window.MutationObserver)new MutationObserver(()=>{ gp.querySelectorAll('.spai').forEach(x=>x.remove()); }).observe(gp,{childList:true,subtree:true}); }catch(e){}
 { const _sr40=spRender; spRender=async function(){ const r=await _sr40.apply(this,arguments); try{
   const P=document.getElementById('panel-gegner'); if(!P)return r; P.querySelectorAll('.spai').forEach(x=>x.remove());
@@ -8333,7 +8339,7 @@ try{ const gp=document.getElementById('panel-gegner'); if(gp&&window.MutationObs
   let d=P.querySelector('.fo4'); if(!d){ d=document.createElement('div'); d.className='card fo4'; const first=P.querySelector('.card'); if(first)first.after(d); else P.appendChild(d); }
   d.innerHTML=`<div class="svc-h"><h3>${SVI('pitch')} Grundordnung ${sv4Esc(opp)}</h3>${canTraining()?'<button class="btn sm ghost" data-fo>Eintragen</button>':''}</div>
     ${fo||dv?`<div class="kd4-sum">${fo?`<span>System <b>${sv4Esc(fo)}</b></span>`:''}${dv?`<span><b>${sv4Esc(dv)}</b>er-Kette</span>`:''}</div>${nt?`<p>${sv4Esc(nt)}</p>`:''}<p class="note small">Von unserem Trainerteam notiert${C._t&&C._t.fo?' · '+sv4Ago(C._t.fo):''}.</p>`
-      :`<p class="note">Aus den öffentlichen Daten lässt sich die Grundordnung nicht zuverlässig ablesen. Wer den Gegner gesehen hat (Spiel, Video, Hinspiel), trägt sie hier ein – dann steht sie beim Rückspiel wieder da.</p>`}`;
+      :`<p class="note">Aus den öffentlichen Daten lässt sich die Grundordnung nicht zuverlässig ablesen. Wer den Gegner gesehen hat (Spiel, Video, Hinspiel), trägt sie hier ein, dann steht sie beim Rückspiel wieder da.</p>`}`;
   const b=d.querySelector('[data-fo]'); if(b)b.onclick=()=>{ const M=svModal(`<h2 style="margin:0 0 8px">Grundordnung ${sv4Esc(opp)}</h2><div class="editgrid">
       <div class="field"><label>System</label><select id="fo4s"><option value="">–</option>${Object.keys(FORMATIONS).concat(['4-2-3-1','3-4-3','4-1-4-1','5-3-2']).filter((x,i,a)=>a.indexOf(x)===i).map(x=>`<option${x===fo?' selected':''}>${x}</option>`).join('')}</select></div>
       <div class="field"><label>Abwehr</label><select id="fo4d"><option value="">–</option>${['3','4','5'].map(x=>`<option value="${x}"${x===dv?' selected':''}>${x}er-Kette</option>`).join('')}</select></div>
@@ -8345,12 +8351,12 @@ try{ const gp=document.getElementById('panel-gegner'); if(gp&&window.MutationObs
 /* Übersicht: nächstes Spiel nur als kompakte Zeile */
 { const _sh4=spHome; spHome=function(){ const r=_sh4.apply(this,arguments); try{ const el=document.getElementById('spHome'); if(!el||!SP.loaded)return r;
   const f=spNext('A')[0]; if(!f){ el.innerHTML=''; return r; } const dd=spDays(f.datum);
-  el.innerHTML=`<button type="button" class="nx4" data-sph="gegner">${SVI('target')}<span>Nächstes Spiel <b>${sv4Esc(f.heim)} – ${sv4Esc(f.gast)}</b> · ${spWd(f.datum)}${f.zeit?' '+sv4Esc(f.zeit):''} · ${dd===0?'heute':dd===1?'morgen':'in '+dd+' Tagen'}</span><i>Gegnercheck ›</i></button>`;
+  el.innerHTML=`<button type="button" class="nx4" data-sph="gegner">${SVI('target')}<span>Nächstes Spiel <b>${sv4Esc(f.heim)} · ${sv4Esc(f.gast)}</b> · ${spWd(f.datum)}${f.zeit?' '+sv4Esc(f.zeit):''} · ${dd===0?'heute':dd===1?'morgen':'in '+dd+' Tagen'}</span><i>Gegnercheck ›</i></button>`;
   el.querySelector('[data-sph]').onclick=()=>goTab('gegner');
   const P=document.getElementById('panel-home'); if(P&&el.parentNode&&el!==P.lastElementChild)P.appendChild(el); }catch(e){} return r; }; }
 /* Elf der Woche: Zweck klarstellen – Formspieler finden, beobachten, als Kandidat übernehmen */
 { const _tw4=twRender; twRender=async function(){ const r=await _tw4.apply(this,arguments); try{ const P=document.getElementById('panel-totw'); if(P&&!P.querySelector('.tw4')){ const d=document.createElement('p'); d.className='note tw4';
-  d.innerHTML='Wozu? <b>Wer ist gerade in Form?</b> Die Besten des Spieltags je Liga – Karte antippen, Profil öffnen und mit 🔔 beobachten oder über „Zu Bedarf“ als Kandidat übernehmen. Die Auswahl basiert auf Toren (Torjägerlisten); Abwehrspieler fehlen deshalb oft.'; P.prepend(d); } }catch(e){} return r; }; }
+  d.innerHTML='Wozu? <b>Wer ist gerade in Form?</b> Die Besten des Spieltags je Liga. Karte antippen, Profil öffnen und mit 🔔 beobachten oder über „Zu Bedarf“ als Kandidat übernehmen. Die Auswahl basiert auf Toren (Torjägerlisten); Abwehrspieler fehlen deshalb oft.'; P.prepend(d); } }catch(e){} return r; }; }
 
 /* ---------- Eigene Jugend ---------- */
 const JU4={team:'A',open:null,busy:false};
@@ -8371,8 +8377,8 @@ function ju4Render(){
   const senior=K.filter(k=>k.jahrgang&&(2000+(+s.slice(0,2)))+1-k.jahrgang>=19);
   P.innerHTML=`<div class="card"><div class="kd4-lh"><div class="seg4">${[['A','A-Jugend (U19)'],['B','B-Jugend (U17)']].map(([k,l])=>`<button type="button" class="${t===k?'on':''}" data-jt="${k}">${l}</button>`).join('')}</div>
       <button class="btn sm" data-jadd>${SVI('plus')} Spieler</button></div>
-      <p class="note small">Statistik, Entwicklung und Einschätzungen der Jugendtrainer – direkt in der App oder per Sprache. 🔒 Keine Kontaktdaten, keine Fotos. Sichtbar für Trainer, Kaderplanung, Vorstand und Jugendtrainer.</p>
-      ${senior.length&&t==='A'?`<div class="hint">${SVI('info')}<span><b>${senior.length}</b> werden zur Saison ${sv4SL(sv4SAdd(s,1))} Senioren: ${senior.map(k=>sv4Esc(k.name)).join(', ')} – im Kaderplan unter „Bedarfsanalyse“ als Option.</span></div>`:''}
+      <p class="note small">Statistik, Entwicklung und Einschätzungen der Jugendtrainer. Direkt in der App oder per Sprache. 🔒 Keine Kontaktdaten, keine Fotos. Sichtbar für Trainer, Kaderplanung, Vorstand und Jugendtrainer.</p>
+      ${senior.length&&t==='A'?`<div class="hint">${SVI('info')}<span><b>${senior.length}</b> werden zur Saison ${sv4SL(sv4SAdd(s,1))} Senioren: ${senior.map(k=>sv4Esc(k.name)).join(', ')} · im Kaderplan unter „Bedarfsanalyse“ als Option.</span></div>`:''}
       <div class="ju4l">${K.map(k=>{ const st=stat(k.id), pt=pot(k.id), last=E(k.id)[0]; return `<div class="ju4r${JU4.open===k.id?' on':''}"><button type="button" class="ju4h" data-jo="${k.id}"><b>${sv4Esc(k.name)}</b><span>${k.jahrgang||'?'} · ${sv4Esc(k.pos||'–')}</span>
           <span class="ju4s">${st.sp?`${st.sp} Sp. · ${st.t} T`:'–'}</span><span class="ju4p" title="Perspektive 1. Mannschaft">${pt?'★'.repeat(pt)+'☆'.repeat(5-pt):'<i>keine Einschätzung</i>'}</span><em>${last?sv4Ago(last.datum):''}</em></button>
         ${JU4.open===k.id?ju4Detail(k):''}</div>`; }).join('')||'<p class="note">Noch niemand angelegt.</p>'}</div>
@@ -8408,7 +8414,7 @@ function ju4Editor(k){
       <div class="field"><label>Mannschaft</label><select id="j5t"><option value="A"${(k?k.team:JU4.team)==='A'?' selected':''}>A-Jugend</option><option value="B"${(k?k.team:JU4.team)==='B'?' selected':''}>B-Jugend</option></select></div>
       <div class="field"><label>Jahrgang</label><input type="number" id="j5j" min="2000" max="2020" value="${k&&k.jahrgang||''}" placeholder="2008"></div>
       <div class="field"><label>Position</label><select id="j5p"><option value="">–</option>${SV4_POS.map(x=>`<option${k&&k.pos===x?' selected':''}>${x}</option>`).join('')}</select></div></div>
-    <p class="note small">Nur Name, Jahrgang und Position – keine Kontaktdaten, keine Fotos.</p>
+    <p class="note small">Nur Name, Jahrgang und Position, keine Kontaktdaten, keine Fotos.</p>
     <div class="btnrow" style="margin-top:12px"><button class="btn" id="j5ok">${SVI('check')} Speichern</button>${k?`<button class="btn ghost" id="j5off">Nicht mehr aktiv</button>`:''}<button class="btn ghost" id="j5x">Abbrechen</button></div>`);
   M.querySelector('#j5x').onclick=()=>closeOverlay();
   M.querySelector('#j5ok').onclick=async()=>{ const v=s=>M.querySelector(s).value.trim(); const row={name:v('#j5n'),team:v('#j5t'),jahrgang:v('#j5j')?+v('#j5j'):null,pos:v('#j5p')||null};
@@ -8429,7 +8435,7 @@ SV_ACTIONS.viewer.splice(0,SV_ACTIONS.viewer.length,['search','Spielermarkt',()=
     const due=SV4.gs.filter((g,i,a)=>a.findIndex(x=>x.player_id===g.player_id)===i&&g.naechstes_am&&g.naechstes_am<=today);
     if(due.length)add.push({prio:plan?0.4:3,lvl:'mittel',t:`${due.length} Spielergespräch${due.length>1?'e':''} fällig`,d:due.slice(0,4).map(g=>(sv4P(g.player_id)||{name:'?'}).name.split(' ').pop()).join(', '),go:()=>{ KD4.gf='faellig'; goTab('gespr'); }});
     const uns=players.filter(p=>sv4Team(p)==='1'&&['unsicher','geht'].includes(sv4Zuk(p,nx)));
-    if(uns.length)add.push({prio:plan?0.6:4,lvl:uns.some(p=>sv4Zuk(p,nx)==='geht')?'hoch':'mittel',t:`${uns.length} Spieler ${sv4SL(nx)} unsicher/weg`,d:uns.slice(0,5).map(p=>p.name.split(' ').pop()).join(', ')+' – Bedarf prüfen',go:()=>{ KD4.saison=nx; goTab('kader'); }});
+    if(uns.length)add.push({prio:plan?0.6:4,lvl:uns.some(p=>sv4Zuk(p,nx)==='geht')?'hoch':'mittel',t:`${uns.length} Spieler ${sv4SL(nx)} unsicher/weg`,d:uns.slice(0,5).map(p=>p.name.split(' ').pop()).join(', ')+' · Bedarf prüfen',go:()=>{ KD4.saison=nx; goTab('kader'); }});
     const leer=SV4.bed.filter(b=>['offen','suche'].includes(b.status)&&!SV4.bk.some(x=>x.bedarf_id===b.id));
     if(leer.length)add.push({prio:plan?0.8:5,lvl:'info',t:`${leer.length} Bedarf${leer.length>1?'e':''} ohne Kandidaten`,d:leer.map(b=>b.titel).slice(0,2).join(' · '),go:()=>{ SC4.open=leer[0].id; goTab('bedarf'); }});
   } }catch(e){} return add.concat(base).sort((a,b)=>a.prio-b.prio).slice(0,6); }; }
@@ -8503,7 +8509,7 @@ function tm41Bet(B){
         <td>${r.spiele}<small>/${r.spiele_max}</small></td><td>${r.zuschauer||'–'}</td><td><b>${g!=null?g+' %':'–'}</b></td>
         <td class="b41m"><span class="b41mo">${(r.monate||[]).map((v,i)=>`<i title="${sv4Esc(mon[i]||'')}: ${v}" style="opacity:${v?0.25+0.75*v/mmax[i]:0.08}"></i>`).join('')}</span></td></tr>`; }).join('')}</tbody></table></div>
     <p class="note small">Quelle: Beteiligungslisten von Julian (je Saison). Spiele = Pflicht- und Testspiele, in denen der Spieler gespielt hat · Zuschauer = beim Spiel dabei, ohne zu spielen · Gesamt = Training + Spiele + Zuschauer${L.some(x=>x.events)?' + Events':''} geteilt durch alle Termine.
-    ${s===sv41Long(sv4S())?' Neue Einheiten am besten direkt hier in der App erfassen („Training erfassen“) – dann rechnet der Co-Trainer mit.':''}</p></div>`;
+    ${s===sv41Long(sv4S())?' Neue Einheiten am besten direkt hier in der App erfassen („Training erfassen“), dann rechnet der Co-Trainer mit.':''}</p></div>`;
   B.querySelectorAll('[data-bs]').forEach(x=>x.onclick=()=>{ SV41.bs=x.dataset.bs; tm41Bet(B); });
   B.querySelectorAll('tr[data-svp]').forEach(r=>r.onclick=()=>openModal(r.dataset.svp));
 }
@@ -8557,11 +8563,11 @@ function sv41FotoTool(files){
   if(!F.length){ kToast('Keine Bilder ausgewählt'); return; }
   const G=F.map(f=>({f,u:URL.createObjectURL(f),p:sv41Guess(f.name,pool)}));
   const opts=sel=>`<option value="">– überspringen –</option>`+pool.map(p=>`<option value="${sv4Esc(p.id)}"${sel===p.id?' selected':''}>${sv4Esc(p.name)}${p.own?'':' (ehem.)'}${p.photo?' · hat Foto':''}</option>`).join('');
-  const M=svModal(`<div class="mhead"><div class="rm-ic" style="width:46px;height:46px">${SVI('user')}</div><div><h2 style="margin:0">Spielerfotos zuordnen</h2><div class="msub">${G.filter(x=>x.p).length} von ${G.length} automatisch erkannt – bitte kurz prüfen</div></div></div>
+  const M=svModal(`<div class="mhead"><div class="rm-ic" style="width:46px;height:46px">${SVI('user')}</div><div><h2 style="margin:0">Spielerfotos zuordnen</h2><div class="msub">${G.filter(x=>x.p).length} von ${G.length} automatisch erkannt, bitte kurz prüfen</div></div></div>
     <div class="f41g">${G.map((x,i)=>`<label class="f41"><img src="${x.u}" alt=""><span>${sv4Esc(x.f.name)}</span><select data-f41="${i}">${opts(x.p&&x.p.id)}</select></label>`).join('')}</div>
     <label class="f41x"><input type="checkbox" id="f41ow"> Vorhandene Fotos ersetzen</label>
     <div class="btnrow" style="margin-top:12px"><button class="btn" id="f41go">${SVI('check')} Fotos speichern</button><button class="btn ghost" id="f41no">Abbrechen</button></div>
-    <p class="note small">Fotos werden quadratisch zugeschnitten (320 px) und sind nur fürs Team sichtbar. Nur Senioren – keine Fotos von Jugendspielern.</p>`);
+    <p class="note small">Fotos werden quadratisch zugeschnitten (320 px) und sind nur fürs Team sichtbar. Nur Senioren, keine Fotos von Jugendspielern.</p>`);
   const done=()=>G.forEach(x=>URL.revokeObjectURL(x.u));
   M.querySelector('#f41no').onclick=()=>{ done(); closeOverlay(); };
   M.querySelector('#f41go').onclick=async()=>{
@@ -8639,7 +8645,7 @@ async function sv41AlbumShow(y,id,after){
   P.querySelectorAll('.adm41').forEach(x=>x.remove());
   const pool=sv41FotoPool(), mit=pool.filter(p=>p.photo).length;
   const c=document.createElement('div'); c.className='card adm41';
-  c.innerHTML=`<div class="adm-head"><div><h3 style="margin:0">📷 Spielerfotos auf einen Schlag</h3><p style="margin:6px 0 0;font-size:13.5px">Mehrere Porträts auswählen (z. B. alle aus dem Drive-Ordner „Spielerbilder“) – die App erkennt am Dateinamen, wer drauf ist. Vor dem Speichern prüfst du die Zuordnung.</p></div>
+  c.innerHTML=`<div class="adm-head"><div><h3 style="margin:0">📷 Spielerfotos auf einen Schlag</h3><p style="margin:6px 0 0;font-size:13.5px">Mehrere Porträts auswählen (z. B. alle aus dem Drive-Ordner „Spielerbilder“). Die App erkennt am Dateinamen, wer drauf ist. Vor dem Speichern prüfst du die Zuordnung.</p></div>
     <div class="adm-stats"><div class="adm-stat"><b>${mit}</b><span>mit Foto</span></div><div class="adm-stat"><b>${pool.filter(p=>p.own&&!p.photo).length}</b><span>eigene ohne Foto</span></div></div></div>
     <label class="btn" style="margin-top:10px">${SVI('plus')} Fotos auswählen<input type="file" accept="image/*" multiple hidden id="f41in"></label>`;
   P.appendChild(c); c.querySelector('#f41in').onchange=e=>sv41FotoTool(e.target.files);
@@ -8652,12 +8658,12 @@ async function sv41RelayCard(P){
     <div class="r41f"><input class="search" data-r41="${k}" placeholder="https://dein-n8n.de/webhook/…" value="${sv4Esc(x.url||'')}">${o||''}<button class="btn sm" data-r41s="${k}">Speichern</button></div></div>`; };
   const S=R.server||{}, st=(ok,t1,t2)=>ok?`<span class="pill on">${t1}</span>`:`<span class="pill wait">${t2}</span>`;
   const c=document.createElement('div'); c.className='card adm41';
-  c.innerHTML=`<div class="adm-head"><div><h3 style="margin:0">🔌 Versand & Zugänge</h3><p style="margin:6px 0 0;font-size:13.5px">WhatsApp (Superchat) und Mail laufen direkt über den Server der App. Die Schlüssel liegen nur als Supabase-Secret – nie in der App.</p></div>
+  c.innerHTML=`<div class="adm-head"><div><h3 style="margin:0">🔌 Versand & Zugänge</h3><p style="margin:6px 0 0;font-size:13.5px">WhatsApp (Superchat) und Mail laufen direkt über den Server der App. Die Schlüssel liegen nur als Supabase-Secret, nie in der App.</p></div>
       <button class="btn sm ghost" data-r41chk>${SVI('check')} Jetzt prüfen</button></div>
     <div class="r41 r41z"><div class="r41h"><b>💬 WhatsApp-Versand (Kabine)</b>${st(S.superchat,'aktiv','Schlüssel fehlt')}</div><p class="note small">Supabase → Edge Functions → Secrets: <code>SUPERCHAT_API_KEY</code> mit dem API-Schlüssel aus Superchat (Einstellungen → Entwickler). Danach unter Mannschaft → Automatik die WhatsApp-Vorlagen und Empfänger eintragen.</p></div>
     <div class="r41 r41z"><div class="r41h"><b>✉️ Berichte per Mail</b>${st(S.mail,'aktiv','Schlüssel fehlt')}</div><p class="note small">Supabase → Edge Functions → Secrets: <code>RESEND_API_KEY</code> (Resend → API Keys, „Sending access“ reicht). Absender: ${sv4Esc(S.absender||'')}</p></div>
     <div class="r41 r41z"><div class="r41h"><b>🤖 KI (Claude)</b>${st(S.ki,'aktiv','Schlüssel fehlt')}</div></div>
-    <p class="note small" data-r41msg>Nach dem Anlegen eines Secrets einmal „Jetzt prüfen“ tippen – sonst prüft die App es automatisch in der Nacht.</p>
+    <p class="note small" data-r41msg>Nach dem Anlegen eines Secrets einmal „Jetzt prüfen“ tippen, sonst prüft die App es automatisch in der Nacht.</p>
     <details class="r41alt"><summary>Alternativ: eigener n8n-Server (dann auch Drive-Ablage)</summary>
     ${row('kabine','WhatsApp-Versand über n8n','Nur nötig, wenn der Superchat-Zugang in n8n statt auf dem Server liegen soll.')}
     ${row('berichte','Berichte in den Drive / per Mail über n8n','Excel/PDF-Berichte landen im Drive-Ordner oder im Postfach.',`<input class="search" data-r41o placeholder="Drive-Ordner" value="${sv4Esc((R.berichte||{}).ordner||'')}" style="max-width:190px">`)}
@@ -8674,7 +8680,7 @@ async function sv41RelayCard(P){
     if(url&&!/\/webhook\//.test(url)){ kToast('Bitte die komplette Production-URL aus dem Webhook-Knoten einfügen (…/webhook/…)'); return; }
     b.disabled=true;
     try{ const {data,error}=await SVB.sb.rpc('admin_relay_set',{p_art:k,p_url:url||null,p_ordner:o||null}); if(error)throw error;
-      if(data&&data.schluessel_neu){ c.querySelector('[data-r41k]').innerHTML=`<div class="r41n"><b>Neuer Schlüssel – einmalig angezeigt</b><p class="note small">In n8n im Knoten „Prüfen“ den Schlüssel durch diesen ersetzen:</p><code>${sv4Esc(data.schluessel_neu)}</code></div>`; }
+      if(data&&data.schluessel_neu){ c.querySelector('[data-r41k]').innerHTML=`<div class="r41n"><b>Neuer Schlüssel: einmalig angezeigt</b><p class="note small">In n8n im Knoten „Prüfen“ den Schlüssel durch diesen ersetzen:</p><code>${sv4Esc(data.schluessel_neu)}</code></div>`; }
       kToast(url?'✓ n8n-Verbindung gespeichert':'Verbindung entfernt'); b.disabled=false;
       const st=b.closest('.r41').querySelector('.pill'); if(st){ st.className='pill '+(url?'on':'wait'); st.textContent=url?'verbunden':'nicht eingerichtet'; } }
     catch(e){ b.disabled=false; kToast('⚠️ '+String(e.message||e)); }
@@ -8690,48 +8696,141 @@ async function sv41RelayCard(P){
 }; }
 
 /* =====================================================================
-   SV/BSC Scout · Runde 20: „Was ist neu“ – Update-Fenster & Patch-Historie
+   Sportzentrale 4.3 · Bewegung & Haptik
+   - Seitenwechsel mit Richtung (vor/zurück), Karten erscheinen kurz nacheinander
+   - Gleitender Unterstrich in der Reiter-Leiste
+   - Haptik: kurzes Tippen-Gefühl bei Navigation/Auswahl (Android per Vibration, iPhone ab iOS 18 über einen Schalter),
+     Erfolg/Warnung bei Meldungen. Aus bei „Bewegung reduzieren“ oder in „Mein Konto“ (svHaptik).
+   - Pausiert Animationen, wenn die App im Hintergrund ist
+   ===================================================================== */
+const SV43={sw:null,last:null,order:[],hubRect:null};
+const sv43Reduced=()=>{ try{ return matchMedia('(prefers-reduced-motion: reduce)').matches; }catch(e){ return false; } };
+const sv43HapOn=()=>{ try{ return localStorage.getItem('svHaptik')!=='aus'; }catch(e){ return true; } };
+function svHaptic(kind){
+  try{
+    if(sv43Reduced()||!sv43HapOn())return;
+    const pat={light:8,medium:14,success:[10,50,18],warn:[22,60,22]}[kind||'light']||8;
+    if(navigator.vibrate&&/Android/i.test(navigator.userAgent)){ navigator.vibrate(pat); return; }
+    // iPhone (Safari ab iOS 18): ein unsichtbarer Schalter gibt das System-Tippen aus
+    if(!SV43.sw){ const l=document.createElement('label'); l.setAttribute('aria-hidden','true'); l.style.cssText='position:fixed;left:-200px;top:0;width:1px;height:1px;opacity:0;pointer-events:none;overflow:hidden';
+      const i=document.createElement('input'); i.type='checkbox'; i.setAttribute('switch',''); i.tabIndex=-1; l.appendChild(i); document.body.appendChild(l); SV43.sw=l; }
+    SV43.sw.click();
+    if(kind==='success'||kind==='warn')setTimeout(()=>{ try{ SV43.sw.click(); }catch(e){} },90);
+  }catch(e){}
+}
+// Tippen auf Navigation, Reiter, Chips, Auswahl-Knöpfe
+document.addEventListener('click',e=>{
+  const b=e.target.closest&&e.target.closest('.snav button,.tabbar .ti,.tabbar .tmore,#hubbar [data-hub],.chips4 button,.zk4 button,.kr4-z,.sx-t,.sheet [data-sheet],.kd4-tabs button,.seg button,.r4n button,[data-kz],.fut');
+  if(b&&!b.disabled)svHaptic('light');
+},true);
+// Erfolg / Warnung bei Meldungen
+{ const _kt43=kToast; kToast=function(msg){ try{ const m=String(msg||''); if(/^(✓|📷|📸|✅|🎉)/.test(m))svHaptic('success'); else if(/^⚠️/.test(m))svHaptic('warn'); }catch(e){} return _kt43.apply(this,arguments); }; }
+
+// Seitenwechsel: Richtung merken, Karten-Einblendung nur direkt nach dem Wechsel
+function sv43Order(){ if(SV43.order.length)return SV43.order;
+  const o=[]; document.querySelectorAll('.snav button[data-tab]').forEach(b=>o.push(b.dataset.tab));
+  Object.values(typeof SV4_HUB!=='undefined'?SV4_HUB:{}).forEach(h=>h.tabs.forEach(([k])=>{ const t=k.split(':')[0]; if(!o.includes(t))o.push(t); }));
+  SV43.order=o; return o; }
+let _nav43=null;
+{ const _gt45=goTab; goTab=function(tab){
+  const prev=typeof svCurTab==='function'?svCurTab():null;
+  try{
+    if(prev&&tab&&prev!==tab&&!sv43Reduced()){
+      const O=sv43Order(); const hk=typeof SV4_OF!=='undefined'?SV4_OF:{};
+      const same=hk[prev]&&hk[prev]===hk[tab];
+      let dir='';
+      if(same){ const H=SV4_HUB[hk[tab]].tabs.map(([k])=>k.split(':')[0]); dir=H.indexOf(tab)>=H.indexOf(prev)?'fwd':'back'; }
+      document.body.dataset.nav=dir;
+      document.body.classList.add('nav43'); clearTimeout(_nav43); _nav43=setTimeout(()=>document.body.classList.remove('nav43'),700);
+    }
+  }catch(e){}
+  return _gt45.apply(this,arguments);
+}; }
+// Mannschaft-Unteransichten (Übersicht/Einheiten/Spiele …) wechseln ohne goTab – auch dort sanft einblenden
+{ const _sg43=sv4Go; sv4Go=function(k){
+  try{ const [t,v]=String(k).split(':'); if(v&&typeof svCurTab==='function'&&svCurTab()===t&&!sv43Reduced()){
+    const H=(SV4_HUB[SV4_OF[t]]||{tabs:[]}).tabs.map(([x])=>x), cur=t==='training'?'training:'+(TR.view||'home'):t==='kabine'?'kabine:'+(KB.view||'abst'):t;
+    document.body.dataset.nav=H.indexOf(k)>=H.indexOf(cur)?'fwd':'back';
+    const P=document.getElementById('panel-'+t); if(P){ P.style.animation='none'; void P.offsetWidth; P.style.animation=''; }
+    document.body.classList.add('nav43'); clearTimeout(_nav43); _nav43=setTimeout(()=>document.body.classList.remove('nav43'),700); } }catch(e){}
+  return _sg43.apply(this,arguments);
+}; }
+
+// Gleitender Unterstrich in der Reiter-Leiste
+{ const _hb43=sv4HubBar; sv4HubBar=function(){
+  const r=_hb43.apply(this,arguments);
+  try{ const bar=document.getElementById('hubbar'), inn=bar&&bar.querySelector('.hub-in'), on=inn&&inn.querySelector('button.on'); if(!inn||!on)return r;
+    const ind=document.createElement('i'); ind.className='hub-ind'; inn.appendChild(ind);
+    const hub=inn.getAttribute('aria-label')||'', T={x:on.offsetLeft+10,w:Math.max(12,on.offsetWidth-20)}, P=SV43.hubRect&&SV43.hubRect.hub===hub?SV43.hubRect:null;
+    const set=(p)=>{ ind.style.width=p.w+'px'; ind.style.transform=`translateX(${p.x}px)`; };
+    if(P&&!sv43Reduced()){ ind.style.transition='none'; set(P); void ind.offsetWidth; ind.style.transition=''; requestAnimationFrame(()=>set(T)); } else set(T);
+    SV43.hubRect={...T,hub};
+  }catch(e){}
+  return r;
+}; }
+window.addEventListener('resize',()=>{ try{ const inn=document.querySelector('#hubbar .hub-in'), on=inn&&inn.querySelector('button.on'), ind=inn&&inn.querySelector('.hub-ind'); if(on&&ind){ ind.style.transition='none'; ind.style.width=Math.max(12,on.offsetWidth-20)+'px'; ind.style.transform=`translateX(${on.offsetLeft+10}px)`; } }catch(e){} },{passive:true});
+
+// Im Hintergrund pausieren (Akku)
+document.addEventListener('visibilitychange',()=>document.body.classList.toggle('vh',document.hidden));
+
+
+// Mein Konto: Haptik an/aus
+{ const _acc43=svAccount; svAccount=function(){ const r=_acc43.apply(this,arguments);
+  try{ const M=document.getElementById('modal'), app=[...M.querySelectorAll('.editsec')].find(x=>/^App/.test((x.querySelector('h4')||{}).textContent||''));
+    if(M&&app&&!M.querySelector('[data-hap43]')){ const on=sv43HapOn();
+      app.insertAdjacentHTML('beforeend',`<label class="hap43l"><span><b>Haptik</b><small>Kurzes Tippen-Gefühl bei Navigation und Meldungen (Android, iPhone ab iOS 18)</small></span><input type="checkbox" data-hap43 ${on?'checked':''}></label>`);
+      M.querySelector('[data-hap43]').onchange=e=>{ try{ localStorage.setItem('svHaptik',e.target.checked?'an':'aus'); }catch(x){} if(e.target.checked)svHaptic('success'); }; } }catch(e){}
+  return r; }; }
+
+/* =====================================================================
+   SV/BSC Scout · Runde 20: „Was ist neu“: Update-Fenster & Patch-Historie
    - Nach jedem Update ein Pop-up: das Wichtigste in Kürze → „OK“ oder „Mehr erfahren“ (ganze Historie)
    - Jederzeit erreichbar: Seitenleiste / „Mehr“ / Mein Konto → „Was ist neu“
    - Gesehen wird je Nutzer gespeichert (geräteübergreifend), neue Nutzer bekommen nach der Einführung kein Update-Fenster
-   - NEUE VERSION: oben in SV_PATCHES eintragen (id eindeutig, neueste zuerst) – mehr ist nicht nötig
+   - NEUE VERSION: oben in SV_PATCHES eintragen (id eindeutig, neueste zuerst). Mehr ist nicht nötig
    Sichtbarkeit je Punkt: r:'team' (ohne Gäste) · r:'scout' · r:'admin' · ohne r = alle
    ===================================================================== */
 const SV_PATCHES=[
-  {id:'4.2',datum:'2026-09-24',titel:'WhatsApp & Mail ohne Umweg',kurz:'Einladungen per WhatsApp und Berichte per Mail laufen jetzt direkt über den Server der App – ohne extra n8n-Server.',
+  {id:'4.3',datum:'2026-09-24',titel:'Lebendiger & flüssiger',kurz:'Neuer Look mit sanft bewegtem Verlauf, weichen Übergängen beim Wechseln und einem Tippen-Gefühl auf dem Handy.',
    punkte:[
-    {ic:'💬',t:'WhatsApp direkt über Superchat',d:'Die Kabine verschickt Abstimmungen und Erinnerungen direkt – der Superchat-Zugang liegt sicher auf dem Server, nicht in der App.',r:'team',go:'kabine'},
-    {ic:'✉️',t:'Berichte per Mail',d:'Beim Export „E-Mail an mich“ wählen – der Bericht kommt als Anhang ins Postfach.',r:'team',go:'training'},
+    {ic:'🌊',t:'Sanft bewegter Hintergrund',d:'Ein ruhiger Farbverlauf im Vereinsblau bewegt sich ganz langsam hinter der App, auch auf der Anmeldeseite. Im Hintergrund pausiert er, der Akku bleibt geschont.'},
+    {ic:'✨',t:'Weiche Übergänge',d:'Beim Wechseln der Bereiche und Reiter gleitet die Seite in die richtige Richtung, Karten erscheinen kurz nacheinander, der Reiter-Strich wandert mit.',go:'training'},
+    {ic:'📳',t:'Haptik auf dem Handy',d:'Kurzes Tippen-Gefühl bei Navigation, Auswahl und Meldungen (Android und iPhone ab iOS 18). Abschalten unter Mein Konto → App.'},
+    {ic:'📱',t:'Mehr App-Gefühl',d:'Kein Hineinzoomen beim Tippen in Felder, kein Nachfedern am Rand, Knöpfe geben beim Drücken nach. Wer „Bewegung reduzieren“ eingestellt hat, bekommt eine ruhige App.'}]},
+  {id:'4.2',datum:'2026-09-24',titel:'WhatsApp & Mail ohne Umweg',kurz:'Einladungen per WhatsApp und Berichte per Mail laufen jetzt direkt über den Server der App, ohne extra n8n-Server.',
+   punkte:[
+    {ic:'💬',t:'WhatsApp direkt über Superchat',d:'Die Kabine verschickt Abstimmungen und Erinnerungen direkt, der Superchat-Zugang liegt sicher auf dem Server, nicht in der App.',r:'team',go:'kabine'},
+    {ic:'✉️',t:'Berichte per Mail',d:'Beim Export „E-Mail an mich“ wählen. Der Bericht kommt als Anhang ins Postfach.',r:'team',go:'training'},
     {ic:'🔌',t:'Versand & Zugänge in der Verwaltung',d:'Auf einen Blick: WhatsApp, Mail und KI aktiv? Mit „Jetzt prüfen“ nach dem Hinterlegen eines Schlüssels.',r:'admin'}]},
-  {id:'4.1',datum:'2026-09-24',titel:'Beteiligung, Fotos & Saison-Album',kurz:'Wer war wie oft im Training und im Spiel – von 21/22 bis heute. Dazu Spielerfotos auf einen Schlag und ein Album je Saison.',
+  {id:'4.1',datum:'2026-09-24',titel:'Beteiligung, Fotos & Saison-Album',kurz:'Wer war wie oft im Training und im Spiel, von 21/22 bis heute. Dazu Spielerfotos auf einen Schlag und ein Album je Saison.',
    punkte:[
-    {ic:'🏃',t:'Trainings- & Spielbeteiligung',d:'Julians Listen sind drin: 21/22 bis 26/27, je Spieler Training, Spiele und Zuschauer – unter Mannschaft → Beteiligung, im Spielerprofil und als Quote im Kaderplan. Damit ist auch 23/24 nicht mehr leer.',r:'team',go:'training'},
-    {ic:'📷',t:'Spielerfotos auf einen Schlag',d:'Verwaltung → Fotos auswählen: die App erkennt am Dateinamen, wer drauf ist. Kurz prüfen, speichern – die Fotos erscheinen auf Karten, im Profil und in der Aufstellung.',r:'team'},
+    {ic:'🏃',t:'Trainings- & Spielbeteiligung',d:'Julians Listen sind drin: 21/22 bis 26/27, je Spieler Training, Spiele und Zuschauer, unter Mannschaft → Beteiligung, im Spielerprofil und als Quote im Kaderplan. Damit ist auch 23/24 nicht mehr leer.',r:'team',go:'training'},
+    {ic:'📷',t:'Spielerfotos auf einen Schlag',d:'Verwaltung → Fotos auswählen: die App erkennt am Dateinamen, wer drauf ist. Kurz prüfen, speichern: die Fotos erscheinen auf Karten, im Profil und in der Aufstellung.',r:'team'},
     {ic:'📸',t:'Saison-Album',d:'Unter Mannschaft → Spiele gibt es je Saison ein Album mit den Spieltagsbildern. Vorstand und Kaderplanung laden hoch, alle sehen es.',r:'team',go:'training'},
     {ic:'🔌',t:'n8n-Verbindung in der Verwaltung',d:'WhatsApp-Versand und Berichte in den Drive/per Mail lassen sich jetzt selbst verbinden: Production-URL aus n8n einfügen, speichern.',r:'admin'}]},
-  {id:'4.0',datum:'2026-09-24',titel:'SV/BSC Sportzentrale',kurz:'Neuer Name, neue Ordnung: Kader, Scouting und Mannschaft so, wie ihr arbeitet – vom aktuellen Kader über den Bedarf zum passenden Spieler.',
+  {id:'4.0',datum:'2026-09-24',titel:'SV/BSC Sportzentrale',kurz:'Neuer Name, neue Ordnung: Kader, Scouting und Mannschaft so, wie ihr arbeitet, vom aktuellen Kader über den Bedarf zum passenden Spieler.',
    punkte:[
     {ic:'🏟',t:'Aus „Scout“ wird Sportzentrale',d:'Die App kann längst mehr als Scouting: Kader, Mannschaft, Spieltag, eigene Jugend und Kasse. Der neue Name zeigt das.'},
-    {ic:'🧭',t:'Navigation nach Arbeitsbereichen',d:'Links nur noch: Kader · Scouting · Mannschaft · Spieltag · Kasse · Eigene Jugend · Verein. Die Unterpunkte stehen oben als Tabs – am PC ist jetzt alles sichtbar, was es vorher nur am Handy gab.'},
+    {ic:'🧭',t:'Navigation nach Arbeitsbereichen',d:'Links nur noch: Kader · Scouting · Mannschaft · Spieltag · Kasse · Eigene Jugend · Verein. Die Unterpunkte stehen oben als Tabs. Am PC ist jetzt alles sichtbar, was es vorher nur am Handy gab.'},
     {ic:'📋',t:'Kaderplan neu gedacht',d:'Start ist der aktuelle Kader (1. · 2. · A-Jugend). Je Spieler die Zukunft (Standard: bleibt), rechts die Aufstellung im FIFA-Stil mit Haupt- und Alternativ-Aufstellung, darunter die Bedarfsanalyse: was fehlt jetzt (Winter, aus der Zweiten, aus der Jugend) und nächste Saison.',r:'scout',go:'kader'},
     {ic:'🎯',t:'Bedarf statt wilder Suche',d:'Erst der Bedarf (z. B. Innenverteidiger für 27/28, Ersatz für …), dann Suchprofil, Kandidaten, Beobachtung, Shortlist, Kontakt, Entscheidung. KI-Scouts suchen nach dem Profil, interne Lösungen (Zweite, Jugend) stehen gleich mit dabei.',r:'scout',go:'bedarf'},
-    {ic:'💬',t:'Spielergespräche',d:'Letztes Gespräch, wie der Spieler seine Zukunft sieht, offene Themen und Entscheidung – und die Zukunft landet direkt im Kaderplan.',r:'scout',go:'gespr'},
-    {ic:'🪪',t:'Spielerprofil aufgeräumt',d:'Oben nur das Wichtigste: Beziehung zum Verein, Karte, MScore, Einsätze (wann, wo, für wen) und Zukunft. Alles andere ist eingeklappt, jeder Wert hat ein ⓘ mit Quelle und Stand. Ein „Bearbeiten“ statt drei – und nach dem Speichern bleibst du im Profil.',go:'scout'},
-    {ic:'👁',t:'Eye-Test wie im Ultimate Team',d:'Tempo, Schuss, Pass, Dribbling, Defensive, Physis – jeder bewertet selbst, die Karte zeigt den Schnitt. Externe Spieler nur, wenn man sie gesehen hat. Fremde Bewertungen löschen nur Admin und Vorstand.',r:'scout'},
-    {ic:'📐',t:'MScore 2.0',d:'Einsätze und Liga zählen jetzt mit – Stammspieler einer höheren Liga stehen vorne, Torhüter mit drei Einsätzen nicht mehr. Der Eye-Test fließt ein. Jeder Baustein ist erklärt.',r:'scout',go:'model'},
-    {ic:'📚',t:'Saison-Records ab 2013/14',d:'Die Vereinsdaten von Lukas sind drin: Einsätze und Tore der Ersten von 13/14 bis 22/23 – im Spielerprofil und unter Mannschaft → Spiele je Saison.',r:'team',go:'training'},
+    {ic:'💬',t:'Spielergespräche',d:'Letztes Gespräch, wie der Spieler seine Zukunft sieht, offene Themen und Entscheidung, und die Zukunft landet direkt im Kaderplan.',r:'scout',go:'gespr'},
+    {ic:'🪪',t:'Spielerprofil aufgeräumt',d:'Oben nur das Wichtigste: Beziehung zum Verein, Karte, MScore, Einsätze (wann, wo, für wen) und Zukunft. Alles andere ist eingeklappt, jeder Wert hat ein ⓘ mit Quelle und Stand. Ein „Bearbeiten“ statt drei, und nach dem Speichern bleibst du im Profil.',go:'scout'},
+    {ic:'👁',t:'Eye-Test wie im Ultimate Team',d:'Tempo, Schuss, Pass, Dribbling, Defensive, Physis. Jeder bewertet selbst, die Karte zeigt den Schnitt. Externe Spieler nur, wenn man sie gesehen hat. Fremde Bewertungen löschen nur Admin und Vorstand.',r:'scout'},
+    {ic:'📐',t:'MScore 2.0',d:'Einsätze und Liga zählen jetzt mit. Stammspieler einer höheren Liga stehen vorne, Torhüter mit drei Einsätzen nicht mehr. Der Eye-Test fließt ein. Jeder Baustein ist erklärt.',r:'scout',go:'model'},
+    {ic:'📚',t:'Saison-Records ab 2013/14',d:'Die Vereinsdaten von Lukas sind drin: Einsätze und Tore der Ersten von 13/14 bis 22/23, im Spielerprofil und unter Mannschaft → Spiele je Saison.',r:'team',go:'training'},
     {ic:'⭐',t:'Nach dem Spiel bewerten',d:'Noten 1–6 je Spieler, auch per Sprache („Müller 2, Schmidt 3 …“). Training bewerten und Eye-Test gleich daneben.',r:'team',go:'training'},
-    {ic:'🌱',t:'Eigene Jugend',d:'A- und B-Jugend: Statistik, Entwicklung und Einschätzungen der Jugendtrainer, auch per Spracheingabe. Jugendtrainer können mit der neuen Aufgabe „Jugend“ mitmachen – ohne Kontaktdaten und Fotos.',r:'team',go:'ejugend'},
-    {ic:'🗺',t:'Gegnercheck ohne KI-Matchplan',d:'Den Plan macht der Trainer. Neu: Grundordnung und Abwehrkette des Gegners eintragen – beim Rückspiel steht sie wieder da. Auf der Übersicht nur noch eine Zeile.',r:'team',go:'gegner'},
-    {ic:'🧹',t:'Weniger Doppelungen',d:'Kandidaten sind nur noch externe Spieler, Datenbank und Scouting-Liste sind ein Spielermarkt (Karten oder Tabelle), Rohdiamanten stecken im Radar, weniger Tags. Beim Kontakt lässt sich der Wohnort hinterlegen – für die echte Entfernung.',r:'scout',go:'scout'}]},
+    {ic:'🌱',t:'Eigene Jugend',d:'A- und B-Jugend: Statistik, Entwicklung und Einschätzungen der Jugendtrainer, auch per Spracheingabe. Jugendtrainer können mit der neuen Aufgabe „Jugend“ mitmachen, ohne Kontaktdaten und Fotos.',r:'team',go:'ejugend'},
+    {ic:'🗺',t:'Gegnercheck ohne KI-Matchplan',d:'Den Plan macht der Trainer. Neu: Grundordnung und Abwehrkette des Gegners eintragen. Beim Rückspiel steht sie wieder da. Auf der Übersicht nur noch eine Zeile.',r:'team',go:'gegner'},
+    {ic:'🧹',t:'Weniger Doppelungen',d:'Kandidaten sind nur noch externe Spieler, Datenbank und Scouting-Liste sind ein Spielermarkt (Karten oder Tabelle), Rohdiamanten stecken im Radar, weniger Tags. Beim Kontakt lässt sich der Wohnort hinterlegen, für die echte Entfernung.',r:'scout',go:'scout'}]},
   {id:'3.5',datum:'2026-09-24',titel:'Kontakte, Kassen-Transparenz & Update-Fenster',kurz:'Handynummern & E-Mails zentral, Kassen-Rangliste für die Mannschaft und ab jetzt dieses Fenster bei jedem Update.',
    punkte:[
-    {ic:'📇',t:'Zentrale Kontakte',d:'Im Spielerprofil ganz unten: Handynummer und E-Mail hinzufügen – mit einem Tipp per WhatsApp schreiben, anrufen oder mailen. Korrekturen landen im Verlauf (alte Nummer lässt sich zurückholen), löschen kann nur der Admin. Unter Kabine → Kontakte siehst du, wem noch etwas fehlt, und kannst ganze Listen einfügen.',r:'team',go:'kontakte'},
-    {ic:'🏆',t:'Kassen-Transparenz für die Mannschaft',d:'Neue Seite mannschaftskasse.albertklee.de: Kassenstand gesamt, Top-Supporter (Hauptsponsor, Premium-Partner, Trikotsponsor), offene Deckel und – für Lukas – die Tunnelkönige im Eck. Nur mit dem Link aus der Mannschaftsgruppe.',go:'kasse'},
-    {ic:'⭐',t:'Smartes Scouting',d:'Bei jedem Spieler: Merken, „Halte mich up to date“ (Spieltag für Spieltag) oder „Kein Interesse“ – dann taucht er nie wieder auf. Das Radar zeigt nur noch die wichtigsten Tipps und richtet sich nach eurem Positions-Bedarf.',r:'scout',go:'scout'},
-    {ic:'🧩',t:'Positions-Bedarf & Schattenkader',d:'Im Kaderplan je Position festlegen, wie dringend (hoch, mittel, kurz- oder langfristig, kein Bedarf) – plus Schattenkader für diese, nächste und übernächste Saison.',r:'scout',go:'kaderplan'},
+    {ic:'📇',t:'Zentrale Kontakte',d:'Im Spielerprofil ganz unten: Handynummer und E-Mail hinzufügen, mit einem Tipp per WhatsApp schreiben, anrufen oder mailen. Korrekturen landen im Verlauf (alte Nummer lässt sich zurückholen), löschen kann nur der Admin. Unter Kabine → Kontakte siehst du, wem noch etwas fehlt, und kannst ganze Listen einfügen.',r:'team',go:'kontakte'},
+    {ic:'🏆',t:'Kassen-Transparenz für die Mannschaft',d:'Neue Seite mannschaftskasse.albertklee.de: Kassenstand gesamt, Top-Supporter (Hauptsponsor, Premium-Partner, Trikotsponsor), offene Deckel und, für Lukas, die Tunnelkönige im Eck. Nur mit dem Link aus der Mannschaftsgruppe.',go:'kasse'},
+    {ic:'⭐',t:'Smartes Scouting',d:'Bei jedem Spieler: Merken, „Halte mich up to date“ (Spieltag für Spieltag) oder „Kein Interesse“, dann taucht er nie wieder auf. Das Radar zeigt nur noch die wichtigsten Tipps und richtet sich nach eurem Positions-Bedarf.',r:'scout',go:'scout'},
+    {ic:'🧩',t:'Positions-Bedarf & Schattenkader',d:'Im Kaderplan je Position festlegen, wie dringend (hoch, mittel, kurz- oder langfristig, kein Bedarf), plus Schattenkader für diese, nächste und übernächste Saison.',r:'scout',go:'kaderplan'},
     {ic:'🔎',t:'KI-Scouting-Aufträge',d:'„Scout mir mal den Spieler“ oder „Wir brauchen einen Torwart“: läuft im Hintergrund, du bekommst eine Meldung, sobald der Bericht fertig ist.',r:'scout',go:'scout'},
-    {ic:'📄',t:'Berichte als PDF & Excel',d:'Scouting, Trainingsbeteiligung, Spiele, Kasse und Kaderplanung als PDF oder Excel – herunterladen, per WhatsApp teilen, in den Drive legen oder mailen.',r:'team',go:'training'},
+    {ic:'📄',t:'Berichte als PDF & Excel',d:'Scouting, Trainingsbeteiligung, Spiele, Kasse und Kaderplanung als PDF oder Excel, herunterladen, per WhatsApp teilen, in den Drive legen oder mailen.',r:'team',go:'training'},
     {ic:'🧠',t:'Co-Trainer denkt mit',d:'Nach jeder Antwort schlägt er die nächsten Schritte zum Antippen vor und weist auf blinde Flecken hin. Neu: Kontaktdaten per Satz eintragen („Die Nummer von … ist …“).',r:'team',go:'cotrainer'},
     {ic:'🔑',t:'Einladung & Passwort zuverlässiger',d:'Wer den Einladungslink zweimal öffnet oder dessen Browser die Anmeldung zwischendurch verliert, kann sein Passwort jetzt trotzdem festlegen. Wer noch kein eigenes Passwort hat, wird beim nächsten Öffnen direkt danach gefragt.'},
     {ic:'🤖',t:'KI-Schlüssel nur noch auf dem Server',d:'Der KI-Schlüssel wird nicht mehr in der App eingegeben, sondern einmal sicher auf dem Server hinterlegt. Unter Nutzer & Rollen → KI siehst du den Status und prüfst ihn mit einem Tipp.',r:'admin',go:'admin'},
@@ -8739,33 +8838,33 @@ const SV_PATCHES=[
   {id:'3.4',datum:'2026-09-24',titel:'Kasse mit Kassenwart, Einladen & Einführung',kurz:'Zahlungen zählen erst nach Bestätigung, Einladen per Gruppenlink, persönliche Einführung.',
    punkte:[
     {ic:'💶',t:'Mannschaftskasse mit Kassenwart',d:'„Ich habe bezahlt“ zählt erst, wenn der Kassenwart abhakt. Er bekommt eine Meldung und eine Liste, bucht Zuzahlungen, Gebühren und Korrekturen. Kassenstand je Konto (Bank, PayPal, bar) mit Dreh-Karte.',go:'kasse'},
-    {ic:'📣',t:'Spieler zum Training einladen',d:'Pop-up mit fertigem Link fürs nächste Training – einmal in die Gruppe, jeder tippt Vor- und Nachname an und sagt „dabei“ oder „nicht dabei“. Kurzadresse svbsc.albertklee.de.',r:'team',go:'abst'},
+    {ic:'📣',t:'Spieler zum Training einladen',d:'Pop-up mit fertigem Link fürs nächste Training, einmal in die Gruppe, jeder tippt Vor- und Nachname an und sagt „dabei“ oder „nicht dabei“. Kurzadresse svbsc.albertklee.de.',r:'team',go:'abst'},
     {ic:'👋',t:'Persönliche Einführung',d:'Begrüßung, deine Aufgaben, Erlaubnis für Pop-ups und Uploads und ein Rundgang mit Pfeil. Jederzeit wiederholbar unter Mein Konto.'},
-    {ic:'⚽',t:'Spiele genauer erfassen',d:'Startelf, eingewechselt, im Kader, zugeschaut oder nicht da – und direkt aus dem Spielbericht übernehmen.',r:'team',go:'training'}]},
+    {ic:'⚽',t:'Spiele genauer erfassen',d:'Startelf, eingewechselt, im Kader, zugeschaut oder nicht da, und direkt aus dem Spielbericht übernehmen.',r:'team',go:'training'}]},
   {id:'3.3',datum:'2026-09-23',titel:'Kabine & Spieltag',kurz:'Abstimmungen per WhatsApp-Link, Mannschaftskasse, Gegnercheck und Elf der Woche.',
    punkte:[
     {ic:'🗳️',t:'Kabine: Abstimmungen',d:'Trainings-Abstimmungen per WhatsApp-Link, auf Wunsch automatisch; persönliche Links je Spieler, Nachhaken per WhatsApp.',go:'abst'},
-    {ic:'💰',t:'Mannschaftskasse',d:'Strafen, Beiträge und Ausgaben – Spieler sehen ihre offenen Posten und zahlen per PayPal oder Überweisung.',go:'kasse'},
+    {ic:'💰',t:'Mannschaftskasse',d:'Strafen, Beiträge und Ausgaben. Spieler sehen ihre offenen Posten und zahlen per PayPal oder Überweisung.',go:'kasse'},
     {ic:'🎯',t:'Gegnercheck & Elf der Woche',d:'Vor dem Spiel: Gegner in einem Satz, auf wen achten, wo wir sie packen. Ergebnisse und Saison-Statistik kommen automatisch aus den Spielberichten.',go:'gegner'},
-    {ic:'🌱',t:'A-Jugend-Radar',d:'Talente aus der A-Jugend im Umkreis im Blick – mit Realismus-Filter.',r:'scout',go:'jugend'}]},
+    {ic:'🌱',t:'A-Jugend-Radar',d:'Talente aus der A-Jugend im Umkreis im Blick, mit Realismus-Filter.',r:'scout',go:'jugend'}]},
   {id:'3.2',datum:'2026-09-23',titel:'Training, Verein & Radar',kurz:'Co-Trainer fürs Training, Rankings & Vereinsleben, Scouting-Radar.',
    punkte:[
-    {ic:'🏃',t:'Training mit Co-Trainer',d:'Anwesenheit, Gründe, Motivation, Fitness und Verletzungen – per Satz, Screenshot oder WhatsApp-Export. Warnt bei sinkender Beteiligung.',r:'team',go:'training'},
+    {ic:'🏃',t:'Training mit Co-Trainer',d:'Anwesenheit, Gründe, Motivation, Fitness und Verletzungen. Per Satz, Screenshot oder WhatsApp-Export. Warnt bei sinkender Beteiligung.',r:'team',go:'training'},
     {ic:'🏅',t:'Rankings & Verein',d:'Trainings- und Loyalitäts-Ranking, Helfer bei Veranstaltungen, Allzeit-Statistik mit Legenden und Meilensteinen.',go:'verein'},
     {ic:'📡',t:'Scouting-Radar',d:'Meldet automatisch Torserien, Überflieger und junge Talente aus der Region.',r:'scout',go:'radar'}]},
   {id:'3.0',datum:'2026-09-23',titel:'Die App mit Login',kurz:'Anmeldung mit Rollen, als App installierbar, Push-Erinnerungen, Saison 26/27 live.',
    punkte:[
     {ic:'🔐',t:'Login & Rollen',d:'Jeder sieht, was er braucht: Admin, Vorstand, Kaderplanung, Trainer, Gast. Daten nur noch hinter der Anmeldung.'},
-    {ic:'📲',t:'Als App installieren',d:'Auf dem Handy „Zum Startbildschirm“ – startet wie eine richtige App und aktualisiert sich selbst.'},
-    {ic:'🔔',t:'Push-Erinnerungen',d:'Fällige Kandidaten-Kontakte, Trainings-Hinweise und das Wochen-Briefing aufs Handy – im Konto pro Gerät einschalten.',r:'team'},
+    {ic:'📲',t:'Als App installieren',d:'Auf dem Handy „Zum Startbildschirm“. Startet wie eine richtige App und aktualisiert sich selbst.'},
+    {ic:'🔔',t:'Push-Erinnerungen',d:'Fällige Kandidaten-Kontakte, Trainings-Hinweise und das Wochen-Briefing aufs Handy, im Konto pro Gerät einschalten.',r:'team'},
     {ic:'🃏',t:'Spielerbogen & Positions-Check',d:'Spielerkarten wie in EA FC und ein Check, ob jeder auf seiner Position spielt.',go:'elf'}]},
   {id:'2.0',datum:'2026-09-22',titel:'Kaderplanung',kurz:'Kandidaten-Pipeline mit Überfällig-Ampel und druckbarem Kaderplan.',
    punkte:[
-    {ic:'📋',t:'Kandidaten-Pipeline',d:'Letzter Kontakt, Wechselchance, Zielposition und wer sich kümmert – mit Ampel, wenn der Kontakt zu lange her ist.',r:'scout',go:'kandidaten'},
-    {ic:'🖨️',t:'Kaderplan-Board',d:'Traumelf plus Backups je Position – zum Ausdrucken für die Sitzung.',r:'scout',go:'kaderplan'}]},
+    {ic:'📋',t:'Kandidaten-Pipeline',d:'Letzter Kontakt, Wechselchance, Zielposition und wer sich kümmert, mit Ampel, wenn der Kontakt zu lange her ist.',r:'scout',go:'kandidaten'},
+    {ic:'🖨️',t:'Kaderplan-Board',d:'Traumelf plus Backups je Position. Zum Ausdrucken für die Sitzung.',r:'scout',go:'kaderplan'}]},
   {id:'1.1',datum:'2026-07-30',titel:'Datenbank & Schattenelf',kurz:'Alle Kader der Region, Scouting-Markierungen und die Schattenelf.',
    punkte:[
-    {ic:'🗄️',t:'Komplett-Datenbank',d:'Alle Kader von Kreisoberliga bis Kreisliga D in der Region – über 2.600 Spieler.',r:'scout',go:'db'},
+    {ic:'🗄️',t:'Komplett-Datenbank',d:'Alle Kader von Kreisoberliga bis Kreisliga D in der Region, über 2.600 Spieler.',r:'scout',go:'db'},
     {ic:'👥',t:'Schattenelf',d:'Startelf, Backup und Transferziel je Position auf dem Feld.',r:'scout',go:'sxi'}]},
   {id:'1.0',datum:'2026-07-26',titel:'Der Start',kurz:'Die erste Version: Scouting, Aufstellung und Transfer-Vorschläge.',
    punkte:[
@@ -8802,7 +8901,7 @@ function spPopup(force){
   window.__spShown=true;
   const U=spUnseen(), P=SV_PATCHES[0], L=spFor(P), more=U.length-1;
   svModal(`<div class="sp-pop"><div class="sp-burst">🚀</div><span class="trpill">Update · Version ${svEsc(P.id)}</span>
-    <h2>${svEsc(P.titel)}</h2><p class="note">${svEsc(P.kurz)} Wir arbeiten laufend an der App – das ist neu:</p>
+    <h2>${svEsc(P.titel)}</h2><p class="note">${svEsc(P.kurz)} Wir arbeiten laufend an der App, das ist neu:</p>
     <div class="sp-list">${L.slice(0,4).map(x=>`<div class="sp-li"><span>${x.ic}</span><div><b>${svEsc(x.t)}</b></div></div>`).join('')}${L.length>4?`<div class="sp-li more">+ ${L.length-4} weitere Neuerung${L.length-4>1?'en':''}</div>`:''}</div>
     ${more>0?`<p class="note small">Dazu ${more} weitere${more>1?'':'s'} Update${more>1?'s':''} seit deinem letzten Besuch.</p>`:''}
     <button class="btn kbpop-go" id="spMore">✨ Mehr erfahren</button><div class="btnrow"><button class="btn ghost sm" id="spOk">OK, verstanden</button></div></div>`);
@@ -8812,10 +8911,10 @@ function spPopup(force){
 /* ---------- Patch-Historie ---------- */
 function spHistory(){
   const U=new Set(spUnseen().map(p=>p.id));
-  const M=svModal(`<div class="sp-hist"><div class="sp-head"><span class="sp-burst sm">✨</span><div><h2>Was ist neu</h2><p class="note">Die App wird laufend weiterentwickelt – hier siehst du, was nach und nach dazukam.</p></div></div>
+  const M=svModal(`<div class="sp-hist"><div class="sp-head"><span class="sp-burst sm">✨</span><div><h2>Was ist neu</h2><p class="note">Die App wird laufend weiterentwickelt. Hier siehst du, was nach und nach dazukam.</p></div></div>
     <div class="sp-tl">${SV_PATCHES.map((p,i)=>{ const L=spFor(p); if(!L.length)return ''; return `<details class="sp-v${i===0?' now':''}"${i===0?' open':''}><summary><span class="sp-dot"></span><div class="sp-vh"><span class="sp-ver">${svEsc(p.id)}</span><b>${svEsc(p.titel)}</b>${U.has(p.id)&&i!==0?'<em class="sp-new">neu</em>':''}<small>${spDate(p.datum)} · ${svEsc(p.kurz)}</small></div></summary>
       <div class="sp-items">${L.map(x=>spItem(x,true)).join('')}</div></details>`; }).join('')}</div>
-    <p class="note small" style="text-align:center;margin-top:14px">Ideen oder Wünsche? Einfach dem Admin sagen – vieles hier kam genau so zustande. 💬</p></div>`);
+    <p class="note small" style="text-align:center;margin-top:14px">Ideen oder Wünsche? Einfach dem Admin sagen. Vieles hier kam genau so zustande. 💬</p></div>`);
   spWire(M);
 }
 /* ---------- Einstiege: Seitenleiste, „Mehr“, Mein Konto ---------- */

@@ -43,7 +43,7 @@ function errText(e){
   const m=String((e&&e.message)||e||'');
   if(isNet(e))return 'Keine Verbindung. Bitte Internet prüfen und nochmal versuchen.';
   if(/Invalid login credentials/i.test(m))return 'E-Mail oder Passwort stimmt nicht.';
-  if(/Email not confirmed/i.test(m))return 'Dein Zugang ist noch nicht bestätigt – nutze den Einladungslink.';
+  if(/Email not confirmed/i.test(m))return 'Dein Zugang ist noch nicht bestätigt. Nutze den Einladungslink.';
   if(/expired|invalid|otp/i.test(m)&&/token|otp|link|expired/i.test(m))return 'Der Link bzw. Code ist abgelaufen oder wurde schon benutzt. Frag deinen Admin nach einem neuen.';
   if(/Signups not allowed|not found|User not found/i.test(m))return 'Diese E-Mail-Adresse ist nicht freigeschaltet. Zugang gibt es nur mit Einladung.';
   if(/rate|too many|security purposes/i.test(m))return 'Zu viele Versuche. Bitte einen Moment warten.';
@@ -96,7 +96,7 @@ function viewLogin(note,kind){
 }
 function viewCode(email,sent){
   card.innerHTML=`<h2>${sent?'Code eingeben':'Anmelden mit Code'}</h2>
-    <p class="sub">${sent?'Wir haben dir einen Code an <b style="color:#dbe3f0">'+esc(email)+'</b> geschickt.':'Du bekommst einen Einmal-Code per E-Mail – ganz ohne Passwort.'}</p>
+    <p class="sub">${sent?'Wir haben dir einen Code an <b style="color:#dbe3f0">'+esc(email)+'</b> geschickt.':'Du bekommst einen Einmal-Code per E-Mail. Ganz ohne Passwort.'}</p>
     <form class="g-form" id="gCodeF">
       <div class="g-msg" id="gMsg"></div>
       ${sent?`<div class="g-field"><label for="gCode">Code aus der E-Mail</label><div class="g-code"><input id="gCode" inputmode="numeric" autocomplete="one-time-code" maxlength="8" placeholder="––––––" required></div></div>`
@@ -139,7 +139,7 @@ function viewForgot(email){
 function viewSetPassword(mode,prof){
   const inv=mode==='invite';
   card.innerHTML=`<h2>${inv?'Willkommen im Team!':'Neues Passwort'}</h2>
-    <p class="sub">${inv?'Leg jetzt dein persönliches Passwort fest – damit meldest du dich künftig an.':'Vergib ein neues Passwort für deinen Zugang.'}</p>
+    <p class="sub">${inv?'Leg jetzt dein persönliches Passwort fest, damit meldest du dich künftig an.':'Vergib ein neues Passwort für deinen Zugang.'}</p>
     ${prof?`<div class="g-welcome"><div class="uav">${esc(initials(prof.name||prof.email))}</div><div><b>${esc(prof.name||prof.email)}</b><span>${esc(ROLE_T[prof.role]||'')} · ${esc(prof.email)}</span></div></div>`:''}
     <form class="g-form" id="gSet">
       <div class="g-msg" id="gMsg"></div>
@@ -167,10 +167,10 @@ function viewSetPassword(mode,prof){
       await loadAndStart(); }
     catch(err){ busy(b,false); msg(m,'err',errText(err));
       if(/session missing|not authenticated|JWT/i.test(String(err&&err.message))&&prof&&prof.email&&!document.getElementById('gNewLink')){   // Selbsthilfe: neuen Link per E-Mail
-        m.insertAdjacentHTML('afterend',`<div class="g-msg show" id="gNewLinkBox">Kein Problem: Hol dir einfach einen frischen Link per E-Mail an ${esc(prof.email)} – darüber legst du dann dein Passwort fest.<br><button type="button" class="g-btn alt" id="gNewLink" style="margin-top:10px">${I('mail')} Neuen Link per E-Mail</button></div>`);
+        m.insertAdjacentHTML('afterend',`<div class="g-msg show" id="gNewLinkBox">Kein Problem: Hol dir einfach einen frischen Link per E-Mail an ${esc(prof.email)} · darüber legst du dann dein Passwort fest.<br><button type="button" class="g-btn alt" id="gNewLink" style="margin-top:10px">${I('mail')} Neuen Link per E-Mail</button></div>`);
         document.getElementById('gNewLink').onclick=async ev=>{ const nb=ev.currentTarget; busy(nb,true,'Senden …');
           try{ const {error}=await sb.auth.resetPasswordForEmail(prof.email,{redirectTo:location.origin+location.pathname}); if(error)throw error; busy(nb,false); nb.remove();
-            msg(m,'ok','Der Link ist unterwegs – bitte im Postfach (auch im Spam-Ordner) nachsehen und von dort öffnen.'); }
+            msg(m,'ok','Der Link ist unterwegs, bitte im Postfach (auch im Spam-Ordner) nachsehen und von dort öffnen.'); }
           catch(e2){ busy(nb,false); msg(m,'err',errText(e2)); } }; } }
   };
 }
@@ -265,7 +265,7 @@ sb.auth.onAuthStateChange((ev,s)=>{ if(s)keepS(s); if(ev==='SIGNED_OUT'&&window.
         if(error){   // Link schon benutzt (z. B. zweimal geöffnet)? Wenn hier schon angemeldet: einfach weitermachen
           const {data:{session}}=await sb.auth.getSession();
           if(session&&type!=='recovery'){ keepS(session); await enter({viaLink:true,mode:'invite'}); return; }
-          viewLogin(errText(error)+(type==='invite'?' Falls du dein Passwort noch nicht festgelegt hast: „Passwort vergessen“ antippen – dann kommt ein neuer Link per E-Mail.':''),'err'); return; }
+          viewLogin(errText(error)+(type==='invite'?' Falls du dein Passwort noch nicht festgelegt hast: „Passwort vergessen“ antippen, dann kommt ein neuer Link per E-Mail.':''),'err'); return; }
         keepS(vd&&vd.session);
         await enter({viaLink:true,mode:type==='recovery'?'recovery':'invite'}); return;
       }

@@ -13,7 +13,7 @@
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <link rel="icon" type="image/png" href="favicon-64.png">
-<meta name="app-build" content="4.2-202609241703">
+<meta name="app-build" content="4.3-202609241852">
 <title>SV/BSC Sportzentrale</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js" async></script>
 <style>
@@ -2099,6 +2099,146 @@ body.kasse-on #panel-kabine .trtop{justify-content:flex-start;}
 .r41alt{margin-top:12px;border-top:1px solid var(--line2);padding-top:10px;}
 .r41alt summary{cursor:pointer;font-size:13px;color:var(--ink2);}
 
+/* =====================================================================
+   Sportzentrale 4.3 · „Lebendig“: sanfter Verlauf im Hintergrund, Bewegung, Übergänge, Haptik
+   Alles nur mit transform/opacity (flüssig auf dem Handy), pausiert im Hintergrund, aus bei „Bewegung reduzieren“.
+   ===================================================================== */
+:root{--spring:cubic-bezier(.2,1.2,.3,1);--glass:rgba(13,17,27,.62);}
+html{background:var(--bg);-webkit-tap-highlight-color:transparent;}
+body{background:transparent!important;overscroll-behavior-y:none;}
+/* ---------- Lebender Hintergrund (Aurora) ---------- */
+body::before,body::after{content:'';position:fixed;pointer-events:none;z-index:-1;will-change:transform;}
+body::before{inset:-30% -30% -30% -30%;
+  background:
+    radial-gradient(38% 30% at 22% 18%,rgba(47,107,255,.20),transparent 70%),
+    radial-gradient(30% 26% at 82% 12%,rgba(139,124,246,.14),transparent 70%),
+    radial-gradient(34% 30% at 70% 88%,rgba(20,184,166,.07),transparent 70%),
+    radial-gradient(40% 34% at 12% 92%,rgba(47,107,255,.08),transparent 72%);
+  animation:auroraA 42s ease-in-out infinite alternate;}
+body::after{inset:-20%;
+  background:radial-gradient(26% 22% at 60% 40%,rgba(91,155,255,.07),transparent 70%),radial-gradient(22% 20% at 35% 65%,rgba(169,156,255,.06),transparent 70%);
+  animation:auroraB 28s ease-in-out infinite alternate;}
+@keyframes auroraA{0%{transform:translate3d(0,0,0) rotate(0deg) scale(1);}50%{transform:translate3d(3%,2%,0) rotate(6deg) scale(1.06);}100%{transform:translate3d(-3%,3%,0) rotate(-4deg) scale(1.03);}}
+@keyframes auroraB{0%{transform:translate3d(-4%,-2%,0) scale(1);}100%{transform:translate3d(5%,4%,0) scale(1.12);}}
+body.gated::before,body.gated::after{opacity:0;}
+body.vh::before,body.vh::after,body.vh .g-orb,body.vh .g-art::before{animation-play-state:paused!important;}
+
+/* Glas statt flacher Flächen – der Verlauf scheint leicht durch */
+.side{background:linear-gradient(180deg,rgba(13,17,27,.78),rgba(8,11,19,.86))!important;}
+.topbar{background:rgba(5,7,12,.55);backdrop-filter:saturate(1.4) blur(18px);-webkit-backdrop-filter:saturate(1.4) blur(18px);}
+.hubbar{background:rgba(5,7,12,.45)!important;backdrop-filter:saturate(1.3) blur(16px);-webkit-backdrop-filter:saturate(1.3) blur(16px);}
+.card{background:linear-gradient(180deg,rgba(18,24,38,.82),rgba(13,17,25,.86));backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);}
+.tabbar{background:rgba(10,14,22,.72)!important;backdrop-filter:saturate(1.5) blur(22px)!important;-webkit-backdrop-filter:saturate(1.5) blur(22px)!important;}
+
+/* ---------- Anmeldung: bewegter Verlauf ---------- */
+.g-art::before{content:'';position:absolute;inset:-40%;pointer-events:none;z-index:0;opacity:.75;
+  background:conic-gradient(from 0deg at 50% 50%,rgba(47,107,255,.0),rgba(47,107,255,.22),rgba(139,124,246,.18),rgba(20,184,166,.10),rgba(47,107,255,.0));
+  filter:blur(60px);animation:gspinBg 36s linear infinite;}
+@keyframes gspinBg{to{transform:rotate(360deg);}}
+.g-orb.o3{width:200px;height:200px;background:#14b8a6;left:46%;top:52%;opacity:.28;animation-duration:22s;animation-delay:-6s;}
+.g-copy h1 span{background-size:200% 100%;animation:gtext 8s ease-in-out infinite alternate;}
+@keyframes gtext{from{background-position:0% 50%;}to{background-position:100% 50%;}}
+.g-side{background:radial-gradient(600px 420px at 80% 0%,rgba(47,107,255,.10),transparent 65%),radial-gradient(500px 380px at 0% 100%,rgba(139,124,246,.08),transparent 65%),linear-gradient(180deg,#070a12,#05070c)!important;}
+.g-card{background:rgba(13,17,27,.55);border:1px solid rgba(148,163,196,.12);border-radius:26px;padding:30px 28px;backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);box-shadow:0 30px 80px -30px rgba(0,0,0,.8),inset 0 1px 0 rgba(255,255,255,.04);}
+.g-btn{position:relative;overflow:hidden;}
+.g-btn:not(.alt)::after{content:'';position:absolute;inset:0;background:linear-gradient(105deg,transparent 35%,rgba(255,255,255,.28) 50%,transparent 65%);transform:translateX(-120%);animation:gsheen 5.5s ease-in-out 1.2s infinite;}
+@keyframes gsheen{0%,70%{transform:translateX(-120%);}100%{transform:translateX(120%);}}
+.g-btn:active{transform:scale(.98)!important;}
+@media (max-width:980px){
+  #gate{background:radial-gradient(420px 320px at 85% 70%,rgba(139,124,246,.14),transparent 70%),radial-gradient(380px 300px at 10% 95%,rgba(47,107,255,.12),transparent 70%),#05070c;}
+  .g-art{overflow:hidden;padding-bottom:70px!important;-webkit-mask-image:linear-gradient(#000 70%,transparent);mask-image:linear-gradient(#000 70%,transparent);}
+  .g-side{background:transparent!important;margin-top:-56px;position:relative;z-index:2;}
+  .g-card{padding:24px 20px;border-radius:22px;}
+}
+
+/* ---------- Seitenwechsel: kurze, gerichtete Bewegung ---------- */
+.panel{animation:pg43 .38s var(--ease) both;}
+body[data-nav="fwd"] .panel{animation-name:pg43r;}
+body[data-nav="back"] .panel{animation-name:pg43l;}
+@keyframes pg43{from{opacity:0;transform:translate3d(0,10px,0) scale(.995);}to{opacity:1;transform:none;}}
+@keyframes pg43r{from{opacity:0;transform:translate3d(18px,0,0);}to{opacity:1;transform:none;}}
+@keyframes pg43l{from{opacity:0;transform:translate3d(-18px,0,0);}to{opacity:1;transform:none;}}
+/* Karten erscheinen kurz nacheinander – nur direkt nach dem Wechsel, nicht bei jeder Aktualisierung */
+body.nav43 .panel.active .card{animation:card43 .5s var(--ease) both;}
+body.nav43 .panel.active .card:nth-of-type(2){animation-delay:.04s}
+body.nav43 .panel.active .card:nth-of-type(3){animation-delay:.08s}
+body.nav43 .panel.active .card:nth-of-type(4){animation-delay:.12s}
+body.nav43 .panel.active .card:nth-of-type(5){animation-delay:.16s}
+body.nav43 .panel.active .card:nth-of-type(n+6){animation-delay:.2s}
+@keyframes card43{from{opacity:0;transform:translate3d(0,12px,0);}to{opacity:1;transform:none;}}
+
+/* Reiter-Leiste: gleitender Unterstrich */
+.hub-in{position:relative;}
+.hub-in button.on{border-bottom-color:transparent!important;}
+.hub-ind{position:absolute;left:0;bottom:0;height:2px;border-radius:2px;background:linear-gradient(90deg,var(--brand2),#a99cff);box-shadow:0 0 12px rgba(91,155,255,.7);
+  transition:transform .42s var(--spring),width .42s var(--spring);pointer-events:none;}
+.hub-in button{transition:color .2s;}
+
+/* Untere Leiste (Handy): aktives Symbol federt */
+.tabbar .ti.active svg{animation:tb43 .45s var(--spring);}
+@keyframes tb43{0%{transform:scale(.8) translateY(2px);}60%{transform:scale(1.15) translateY(-2px);}100%{transform:none;}}
+.tabbar .ti,.tabbar .tmore{transition:background .25s,color .2s,transform .15s var(--ease);}
+
+/* Drück-Gefühl */
+.btn,.tabbar .ti,.tabbar .tmore,.snav button,.hub-in button,.chips4 button,.sx-t,.zk4 button,.kr4-z,.iconbtn,.tb-icon,.tb-me,.a41i,.g-link,.sheet [data-sheet],.mebtn,.kd4-tabs button,.seg button{
+  transition:transform .14s var(--ease),filter .15s,background .2s,color .2s,box-shadow .2s;touch-action:manipulation;}
+.btn:active,.tabbar .ti:active,.tabbar .tmore:active,.snav button:active,.hub-in button:active,.chips4 button:active,.sx-t:active,.zk4 button:active,.kr4-z:active,.iconbtn:active,.tb-icon:active,.tb-me:active,.a41i:active,.sheet [data-sheet]:active,.mebtn:active,.kd4-tabs button:active,.seg button:active{transform:scale(.96);}
+.card[data-svp]:active,.kr4:active,tr[data-svp]:active td{filter:brightness(1.12);}
+
+/* Dialoge & Blätter: weich rein */
+.overlay.open{animation:ov43 .25s ease both;}
+.overlay.open .modal{animation:md43 .42s var(--spring) both;}
+@keyframes ov43{from{opacity:0;}to{opacity:1;}}
+@keyframes md43{from{opacity:0;transform:translate3d(0,22px,0) scale(.975);}to{opacity:1;transform:none;}}
+@media (max-width:700px){ @keyframes md43{from{opacity:0;transform:translate3d(0,48px,0);}to{opacity:1;transform:none;}} }
+
+/* Laden: ruhiger Schimmer statt „Lade …“-Text */
+.empty{position:relative;overflow:hidden;}
+.empty::after{content:'';position:absolute;inset:0;background:linear-gradient(100deg,transparent 30%,rgba(255,255,255,.035) 50%,transparent 70%);transform:translateX(-100%);animation:sh43 1.8s ease-in-out infinite;pointer-events:none;}
+@keyframes sh43{to{transform:translateX(100%);}}
+
+/* Zahlen & Hinweise ploppen dezent */
+.kd4-sum span,.g4,.adm-stat{animation:pop43 .5s var(--spring) both;}
+@keyframes pop43{from{opacity:0;transform:scale(.94);}to{opacity:1;transform:none;}}
+
+/* Handy-Feinschliff (PWA) */
+@media (max-width:760px){
+  input,select,textarea{font-size:16px!important;}   /* kein automatisches Hineinzoomen auf dem iPhone */
+  .tabbar,.hubbar,.topbar,.snav,.sheet{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;}
+}
+@media (display-mode:standalone){ ::-webkit-scrollbar{width:0;height:0;} }
+
+/* Wer „Bewegung reduzieren“ eingestellt hat, bekommt eine ruhige App */
+@media (prefers-reduced-motion:reduce){
+  body::before,body::after,.g-art::before,.g-orb,.g-btn::after,.g-copy h1 span,.empty::after{animation:none!important;}
+  .panel,.card,.overlay.open,.overlay.open .modal,.kd4-sum span,.g4,.adm-stat,.tabbar .ti.active svg{animation:none!important;}
+  .hub-ind{transition:none;}
+}
+.hap43l{display:flex;align-items:center;justify-content:space-between;gap:14px;margin-top:14px;padding:12px 14px;border:1px solid var(--line2);border-radius:14px;background:rgba(255,255,255,.02);cursor:pointer;}
+.hap43l b{display:block;font-size:14px;}.hap43l small{display:block;font-size:12px;color:var(--ink3);margin-top:2px;}
+.hap43l input{width:44px;height:26px;accent-color:var(--brand);flex:none;}
+
+/* ---------- Schöne Zeilenumbrüche ---------- */
+h1,h2,h3,h4,h5,.msub,.pf4-hm h2,.adm-head h3,.sechead,.vrat-h h3,.trh,.g-card h2,.sp-pop h3{text-wrap:balance;}
+p,.note,li,.sub,small,.g-copy p,.pf4-hints p,.r41 .note,.empty{text-wrap:pretty;}
+p,.note,li{hyphens:auto;-webkit-hyphens:auto;hyphenate-limit-chars:8 4 4;overflow-wrap:break-word;}
+.g-copy h1 .l1,.g-copy h1 .l2{display:block;}
+.g-copy h1 .l1{text-wrap:balance;}
+.g-copy h1 .l2{background:linear-gradient(90deg,#b9d3ff,#5b9bff 50%,#a99cff);-webkit-background-clip:text;background-clip:text;color:transparent;background-size:200% 100%;animation:gtext 8s ease-in-out infinite alternate;}
+
+/* ---------- Vereinslogo (SV Mörlenbach + BSC 1959, freigestellt) ---------- */
+.brand img,.tb-crest,.g-top img,.g-load img{width:auto!important;background:none!important;padding:0!important;border-radius:0!important;box-shadow:none!important;object-fit:contain;}
+.brand img{height:40px!important;flex:none;filter:drop-shadow(0 8px 18px rgba(47,107,255,.35));}
+.tb-crest{height:30px!important;}
+.g-top img{height:58px!important;filter:drop-shadow(0 14px 30px rgba(47,107,255,.45));}
+.g-load img{height:88px!important;filter:drop-shadow(0 20px 50px rgba(47,107,255,.55));animation:glogo 2.2s ease-in-out infinite!important;}
+@keyframes glogo{0%,100%{transform:scale(1);}50%{transform:scale(1.04);}}
+@media (max-width:980px){ .g-top img{height:48px!important;} }
+
+.g-copy h1 .l1{background:none!important;-webkit-background-clip:border-box!important;background-clip:border-box!important;color:#f4f7fc!important;animation:none!important;}
+#svHello p{display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px;}
+.hello-d{white-space:normal;}
+
 </style>
 <style id="v3gate">
 /* =====================================================================
@@ -2241,32 +2381,32 @@ body.gated{overflow:hidden;}
 
 <div id="gate">
   <div class="g-art">
-    <div class="g-orb o1"></div><div class="g-orb o2"></div>
+    <div class="g-orb o1"></div><div class="g-orb o2"></div><div class="g-orb o3"></div>
     <div class="g-pitch"><svg viewBox="0 0 680 440"><defs><linearGradient id="gline" x1="0" x2="1"><stop offset="0" stop-color="#5b9bff" stop-opacity=".15"/><stop offset=".5" stop-color="#9cc3ff" stop-opacity=".9"/><stop offset="1" stop-color="#a99cff" stop-opacity=".2"/></linearGradient></defs>
       <rect x="2" y="2" width="676" height="436" rx="4"/><line class="d2" x1="340" y1="2" x2="340" y2="438"/><circle class="d2" cx="340" cy="220" r="62"/>
       <rect class="d3" x="2" y="110" width="104" height="220"/><rect class="d3" x="574" y="110" width="104" height="220"/>
       <rect class="d4" x="2" y="168" width="38" height="104"/><rect class="d4" x="640" y="168" width="38" height="104"/>
       <path class="d4" d="M106 182 A48 48 0 0 1 106 258"/><path class="d4" d="M574 182 A48 48 0 0 0 574 258"/></svg></div>
-    <div class="g-top"><img src="crest.svg" alt=""><div><b>SV/BSC Sportzentrale</b><span>SV/BSC Mörlenbach</span></div></div>
+    <div class="g-top"><img src="logo.png" alt="SV/BSC Mörlenbach"><div><b>SV/BSC Sportzentrale</b><span>SV/BSC Mörlenbach</span></div></div>
     <div class="g-copy"><div class="eyebrow"><i></i>SV/BSC Mörlenbach</div>
-      <h1>Kader, Scouting, Mannschaft – <span>an einem Ort.</span></h1>
-      <p>Vom aktuellen Kader über den Bedarf bis zum passenden Spieler – dazu Training, Kabine und Kasse. Datenbasiert, im Team, in Echtzeit.</p></div>
-    <div class="g-feats"><div class="g-feat"><b>2.900+</b><span>Spieler im Radar</span></div><div class="g-feat"><b>7</b><span>Ligen – GL bis KLD</span></div><div class="g-feat"><b>Live</b><span>Sync für alle Planer</span></div></div>
+      <h1><span class="l1">Kader, Scouting, Mannschaft</span><span class="l2">an einem Ort.</span></h1>
+      <p>Vom aktuellen Kader über den Bedarf bis zum passenden Spieler, dazu Training, Kabine und Kasse. Datenbasiert, im Team, in Echtzeit.</p></div>
+    <div class="g-feats"><div class="g-feat"><b>2.900+</b><span>Spieler im Radar</span></div><div class="g-feat"><b>7</b><span>Ligen: GL bis KLD</span></div><div class="g-feat"><b>Live</b><span>Sync für alle Planer</span></div></div>
   </div>
   <div class="g-side"><div class="g-card" id="gcard" style="display:none"></div></div>
-  <div class="g-load" id="gload"><img src="crest.svg" alt=""><div class="bar ind"><i></i></div><p>Einen Moment …</p></div>
+  <div class="g-load" id="gload"><img src="logo.png" alt=""><div class="bar ind"><i></i></div><p>Einen Moment …</p></div>
 </div>
 
 <div class="shell" id="shell">
   <aside class="side">
-    <div class="brand"><img src="crest.svg" alt=""><div><b>SV/BSC Sportzentrale</b><span>SV/BSC Mörlenbach</span></div></div>
+    <div class="brand"><img src="logo.png" alt=""><div><b>SV/BSC Sportzentrale</b><span>SV/BSC Mörlenbach</span></div></div>
     <nav class="snav"><div class="sgrp">Übersicht</div><button data-tab="home" data-tip="Übersicht" class="active"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.5V21h14V9.5"/><path d="M10 21v-6h4v6"/></svg><span>Übersicht</span></button><div class="sgrp">Kader</div><button data-tab="kader" data-tip="Kader"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M12 4v16"/><circle cx="12" cy="12" r="3"/><path d="M3 9h3v6H3M21 9h-3v6h3"/></svg><span>Kader</span></button><div class="sgrp">Scouting</div><button data-tab="scout" data-tip="Scouting"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg><span>Scouting</span><span class="cnt" data-cnt="kandidaten" style="display:none"></span></button><div class="sgrp">Mannschaft</div><button data-tab="training" data-tip="Mannschaft"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12h4l3 8 4-16 3 8h4"/></svg><span>Mannschaft</span><span class="cnt" data-cnt="training" style="display:none"></span></button><button data-tab="gegner" data-tip="Spieltag"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1.5"/></svg><span>Spieltag</span></button><button data-tab="kasse" data-tip="Mannschaftskasse"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="6" width="18" height="14" rx="2.5"/><path d="M16 13.5h.01"/><path d="M3 10h18"/><path d="M7 6V4.8A1.8 1.8 0 0 1 8.8 3H17"/></svg><span>Mannschaftskasse</span></button><div class="sgrp">Nachwuchs</div><button data-tab="ejugend" data-tip="Eigene Jugend"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 21v-8"/><path d="M12 13c0-4 3-7 8-7 0 4-3 7-8 7z"/><path d="M12 11C12 8 10 5 4 5c0 3 2.5 6 8 6z"/></svg><span>Eigene Jugend</span></button><div class="sgrp">Verein</div><button data-tab="verein" data-tip="Rankings & Verein"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 21h8M12 17v4"/><path d="M7 4h10v5a5 5 0 0 1-10 0V4z"/><path d="M17 5h3v2a3 3 0 0 1-3 3M7 5H4v2a3 3 0 0 0 3 3"/></svg><span>Rankings & Verein</span></button><div class="sgrp">Wissen</div><button data-tab="play" data-tip="Playbook & Modell"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 5a2 2 0 0 1 2-2h13v16H6a2 2 0 0 0-2 2V5z"/><path d="M4 19a2 2 0 0 1 2-2h13"/></svg><span>Playbook & Modell</span></button><div class="sgrp adm-only">Verwaltung</div><button data-tab="admin" data-tip="Nutzer & Rollen"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3 4 6v6c0 5 3.5 8 8 9 4.5-1 8-4 8-9V6l-8-3z"/><path d="m9 12 2 2 4-4"/></svg><span>Nutzer & Rollen</span></button></nav>
     <div class="sfoot"><div class="online" id="svOnline"></div>
       <button class="mebtn" data-me><div class="uav" data-me-ini></div><div class="who"><b data-me-name></b><span data-me-role></span></div><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 6 6 6-6 6"/></svg></button></div>
   </aside>
   <div class="mainwrap">
     <header class="topbar">
-      <img class="tb-crest" src="crest.svg" alt="">
+      <img class="tb-crest" src="logo.png" alt="">
       <div class="tb-title"><h1 id="pgTitle">Übersicht</h1><p id="pgSub">Dein Lagebild für die Kaderplanung</p></div>
       <div class="gsearch" id="gSearchBox"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg><input id="gSearch" type="search" placeholder="Spieler suchen …" autocomplete="off" spellcheck="false" aria-label="Spieler suchen"><kbd>⌘K</kbd><div class="gres" id="gRes"></div></div>
       <span class="tb-sync ksync" style="display:none"></span>
@@ -2540,7 +2680,7 @@ a.kbtn{text-decoration:none;display:inline-block}
   <section class="panel" id="panel-elf">
     <div class="card" style="padding:14px 18px">
       <p style="margin:0 0 8px;font-size:13px">⚽ <b>Deine Wunsch-Elf im FIFA-Style.</b> Position antippen → Spieler wählen. Besetzte Karte gedrückt halten und auf eine andere Position ziehen zum Tauschen. Karte antippen öffnet das Profil (Attribute unter „Eye-Test" einstellen).</p>
-      <p style="margin:0;font-size:12px;color:var(--ink3)">Vorbesetzt ist die dokumentierte <b>Stammelf 25/26</b> aus den Vereinsheften (11 Spiele mit Aufstellung). Karte antippen → Profil · ⇄ → Ersatzspieler · gedrückt halten &amp; ziehen → tauschen. <b>≈xT</b> = erwartete Tore über 30 Spiele Kreisliga A (Tore pro Team-Spiel × Liga-Gewicht — reale Einsatzquote eingerechnet, keine Vollzeit-Hochrechnung). Unter dem Feld: 🪑 Ersatzbank (Drag &amp; Drop) und der 🕵️ <b>Digital-Scout</b>, der Stärke × Wechselbereitschaft kombiniert.</p>
+      <p style="margin:0;font-size:12px;color:var(--ink3)">Vorbesetzt ist die dokumentierte <b>Stammelf 25/26</b> aus den Vereinsheften (11 Spiele mit Aufstellung). Karte antippen → Profil · ⇄ → Ersatzspieler · gedrückt halten &amp; ziehen → tauschen. <b>≈xT</b> = erwartete Tore über 30 Spiele Kreisliga A (Tore pro Team-Spiel × Liga-Gewicht. Reale Einsatzquote eingerechnet, keine Vollzeit-Hochrechnung). Unter dem Feld: 🪑 Ersatzbank (Drag &amp; Drop) und der 🕵️ <b>Digital-Scout</b>, der Stärke × Wechselbereitschaft kombiniert.</p>
     </div>
     <div class="fbar"><div class="frow" id="seedRow"></div><div class="frow" id="formRow"></div><div class="frow" id="gapRow"></div></div>
     <div class="pitch" id="pitch"></div>
@@ -2552,8 +2692,8 @@ a.kbtn{text-decoration:none;display:inline-block}
   <!-- SCHATTENELF -->
   <section class="panel" id="panel-sxi">
     <div class="card" style="margin-bottom:12px">
-      <h3>👥 Schattenelf — Kaderplanung in drei Ebenen</h3>
-      <p style="margin:6px 0 0;font-size:13px;color:var(--ink2)">Jede Position hat drei Ebenen: <b style="color:#4da3ff">S</b> Startelf · <b style="color:#5fe09b">B</b> Backup (eigener Kader) · <b style="color:#ffb347">Z</b> Transferziel. Mit <b>↻</b> auf der Karte rotierst du die Ebenen durch — der Spieler darunter rutscht nach oben. Karte antippen → Profil, leere Karte antippen → Ebene besetzen. Alles wird geräteübergreifend gespeichert.</p>
+      <h3>👥 Schattenelf: Kaderplanung in drei Ebenen</h3>
+      <p style="margin:6px 0 0;font-size:13px;color:var(--ink2)">Jede Position hat drei Ebenen: <b style="color:#4da3ff">S</b> Startelf · <b style="color:#5fe09b">B</b> Backup (eigener Kader) · <b style="color:#ffb347">Z</b> Transferziel. Mit <b>↻</b> auf der Karte rotierst du die Ebenen durch, der Spieler darunter rutscht nach oben. Karte antippen → Profil, leere Karte antippen → Ebene besetzen. Alles wird geräteübergreifend gespeichert.</p>
     </div>
     <div class="fbar"><div class="frow" id="sxiSeed"></div></div>
     <div class="pitch" id="spitch"></div>
@@ -2564,8 +2704,8 @@ a.kbtn{text-decoration:none;display:inline-block}
   <!-- GEMS -->
   <section class="panel" id="panel-gems">
     <div class="card">
-      <h3>💎 Rohdiamanten – die Moneyball-Kategorie</h3>
-      <p>Spieler, die der Markt übersieht: Zweitmannschafts-Talente mit Top-Quote, einsame Torjäger schwacher Teams, U19er vorm Seniorensprung, Formexplosionen, Rückkehr-Kandidaten. Genau die Ineffizienzen, mit denen Oakland, Brentford &amp; Brighton gewonnen haben – übersetzt auf den Kreis Bergstraße. <a href="#" data-legend="1" style="font-weight:700">ⓘ Alle Kriterien &amp; Farben erklärt</a></p>
+      <h3>💎 Rohdiamanten: die Moneyball-Kategorie</h3>
+      <p>Spieler, die der Markt übersieht: Zweitmannschafts-Talente mit Top-Quote, einsame Torjäger schwacher Teams, U19er vorm Seniorensprung, Formexplosionen, Rückkehr-Kandidaten. Genau die Ineffizienzen, mit denen Oakland, Brentford &amp; Brighton gewonnen haben, übersetzt auf den Kreis Bergstraße. <a href="#" data-legend="1" style="font-weight:700">ⓘ Alle Kriterien &amp; Farben erklärt</a></p>
     </div>
     <div id="gemlist"></div>
   </section>
@@ -2574,7 +2714,7 @@ a.kbtn{text-decoration:none;display:inline-block}
   <section class="panel" id="panel-jugend">
     <div class="card">
       <h3>🌱 A-Jugend-Radar</h3>
-      <p>A-Jugend (U19) aus der ganzen Region – Kreis Bergstraße, Odenwald, Gruppenliga, Verbandsliga, Mannheim und Heidelberg – plus die eigene B-Jugend. Aktualisiert sich mit jedem Daten-Update; eigene Talente stehen oben, Entfernung und Wechsel-Realismus sind eingerechnet.</p>
+      <p>A-Jugend (U19) aus der ganzen Region. Kreis Bergstraße, Odenwald, Gruppenliga, Verbandsliga, Mannheim und Heidelberg, plus die eigene B-Jugend. Aktualisiert sich mit jedem Daten-Update; eigene Talente stehen oben, Entfernung und Wechsel-Realismus sind eingerechnet.</p>
     </div>
     <div id="jugendlist"></div>
   </section>
@@ -2595,13 +2735,13 @@ a.kbtn{text-decoration:none;display:inline-block}
   <section class="panel" id="panel-play">
     <div class="card">
       <h3>📖 Das Original: Wie Oakland wirklich gewann (2002, wahre Geschichte)</h3>
-      <p>Billy Beane und Paul DePodesta hatten <b>41 Mio. $ gegen 126 Mio. $ der Yankees</b> – und holten 103 Siege plus 20-Siege-Rekordserie. Ihre fünf Rechenschritte:</p>
+      <p>Billy Beane und Paul DePodesta hatten <b>41 Mio. $ gegen 126 Mio. $ der Yankees</b> · und holten 103 Siege plus 20-Siege-Rekordserie. Ihre fünf Rechenschritte:</p>
       <ul>
-        <li><b>Rückwärts vom Ziel:</b> Playoffs ≈ 95 Siege → nötige Run-Differenz → welche Fähigkeit erzeugt Runs? On-Base-Percentage – vom Markt ignoriert, weil unspektakulär.</li>
-        <li><b>Unterbewertetes kaufen:</b> Der Markt bezahlte Optik und Batting Average. Oakland kaufte Walks, Disziplin und „Makel“ (verletzt, alt, unathletisch) mit intakter Kernfähigkeit – zum Discount.</li>
+        <li><b>Rückwärts vom Ziel:</b> Playoffs ≈ 95 Siege → nötige Run-Differenz → welche Fähigkeit erzeugt Runs? On-Base-Percentage: vom Markt ignoriert, weil unspektakulär.</li>
+        <li><b>Unterbewertetes kaufen:</b> Der Markt bezahlte Optik und Batting Average. Oakland kaufte Walks, Disziplin und „Makel“ (verletzt, alt, unathletisch) mit intakter Kernfähigkeit. Zum Discount.</li>
         <li><b>Stars im Aggregat ersetzen:</b> Giambis On-Base-Produktion wurde auf drei Billig-Spieler verteilt (Hatteberg: ~333.000 $ pro Sieg statt dem Vierfachen).</li>
         <li><b>Großen Stichproben trauen:</b> College-Spieler mit langen Datenreihen statt Highschool-Wunderkinder.</li>
-        <li><b>Vorsprung erneuern:</b> Jede Ineffizienz wird kopiert – nachhaltig ist nur der Prozess.</li>
+        <li><b>Vorsprung erneuern:</b> Jede Ineffizienz wird kopiert. Nachhaltig ist nur der Prozess.</li>
       </ul>
     </div>
     <div class="sechead">So machen es Profi-Klubs</div>
@@ -2609,11 +2749,11 @@ a.kbtn{text-decoration:none;display:inline-block}
       <div class="pbcard"><div class="club">Brentford FC 🐝</div><div class="what">Matthew Benham / Smartodds</div>
         <p>Kauft mit Wett-Modellen in „ineffizienten Märkten“: Watkins 6,5→28 Mio. £, Toney 6→40, Mbeumo 5,8→71 (2025). Akademie abgeschafft, B-Team für aussortierte Talente. Kernsatz: <b>„Die Tabelle ist notorisch ungenau.“</b></p></div>
       <div class="pbcard"><div class="club">FC Midtjylland 🇩🇰</div><div class="what">KPI-Modell &amp; Standards</div>
-        <p>Bewertet nach Chancenqualität statt Tabelle. In der Meistersaison kam <b>rund ein Drittel der Tore nach Standards</b> – inkl. Einwurf-Coach. Die billigste Ineffizienz: Ecken &amp; Freistöße trainieren.</p></div>
+        <p>Bewertet nach Chancenqualität statt Tabelle. In der Meistersaison kam <b>rund ein Drittel der Tore nach Standards</b> · inkl. Einwurf-Coach. Die billigste Ineffizienz: Ecken &amp; Freistöße trainieren.</p></div>
       <div class="pbcard"><div class="club">Brighton 🕊️</div><div class="what">Tony Bloom / Jamestown Analytics</div>
-        <p>Geheimmodell findet Spieler vor dem Markt: Caicedo (4,5 → 115 Mio. £), Mac Allister, Mitoma. Global in Ligen scouten, die keiner anschaut – konsequent teuer verkaufen.</p></div>
-      <div class="pbcard"><div class="club">Liverpool FC 🔴</div><div class="what">FSG / Ian Graham – die direkte Moneyball-Linie</div>
-        <p>Besitzer John Henry wollte Billy Beane anheuern. Physiker Ian Graham empfahl u.a. <b>Salah</b> gegen den Konsens. Regel: Daten sagen, wo man hinschaut – entscheiden tun Menschen.</p></div>
+        <p>Geheimmodell findet Spieler vor dem Markt: Caicedo (4,5 → 115 Mio. £), Mac Allister, Mitoma. Global in Ligen scouten, die keiner anschaut, konsequent teuer verkaufen.</p></div>
+      <div class="pbcard"><div class="club">Liverpool FC 🔴</div><div class="what">FSG / Ian Graham. Die direkte Moneyball-Linie</div>
+        <p>Besitzer John Henry wollte Billy Beane anheuern. Physiker Ian Graham empfahl u.a. <b>Salah</b> gegen den Konsens. Regel: Daten sagen, wo man hinschaut. Entscheiden tun Menschen.</p></div>
     </div>
     <div class="card">
       <h3>Profi-Metriken → Kreisliga-Übersetzung</h3>
@@ -2630,11 +2770,11 @@ a.kbtn{text-decoration:none;display:inline-block}
       <div class="gebot"><div class="n">1</div><div class="t"><b>Rechne rückwärts:</b> Klassenerhalt sicher ≈ 40 Punkte ≈ ~55 Tore. Wer liefert die günstigsten fehlenden Tore?</div></div>
       <div class="gebot"><div class="n">2</div><div class="t"><b>Kauf das Unterbewertete:</b> II.-Team-Spieler, Rückkehrer, 28-Jährige ohne „Namen“, Torjäger schwacher Teams.</div></div>
       <div class="gebot"><div class="n">3</div><div class="t"><b>Misstraue der Tabelle:</b> Ein 0:5 mit 20 Chancen ist besser als ein 1:0 mit einer. Chancen zählen, nicht Ergebnisse.</div></div>
-      <div class="gebot"><div class="n">4</div><div class="t"><b>Ersetze im Aggregat:</b> Der Knapp-Abgang braucht keinen 1:1-Ersatz – 2–3 günstige Spieler mit zusammen 25 erwarteten Toren.</div></div>
+      <div class="gebot"><div class="n">4</div><div class="t"><b>Ersetze im Aggregat:</b> Der Knapp-Abgang braucht keinen 1:1-Ersatz: 2–3 günstige Spieler mit zusammen 25 erwarteten Toren.</div></div>
       <div class="gebot"><div class="n">5</div><div class="t"><b>Standards sind gratis Tore:</b> 15 Min. Ecken/Freistöße pro Training = die billigsten 8–10 Saisontore ohne Transfer.</div></div>
       <div class="gebot"><div class="n">6</div><div class="t"><b>Stichprobe schlägt Bauchgefühl:</b> Saisondaten + 2 Spielbesuche + 2 unabhängige Meinungen vor jeder Entscheidung.</div></div>
       <div class="gebot"><div class="n">7</div><div class="t"><b>Eigene Jugend zuerst:</b> Goelz &amp; Mühlenbruch kosten nichts und kennen den Verein.</div></div>
-      <div class="gebot"><div class="n">8</div><div class="t"><b>Erneuere den Vorteil:</b> Sobald andere auf Daten schauen, zählt der Prozess – jede Saison aktualisieren.</div></div>
+      <div class="gebot"><div class="n">8</div><div class="t"><b>Erneuere den Vorteil:</b> Sobald andere auf Daten schauen, zählt der Prozess, jede Saison aktualisieren.</div></div>
       <p class="srcs" style="margin-top:10px">Quellen: Michael Lewis „Moneyball“ (2003) · Training Ground Guru · SI.com · Jobs in Football · Sky Sports · footballytics.ch</p>
     </div>
   </section>
@@ -2642,30 +2782,30 @@ a.kbtn{text-decoration:none;display:inline-block}
   <!-- MODELL -->
   <section class="panel" id="panel-model">
     <div class="card">
-      <h3>MScore – Gewichte (live verstellbar)</h3>
+      <h3>MScore: Gewichte (live verstellbar)</h3>
       <div id="weights"></div>
       <div class="btnrow"><button class="btn ghost" id="resetW">Zurücksetzen</button></div>
     </div>
     <div class="card">
       <h3>So rechnet das Modell</h3>
       <ul>
-        <li><b>🔵 FuPa-MVP (NEU, Saison 26/27):</b> FuPa weist pro Team einen MVP-Wert von 0–100 % aus („wie wertvoll ist ein Spieler für sein Team, auf Basis der Leistungsdaten“) – der Wertvollste eines Teams hat 100 %. Weil der Wert <b>team-relativ</b> ist, fließt er nicht absolut ein, sondern als <b>Modifikator von max. ±6 %</b>: MScore × (0,94 + 0,12 × MVP/100), 50 % = neutral. Ein Insider-Rating hat Vorrang. Im Wechsel-Index gilt: MVP ≥ 90 % = Schlüsselspieler (−6, schwer loszueisen), MVP ≤ 55 % = eher Randfigur (+5). <b>Pflege nach jedem Spieltag</b> im Tab 🗄️ Datenbank („FuPa-MVP eintragen“) oder im Spielerprofil – die Werte gelten sofort auf allen Geräten.</li>
-        <li><b>🗂️ Kaderplaner-Pipeline (NEU):</b> Kandidaten mit Wechselwahrscheinlichkeit (manuell, daneben der Modellwert), Zielrolle/-position, verantwortlichem Planer und letztem Kontakt – nach 21 Tagen ohne Kontakt wird er rot und rutscht nach oben. Wochen-Digest je Planer zum Kopieren oder Teilen per WhatsApp. Änderungen mehrerer Planer werden <b>feldweise zusammengeführt</b> – niemand überschreibt die Einträge der anderen. <b>Kontaktdaten werden im Browser mit einem Team-Schlüssel verschlüsselt</b> (AES-256); online liegen sie nur als unlesbarer Code.</li>
-        <li><b>📋 Kaderplan-Board (NEU):</b> Traumelf mit Backup und Ziel je Position, offene Positionen markiert – druckfertig als PDF für Vorstand und Kaderplanung.</li>
-        <li><b>👥 Schattenmannschaft:</b> Kaderplanungs-Werkzeug wie im Profiscouting — hinter jeder Position der Startelf stehen ein geplanter <b>Backup</b> aus dem eigenen Kader und ein externes <b>Transferziel</b> (sortiert nach Transfer-Chance). Auto-Vervollständigen besetzt offene Planungen positionstreu; alles wird geräteübergreifend mitgespeichert.</li>
-        <li><b>Gruppenliga-Radar (NEU):</b> Alle Torschützen (≥2 Tore) der 7 Gruppenliga-Vereine im Umkreis (Wald-Michelbach, FC/SV Fürth, Fehlheim, Auerbach, Bensheim, Riedrode) sind erfasst — Quelle fussball.de (Torschützenliste, Tabelle, 24 Spielerprofile mit Minuten). Der <b>Wechsel-Index</b> unterscheidet: Gruppenliga-<i>Stammspieler</i> sind quasi unerreichbar (−26), wer dort aber <i>meist draußen sitzt</i>, ist für garantierte Spielzeit ansprechbar. Echte Bankspieler ohne Torbeteiligung sind öffentlich nicht auffindbar (nur FuPa hätte komplette Kader — für automatisierte Abrufe gesperrt).</li>
-        <li><b>Positionen &amp; Nebenpositionen:</b> Jeder Spieler hat eine feste Hauptposition. Hat er laut Vereinsheft-Aufstellungen nachweislich auch woanders gespielt (z.B. S. Goderbauer im Mittelfeld, Fries vorne), ist das als <b>Nebenposition</b> hinterlegt. Die „Beste Elf“-Automatik bewertet mit <b>75 % Stärke + Trainer-Vertrauen</b> (bis +10 für Startelf-Häufigkeit 25/26) <b>− 8 bei Disziplin-Risiko</b> (Rote Karten) und besetzt Slots nur mit Haupt-/Nebenposition; einzig LM/RM dürfen zur Not von zentralen Spielern (ZM/OM/ST) mit Malus übernommen werden — Kreisliga-Realität. Lieber ein Slot leer als wild verschoben.</li>
-        <li><b>🎯 Insider-Ratings:</b> Für einzelne eigene Spieler kann die Sportliche Leitung das Daten-Rating überschreiben (z.B. starke Verteidiger, die in reinen Tordaten unsichtbar sind). Das ist im Profil offen ausgewiesen — inkl. des reinen Modellwerts. Ebenso transparent: intern als „nicht verfügbar“ markierte Spieler (z.B. bewusst nur noch 2. Mannschaft) fliegen aus Bank &amp; Vorschlägen.</li>
-        <li><b>🕵️ Digital-Scout / Wechsel-Index (NEU):</b> Eigenes Rating 0–100 für die <b>Wechselbereitschaft</b> jedes externen Spielers — aus öffentlichen Signalen: Zweitvertretung (+14), wenig Spielzeit (+12), tiefere Liga (+8 bis +13), Nähe (bis +10), Tabellenkeller (+8), Ex-SV/BSC (+15), Jugend-Übergang (+15); dagegen: höhere Liga (−18), Verein spielt oben (−10), Torschützenkönig (−12), Distanz (bis −14), unverzichtbar im Team (−7), verletzt (−8). Die <b>Transfer-Chance</b> (55 % MScore + 45 % Wechsel-Index) sortiert alle Ersatz- und Transferlisten: stark UND realistisch schlägt stark-aber-unerreichbar.</li>
-        <li><b>Elf der Woche / Spieler des Spieltags (FuPa):</b> Nominierungen geben +2 MScore-Punkte je Nennung (max. +6) und erscheinen im Profil. Die zugehörige „Elf der Saison“ wird als Vergleichskarte in der Aufstellung gezeigt. <i>FuPa blockiert automatisierte Abrufe — diese Daten werden manuell eingepflegt und mit Quelle verlinkt; solange keine vorliegen, ist der Bonus für alle 0.</i></li>
-        <li><b>Eigener Kader (NEU):</b> Komplett aus den Vereinsheften „Doppelpass“ 08/2025–05/2026 (sv-moerlenbach.de) übernommen — inkl. 11 dokumentierter Aufstellungen (Sep./Okt. 2025 + März/April 2026). Belegte Tore/Einsätze aus diesen Heften sind <b>Untergrenzen</b>, keine Saisonsummen. <b>TW/AV/IV</b> werden über Team-Gegentore vs. Liga-Schnitt + Presse bewertet (AV zusätzlich Vorlagen, wo belegt) — individuelle Defensivdaten sind öffentlich nicht verfügbar.</li>
-        <li><b>Datenquelle Profile:</b> 180 öffentliche fussball.de-Spielerprofile gezogen – 123 Fotos, 53 exakte Geburtsdaten, 88× echte Einsätze/Minuten. Wo Minuten bekannt sind, rechnet „Produktion" mit echten <b>Toren pro 90 Minuten</b> statt Team-Spielen. Unplausible Werte (z.B. 252 cm Größe) wurden verworfen.</li>
+        <li><b>🔵 FuPa-MVP (NEU, Saison 26/27):</b> FuPa weist pro Team einen MVP-Wert von 0–100 % aus („wie wertvoll ist ein Spieler für sein Team, auf Basis der Leistungsdaten“), der Wertvollste eines Teams hat 100 %. Weil der Wert <b>team-relativ</b> ist, fließt er nicht absolut ein, sondern als <b>Modifikator von max. ±6 %</b>: MScore × (0,94 + 0,12 × MVP/100), 50 % = neutral. Ein Insider-Rating hat Vorrang. Im Wechsel-Index gilt: MVP ≥ 90 % = Schlüsselspieler (−6, schwer loszueisen), MVP ≤ 55 % = eher Randfigur (+5). <b>Pflege nach jedem Spieltag</b> im Tab 🗄️ Datenbank („FuPa-MVP eintragen“) oder im Spielerprofil. Die Werte gelten sofort auf allen Geräten.</li>
+        <li><b>🗂️ Kaderplaner-Pipeline (NEU):</b> Kandidaten mit Wechselwahrscheinlichkeit (manuell, daneben der Modellwert), Zielrolle/-position, verantwortlichem Planer und letztem Kontakt, nach 21 Tagen ohne Kontakt wird er rot und rutscht nach oben. Wochen-Digest je Planer zum Kopieren oder Teilen per WhatsApp. Änderungen mehrerer Planer werden <b>feldweise zusammengeführt</b> · niemand überschreibt die Einträge der anderen. <b>Kontaktdaten werden im Browser mit einem Team-Schlüssel verschlüsselt</b> (AES-256); online liegen sie nur als unlesbarer Code.</li>
+        <li><b>📋 Kaderplan-Board (NEU):</b> Traumelf mit Backup und Ziel je Position, offene Positionen markiert, druckfertig als PDF für Vorstand und Kaderplanung.</li>
+        <li><b>👥 Schattenmannschaft:</b> Kaderplanungs-Werkzeug wie im Profiscouting. Hinter jeder Position der Startelf stehen ein geplanter <b>Backup</b> aus dem eigenen Kader und ein externes <b>Transferziel</b> (sortiert nach Transfer-Chance). Auto-Vervollständigen besetzt offene Planungen positionstreu; alles wird geräteübergreifend mitgespeichert.</li>
+        <li><b>Gruppenliga-Radar (NEU):</b> Alle Torschützen (≥2 Tore) der 7 Gruppenliga-Vereine im Umkreis (Wald-Michelbach, FC/SV Fürth, Fehlheim, Auerbach, Bensheim, Riedrode) sind erfasst. Quelle fussball.de (Torschützenliste, Tabelle, 24 Spielerprofile mit Minuten). Der <b>Wechsel-Index</b> unterscheidet: Gruppenliga-<i>Stammspieler</i> sind quasi unerreichbar (−26), wer dort aber <i>meist draußen sitzt</i>, ist für garantierte Spielzeit ansprechbar. Echte Bankspieler ohne Torbeteiligung sind öffentlich nicht auffindbar (nur FuPa hätte komplette Kader. Für automatisierte Abrufe gesperrt).</li>
+        <li><b>Positionen &amp; Nebenpositionen:</b> Jeder Spieler hat eine feste Hauptposition. Hat er laut Vereinsheft-Aufstellungen nachweislich auch woanders gespielt (z.B. S. Goderbauer im Mittelfeld, Fries vorne), ist das als <b>Nebenposition</b> hinterlegt. Die „Beste Elf“-Automatik bewertet mit <b>75 % Stärke + Trainer-Vertrauen</b> (bis +10 für Startelf-Häufigkeit 25/26) <b>− 8 bei Disziplin-Risiko</b> (Rote Karten) und besetzt Slots nur mit Haupt-/Nebenposition; einzig LM/RM dürfen zur Not von zentralen Spielern (ZM/OM/ST) mit Malus übernommen werden. Kreisliga-Realität. Lieber ein Slot leer als wild verschoben.</li>
+        <li><b>🎯 Insider-Ratings:</b> Für einzelne eigene Spieler kann die Sportliche Leitung das Daten-Rating überschreiben (z.B. starke Verteidiger, die in reinen Tordaten unsichtbar sind). Das ist im Profil offen ausgewiesen. Inkl. des reinen Modellwerts. Ebenso transparent: intern als „nicht verfügbar“ markierte Spieler (z.B. bewusst nur noch 2. Mannschaft) fliegen aus Bank &amp; Vorschlägen.</li>
+        <li><b>🕵️ Digital-Scout / Wechsel-Index (NEU):</b> Eigenes Rating 0–100 für die <b>Wechselbereitschaft</b> jedes externen Spielers, berechnet aus öffentlichen Signalen: Zweitvertretung (+14), wenig Spielzeit (+12), tiefere Liga (+8 bis +13), Nähe (bis +10), Tabellenkeller (+8), Ex-SV/BSC (+15), Jugend-Übergang (+15); dagegen: höhere Liga (−18), Verein spielt oben (−10), Torschützenkönig (−12), Distanz (bis −14), unverzichtbar im Team (−7), verletzt (−8). Die <b>Transfer-Chance</b> (55 % MScore + 45 % Wechsel-Index) sortiert alle Ersatz- und Transferlisten: stark UND realistisch schlägt stark-aber-unerreichbar.</li>
+        <li><b>Elf der Woche / Spieler des Spieltags (FuPa):</b> Nominierungen geben +2 MScore-Punkte je Nennung (max. +6) und erscheinen im Profil. Die zugehörige „Elf der Saison“ wird als Vergleichskarte in der Aufstellung gezeigt. <i>FuPa blockiert automatisierte Abrufe. Diese Daten werden manuell eingepflegt und mit Quelle verlinkt; solange keine vorliegen, ist der Bonus für alle 0.</i></li>
+        <li><b>Eigener Kader (NEU):</b> Komplett aus den Vereinsheften „Doppelpass“ 08/2025–05/2026 (sv-moerlenbach.de) übernommen: inkl. 11 dokumentierter Aufstellungen (Sep./Okt. 2025 + März/April 2026). Belegte Tore/Einsätze aus diesen Heften sind <b>Untergrenzen</b>, keine Saisonsummen. <b>TW/AV/IV</b> werden über Team-Gegentore vs. Liga-Schnitt + Presse bewertet (AV zusätzlich Vorlagen, wo belegt). Individuelle Defensivdaten sind öffentlich nicht verfügbar.</li>
+        <li><b>Datenquelle Profile:</b> 180 öffentliche fussball.de-Spielerprofile gezogen: 123 Fotos, 53 exakte Geburtsdaten, 88× echte Einsätze/Minuten. Wo Minuten bekannt sind, rechnet „Produktion" mit echten <b>Toren pro 90 Minuten</b> statt Team-Spielen. Unplausible Werte (z.B. 252 cm Größe) wurden verworfen.</li>
         <li><b>Produktion:</b> Tore/Spiel × Liga-Gewicht (KOL 1,25 · A 1,00 · B 0,78 · C 0,60 · D 0,42 · U19-GL 0,55 · U19/U17-KK 0,35/0,30).</li>
         <li><b>Dominanz:</b> Anteil an allen Teamtoren (40 % = Maximum).</li>
         <li><b>Kontext:</b> Bonus für Torjäger schwacher Teams.</li>
         <li><b>Potenzial:</b> Alter (U21=100 … 33+=18); Jugend = Jahrgangs-Schätzung; unbekannt = 50.</li>
         <li><b>Formtrend:</b> ligagewichtete Quote 25/26 vs. 24/25; Farming-Deckel 85, Aufsteiger-Boden 55.</li>
-        <li><b>Presse-Index (NEU):</b> Engine über 194 analysierte Artikel aus WNOZ, fussball.de-News und Vereinsseiten (Aug. 2024–Juli 2026). Nennungen werden typisiert (Tor ⚽, Vorlage 🅰️, Parade 🧤, Lob 👍, Kritik ⚠️, Verletzung 🚑), nach Aktualität gewichtet und mit Shrinkage-Formel fair normalisiert – jede Nennung mit Überschrift + Quell-Link im Profil. Gesperrte Quellen (Mannheimer Morgen, Bergsträßer Anzeiger, FuPa, kicker) sind NICHT enthalten – das steht hier ehrlich dabei.</li>
+        <li><b>Presse-Index (NEU):</b> Engine über 194 analysierte Artikel aus WNOZ, fussball.de-News und Vereinsseiten (Aug. 2024–Juli 2026). Nennungen werden typisiert (Tor ⚽, Vorlage 🅰️, Parade 🧤, Lob 👍, Kritik ⚠️, Verletzung 🚑), nach Aktualität gewichtet und mit Shrinkage-Formel fair normalisiert, jede Nennung mit Überschrift + Quell-Link im Profil. Gesperrte Quellen (Mannheimer Morgen, Bergsträßer Anzeiger, FuPa, kicker) sind NICHT enthalten, das steht hier ehrlich dabei.</li>
         <li><b>Scout-Note:</b> euer Eye-Test, positionsgewichtet.</li>
       </ul>
     </div>
@@ -2685,7 +2825,7 @@ a.kbtn{text-decoration:none;display:inline-block}
         <button class="btn ghost" id="exportCsv">⬇ Shortlist CSV</button>
         <label class="btn ghost" style="cursor:pointer;">⬆ Import <input type="file" id="importFile" accept=".json" style="display:none"></label>
       </div>
-      <p class="note">Das Tool speichert nur in der Sitzung – vor dem Schließen exportieren.</p>
+      <p class="note">Das Tool speichert nur in der Sitzung, vor dem Schließen exportieren.</p>
       <div id="shortlist" style="margin-top:12px"></div>
     </div>
     <div class="card">
@@ -2739,9 +2879,9 @@ a.kbtn{text-decoration:none;display:inline-block}
 
 
 <div class="overlay" id="overlay"><div class="modal" id="modal"></div></div>
-<script>window.SVBC_CFG={"url": "https://lvaukuzgcwgqipxwzabo.supabase.co", "anon": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imx2YXVrdXpnY3dncWlweHd6YWJvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTAxNTYwMTcsImV4cCI6MjEwNTczMjAxN30.jYZF8q8-SyCaWykM0wwcK58EzfTbO2VASKz1NIv1xbo", "build": "4.2-202609241703", "dataBytes": 3053230};</script>
-<script src="vendor/supabase.js?v=4.2-202609241703"></script>
-<script src="icons.js?v=4.2-202609241703"></script>
-<script src="boot.js?v=4.2-202609241703"></script>
+<script>window.SVBC_CFG={"url": "https://lvaukuzgcwgqipxwzabo.supabase.co", "anon": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imx2YXVrdXpnY3dncWlweHd6YWJvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTAxNTYwMTcsImV4cCI6MjEwNTczMjAxN30.jYZF8q8-SyCaWykM0wwcK58EzfTbO2VASKz1NIv1xbo", "build": "4.3-202609241852", "dataBytes": 3053230};</script>
+<script src="vendor/supabase.js?v=4.3-202609241852"></script>
+<script src="icons.js?v=4.3-202609241852"></script>
+<script src="boot.js?v=4.3-202609241852"></script>
 </body>
 </html>
