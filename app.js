@@ -2100,7 +2100,7 @@ function openSlotPicker(i,depth){
 }
 
 /* ===== App-Modus: installierbar, offline-fest, aktualisiert sich selbst ===== */
-const APP_BUILD='r12-202609240405', OUTBOX_KEY='svbcOutbox', APP_HIDE_KEY='svbcInstallHide';
+const APP_BUILD='r13-202609240427', OUTBOX_KEY='svbcOutbox', APP_HIDE_KEY='svbcInstallHide';
 let _appPrompt=null, _appNew=null, _obT=null;
 function appStandalone(){ try{ return !!(window.matchMedia&&matchMedia('(display-mode: standalone)').matches)||navigator.standalone===true; }catch(e){ return false; } }
 function appPlatform(){
@@ -5675,7 +5675,8 @@ async function kbLoad(force){
 function kbAfter(){ try{ if(document.querySelector('#panel-kabine.active'))kbRender(); }catch(e){ console.warn(e); } try{ kbHomeCard(); }catch(e){} }
 async function kbLink(renew){ const {data,error}=await SVB.sb.rpc('team_link',{p_new:!!renew}); if(error)throw new Error(error.message); KB.link=data; return data; }
 function kbBase(){ return location.origin+location.pathname.replace(/[^/]*$/,''); }
-function kbUrl(poll){ return kbBase()+'team.html#k='+encodeURIComponent(KB.link||'')+(poll?'&a='+poll:''); }
+function kbUrl(poll){ const L=KB.bot&&KB.bot.link_url; if(L&&L!==kbBase()&&KB.link)return L+encodeURIComponent(KB.link)+(poll?'#a='+poll:'');
+  return kbBase()+'team.html#k='+encodeURIComponent(KB.link||'')+(poll?'&a='+poll:''); }
 function kbWa(text){ window.open('https://wa.me/?text='+encodeURIComponent(text),'_blank','noopener'); }
 async function kbCopy(t){ try{ await navigator.clipboard.writeText(t); kToast('✓ Kopiert'); }catch(e){ prompt('Zum Kopieren:',t); } }
 
