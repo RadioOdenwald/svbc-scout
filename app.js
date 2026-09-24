@@ -2100,7 +2100,7 @@ function openSlotPicker(i,depth){
 }
 
 /* ===== App-Modus: installierbar, offline-fest, aktualisiert sich selbst ===== */
-const APP_BUILD='r11c-202609231959', OUTBOX_KEY='svbcOutbox', APP_HIDE_KEY='svbcInstallHide';
+const APP_BUILD='r12-202609240405', OUTBOX_KEY='svbcOutbox', APP_HIDE_KEY='svbcInstallHide';
 let _appPrompt=null, _appNew=null, _obT=null;
 function appStandalone(){ try{ return !!(window.matchMedia&&matchMedia('(display-mode: standalone)').matches)||navigator.standalone===true; }catch(e){ return false; } }
 function appPlatform(){
@@ -3538,8 +3538,9 @@ const TRS=(function(){
   /* ===== Spiele (aus den Einheiten vom Typ „Spiel“) ===== */
   const games=st=>(st&&st.sessions||[]).filter(s=>s.t==='spiel');
   function matchStats(st,pid,since){
-    const o={sp:0,start:0,joker:0,tore:0,vor:0,s:0,u:0,n:0,zuNull:0};
+    const o={sp:0,start:0,joker:0,tore:0,vor:0,s:0,u:0,n:0,zuNull:0,kader:0,zuschauer:0};
     for(const g of games(st)){ if(since&&g.d<=since)continue; const a=(g.a||[]).find(x=>x[0]===pid); if(!a||a[1]==='weg')continue;
+      if(a[1]==='bank'){ o.kader++; continue; } if(a[1]==='zuschauer'){ o.zuschauer++; continue; }   // im Kader ohne Einsatz / zugeschaut – kein Einsatz
       o.sp++; if(a[1]==='da')o.start++; else o.joker++; o.tore+=a[6]||0; o.vor+=a[7]||0;
       if(g.tw!=null&&g.tg!=null){ if(g.tw>g.tg)o.s++; else if(g.tw===g.tg)o.u++; else o.n++; if(g.tg===0)o.zuNull++; } }
     return o;
@@ -3832,7 +3833,7 @@ function trRender(){
   const P=document.getElementById('panel-training'); if(!P)return;
   if(!canTraining()){ P.innerHTML='<div class="card"><div class="empty">Training sehen nur Trainer, Kaderplaner und Vorstand.</div></div>'; return; }
   if(!TR.loaded){ P.innerHTML='<div class="card"><div class="empty">Lade Trainingsdaten …</div></div>'; trLoad(); return; }
-  const V=TR.view, tabs=[['home','Übersicht'],['sessions','Einheiten'],['players','Spieler'],['injuries','Verletzungen']];
+  const V=TR.view, tabs=[['home','Übersicht'],['sessions','Einheiten'],['players','Spieler'],['games','Spiele'],['injuries','Verletzungen']];
   P.innerHTML=`<div class="trtop">
       <div class="trtabs">${tabs.map(([k,t])=>`<button class="${V===k?'on':''}" data-trv="${k}">${t}</button>`).join('')}</div>
       <div class="tract"><button class="btn" data-tr-new>${SVI('plus')} Training erfassen</button><button class="btn ghost" data-tr-game>${SVI('plus')} Spiel</button><button class="btn ghost" data-tr-inj>${SVI('plus')} Verletzung</button><button class="btn ghost" data-tr-chat>${SVI('chat')} Co-Trainer</button></div></div>
@@ -3843,7 +3844,7 @@ function trRender(){
   P.querySelector('[data-tr-game]').onclick=()=>trSessionEditor(trToday(),null,'spiel');
   P.querySelector('[data-tr-chat]').onclick=()=>trChatOpen();
   const B=document.getElementById('trBody');
-  ({home:trViewHome,sessions:trViewSessions,players:trViewPlayers,injuries:trViewInjuries})[V](B);
+  ({home:trViewHome,sessions:trViewSessions,players:trViewPlayers,games:(b)=>trViewGames(b),injuries:trViewInjuries})[V](B);
 }
 function trViewHome(B){
   const sq=trSquad(), today=trToday(), T=TRC.teamStats(TR.st,today,sq.map(p=>p.id)), al=trAlerts();
@@ -3961,10 +3962,10 @@ function trSessionEditor(datum,sid,typ0){
   const draw=()=>{
     const E=document.getElementById('trEd'); if(!E)return;
     const list=[...trSquad(),...st.extra.map(trP).filter(Boolean).filter(p=>!trSquad().includes(p))];
-    const cnt={da:0,spaet:0,weg:0,offen:0}; list.forEach(p=>{ const r=st.rows[p.id]; if(r&&r.status)cnt[r.status]++; else cnt.offen++; });
-    const G=st.typ==='spiel', L=G?['Startelf','Joker','Fehlt']:['Da','Spät','Fehlt'];
+    const cnt={da:0,spaet:0,weg:0,bank:0,zuschauer:0,offen:0}; list.forEach(p=>{ const r=st.rows[p.id]; if(r&&r.status)cnt[r.status]++; else cnt.offen++; });
+    const G=st.typ==='spiel', OPTS=G?[['da','Startelf'],['spaet','Eingewechselt'],['bank','Kader'],['zuschauer','Zugeschaut'],['weg','Nicht da']]:[['da','Da'],['spaet','Spät'],['weg','Fehlt']], spielt=r=>r&&(r.status==='da'||r.status==='spaet');
     const step=(id,k,v)=>`<span class="trstep"><em>${k==='tore'?'⚽ Tore':'🅰️ Vorl.'}</em><button type="button" data-step="${svEsc(id)}:${k}:-1">−</button><b>${v||0}</b><button type="button" data-step="${svEsc(id)}:${k}:1">+</button></span>`;
-    const sumT=Object.values(st.rows).reduce((a,r)=>a+(r.status&&r.status!=='weg'?(r.tore||0):0),0);
+    const sumT=Object.values(st.rows).reduce((a,r)=>a+(spielt(r)?(r.tore||0):0),0);
     E.innerHTML=`<div class="tred-top">
         <div class="field"><label>Datum</label><input type="date" id="trD" value="${svEsc(st.datum)}" max="${TRC.addDays(trToday(),14)}"></div>
         <div class="field"><label>Art</label><select id="trT">${[['training','Training'],['spiel','Spiel'],['test','Testspiel'],['sonstiges','Sonstiges']].map(([k,t])=>`<option value="${k}"${st.typ===k?' selected':''}>${t}</option>`).join('')}</select></div></div>
@@ -3975,12 +3976,12 @@ function trSessionEditor(datum,sid,typ0){
         <div class="trscale"><span>Intensität</span>${[1,2,3,4,5].map(n=>`<button type="button" data-int="${n}" class="${st.i===n?'on':''}">${n}</button>`).join('')}<small>${['','sehr locker','locker','mittel','intensiv','sehr intensiv'][st.i||0]||''}</small></div>
         <div class="trscale"><span>Eindruck</span>${[1,2,3,4,5].map(n=>`<button type="button" data-st="${n}" class="${st.s===n?'on s'+n:''}">${n}</button>`).join('')}<small>${['','schwach','zäh','ok','gut','top'][st.s||0]||''}</small></div>
         <div class="field" style="margin-top:8px"><label>Notiz zur Einheit</label><input id="trN" maxlength="2000" value="${svEsc(st.n)}" placeholder="z.B. sehr laufintensiv, gute Stimmung, Standards geübt"></div></div>
-      <div class="sbsec"><h4>${G?'Kader':'Anwesenheit'} <small>${cnt.da} ${G?'Startelf':'da'} · ${cnt.spaet} ${G?'Joker':'spät'} · ${cnt.weg} fehlen${cnt.offen?' · '+cnt.offen+' offen':''}</small></h4>
-        <div class="btnrow" style="margin-bottom:8px">${G?(typeof LINEUP!=='undefined'&&LINEUP.slots&&Object.values(LINEUP.slots).some(Boolean)?'<button type="button" class="btn ghost sm" id="trXI">Aktuelle Aufstellung übernehmen</button>':''):'<button type="button" class="btn ghost sm" id="trAll">Alle offenen = da</button>'}<button type="button" class="btn ghost sm" id="trAdd">${SVI('plus')} Spieler aus der Zweiten</button></div>
+      <div class="sbsec"><h4>${G?'Kader':'Anwesenheit'} <small>${G?`${cnt.da} Startelf · ${cnt.spaet} eingewechselt · ${cnt.bank} Kader · ${cnt.zuschauer} zugeschaut · ${cnt.weg} nicht da`:`${cnt.da} da · ${cnt.spaet} spät · ${cnt.weg} fehlen`}${cnt.offen?' · '+cnt.offen+' offen':''}</small></h4>
+        <div class="btnrow" style="margin-bottom:8px">${G?((typeof fbSpielAm==='function'&&fbSpielAm(st.datum)?'<button type="button" class="btn sm" id="trFB">Aus Spielbericht übernehmen</button>':'')+(typeof LINEUP!=='undefined'&&LINEUP.slots&&Object.values(LINEUP.slots).some(Boolean)?'<button type="button" class="btn ghost sm" id="trXI">Aktuelle Aufstellung übernehmen</button>':'')):'<button type="button" class="btn ghost sm" id="trAll">Alle offenen = da</button>'}<button type="button" class="btn ghost sm" id="trAdd">${SVI('plus')} Spieler aus der Zweiten</button></div>
         <div class="tratt">${list.map(p=>{ const r=st.rows[p.id]||{}, o=st.open===p.id;
           return `<div class="trr${r.status?' s-'+r.status:''}"><div class="trr-h"><span class="trr-n" data-open-r="${svEsc(p.id)}"><b>${svEsc(p.name)}</b><em>${svEsc(p.pos||'')}${p.kader===2?' · II':''}${trInjury(p.id)?' · 🩹':''}${r.motivation?' · M'+r.motivation:''}${r.fitness?' · F'+r.fitness:''}</em></span>
-            <div class="trseg"><button type="button" data-set="${svEsc(p.id)}:da" class="${r.status==='da'?'on':''}">${L[0]}</button><button type="button" data-set="${svEsc(p.id)}:spaet" class="${r.status==='spaet'?'on':''}">${L[1]}</button><button type="button" data-set="${svEsc(p.id)}:weg" class="${r.status==='weg'?'on':''}">${L[2]}</button></div></div>
-            ${G&&r.status&&r.status!=='weg'?`<div class="trsteps">${step(p.id,'tore',r.tore)}${step(p.id,'vorlagen',r.vorlagen)}</div>`:''}
+            <div class="trseg${G?' trseg5':''}">${OPTS.map(([k,t])=>`<button type="button" data-set="${svEsc(p.id)}:${k}" class="${r.status===k?'on':''}">${t}</button>`).join('')}</div></div>
+            ${G&&spielt(r)?`<div class="trsteps">${step(p.id,'tore',r.tore)}${step(p.id,'vorlagen',r.vorlagen)}</div>`:''}
             ${r.status==='weg'?`<div class="trg">${Object.entries(TRC.REASONS).map(([k,t])=>`<button type="button" data-gr="${svEsc(p.id)}:${k}" class="${r.grund===k?'on'+(k==='ohne'?' warn':''):''}">${t}</button>`).join('')}</div>`:''}
             ${o?`<div class="trx"><div class="trscale"><span>Motivation</span>${[1,2,3,4,5].map(n=>`<button type="button" data-mo="${svEsc(p.id)}:${n}" class="${r.motivation===n?'on s'+n:''}">${n}</button>`).join('')}</div>
               <div class="trscale"><span>Fitness/Frische</span>${[1,2,3,4,5].map(n=>`<button type="button" data-fi="${svEsc(p.id)}:${n}" class="${r.fitness===n?'on s'+n:''}">${n}</button>`).join('')}</div>
@@ -3993,6 +3994,8 @@ function trSessionEditor(datum,sid,typ0){
     ['trTW','trTG'].forEach(i=>{ const x=document.getElementById(i); if(x)x.oninput=()=>{ keep(); const sm=E.querySelector('.trres small'); if(sm)sm.textContent=st.tw!==''&&st.tg!==''?(+st.tw>+st.tg?'Sieg':+st.tw===+st.tg?'Unentschieden':'Niederlage'):'Ergebnis (wir : Gegner)'; }; });
     E.querySelectorAll('[data-ha]').forEach(b=>b.onclick=()=>{ keep(); const v=b.dataset.ha==='1'; st.h=st.h===v?null:v; draw(); });
     E.querySelectorAll('[data-step]').forEach(b=>b.onclick=()=>{ keep(); const [id,k,dv]=b.dataset.step.split(':'); const r=st.rows[id]=st.rows[id]||{}; r[k]=Math.max(0,Math.min(20,(r[k]||0)+(+dv))); draw(); });
+    if(document.getElementById('trFB'))document.getElementById('trFB').onclick=()=>{ keep(); const R=fbSpielAm(st.datum); let n=0; Object.entries(R.rows).forEach(([id,x])=>{ const r=st.rows[id]=st.rows[id]||{}; if(r.status==='weg'||r.status==='zuschauer')return; r.status=x.status; r.grund=null; if(x.tore)r.tore=x.tore; if(!list.some(p=>p.id===id)&&!st.extra.includes(id))st.extra.push(id); n++; });
+      if(!st.g&&R.gegner)st.g=R.gegner; if(st.h==null&&R.heim!=null)st.h=R.heim; draw(); kToast(`✓ ${n} Spieler aus dem Spielbericht übernommen${R.fehlt?` · ${R.fehlt} nicht zugeordnet`:''}`); };
     if(document.getElementById('trXI'))document.getElementById('trXI').onclick=()=>{ keep(); const xi=new Set(Object.values(LINEUP.slots||{}).filter(Boolean)); list.forEach(p=>{ if(xi.has(p.id)){ const r=st.rows[p.id]=st.rows[p.id]||{}; r.status='da'; r.grund=null; } }); draw(); };
     E.querySelectorAll('[data-fk]').forEach(b=>b.onclick=()=>{ keep(); const k=b.dataset.fk; if(st.fokus.has(k))st.fokus.delete(k); else st.fokus.add(k); draw(); });
     E.querySelectorAll('[data-int]').forEach(b=>b.onclick=()=>{ keep(); const n=+b.dataset.int; st.i=st.i===n?null:n; draw(); });
@@ -4010,7 +4013,7 @@ function trSessionEditor(datum,sid,typ0){
     if(document.getElementById('trDel'))document.getElementById('trDel').onclick=async()=>{ if(!confirm('Diese Einheit samt Anwesenheit löschen?'))return; try{ await trDeleteSession(st.id); closeOverlay(); kToast('Einheit gelöscht'); }catch(e){ kToast('⚠️ '+e.message); } };
     document.getElementById('trSave').onclick=async()=>{ keep();
       const miss=Object.entries(st.rows).filter(([,r])=>r.status==='weg'&&!r.grund); if(miss.length){ kToast('Bitte Grund angeben: '+miss.map(([id])=>trShort(id)).join(', ')); return; }
-      const sp=[]; Object.entries(st.rows).forEach(([id,r])=>{ if(r.status)sp.push(Object.assign({player_id:id,status:r.status,grund:r.status==='weg'?r.grund:null,motivation:r.motivation||null,fitness:r.fitness||null,notiz:(r.notiz||'').trim()||null},st.typ==='spiel'?{tore:r.status!=='weg'&&r.tore||null,vorlagen:r.status!=='weg'&&r.vorlagen||null}:{})); else if(st.orig.has(id))sp.push({player_id:id,status:''}); });
+      const sp=[]; Object.entries(st.rows).forEach(([id,r])=>{ if(r.status)sp.push(Object.assign({player_id:id,status:r.status,grund:r.status==='weg'?r.grund:null,motivation:r.motivation||null,fitness:r.fitness||null,notiz:(r.notiz||'').trim()||null},st.typ==='spiel'?{tore:(r.status==='da'||r.status==='spaet')&&r.tore||null,vorlagen:(r.status==='da'||r.status==='spaet')&&r.vorlagen||null}:{})); else if(st.orig.has(id))sp.push({player_id:id,status:''}); });
       if(st.typ==='spiel'&&((st.tw==='')!==(st.tg===''))){ kToast('Bitte beide Ergebnis-Felder ausfüllen (oder beide leer lassen)'); return; }
       if(s0&&(s0.d!==st.datum||s0.t!==st.typ)){ try{ await trDeleteSession(s0.id); }catch(e){} }
       const b=document.getElementById('trSave'); b.disabled=true; b.textContent='Speichert …';
@@ -5512,9 +5515,9 @@ const FB={m:[],pl:new Map(),loaded:false,loading:false,map:null,mapK:'',busy:fal
 async function fbLoad(force){
   if(FB.loading||(FB.loaded&&!force))return; FB.loading=true;
   try{
-    const [m,p]=await Promise.all([SVB.sb.from('fde_matches').select('id,team,saison,datum,zeit,wettbewerb,code,heim,gast,wir_heim,apps,bericht').order('datum',{ascending:false}).limit(400),
+    const [m,p]=await Promise.all([SVB.sb.from('fde_matches').select('id,team,saison,datum,zeit,wettbewerb,code,heim,gast,wir_heim,apps,bank,bericht').order('datum',{ascending:false}).limit(400),
       SVB.sb.from('fde_players').select('key,name').limit(3000)]);
-    FB.m=(m.data||[]).map(x=>Object.assign(x,{apps:Array.isArray(x.apps)?x.apps:[]})); FB.pl=new Map((p.data||[]).map(r=>[r.key,r.name])); FB.loaded=true; FB.map=null;
+    FB.m=(m.data||[]).map(x=>Object.assign(x,{apps:Array.isArray(x.apps)?x.apps:[],bank:Array.isArray(x.bank)?x.bank:[]})); FB.pl=new Map((p.data||[]).map(r=>[r.key,r.name])); FB.loaded=true; FB.map=null;
   }catch(e){ console.warn('Spielberichte',e); FB.loaded=true; }
   FB.loading=false; fbAfter();
 }
@@ -5528,7 +5531,7 @@ function fbMap(){
   const own=players.filter(p=>p.own), byN=new Map(), byL=new Map();
   const put=(mp,k,id)=>{ if(!k)return; mp.set(k,mp.has(k)&&mp.get(k)!==id?null:id); };
   own.forEach(p=>{ put(byN,N(p.name),p.id); put(byL,loose(p.name),p.id); });
-  const keys=new Set(); FB.m.forEach(g=>g.apps.forEach(a=>keys.add(a.p)));
+  const keys=new Set(); FB.m.forEach(g=>{ g.apps.forEach(a=>keys.add(a.p)); g.bank.forEach(k=>keys.add(k)); });
   const usedP=new Set(); keys.forEach(k=>{ const id=byUrl.get(k); if(id){ M.set(k,id); usedP.add(id); } });
   keys.forEach(k=>{ if(M.has(k))return; const nm=FB.pl.get(k), id=nm&&(byN.get(N(nm))||byL.get(loose(nm))); if(id&&!usedP.has(id)){ M.set(k,id); usedP.add(id); } });
   FB.map=M; FB.mapK=k; return M;
@@ -5589,6 +5592,49 @@ async function fbRun(btn){
     c.querySelectorAll('[data-svp]').forEach(x=>x.onclick=()=>openModal(x.dataset.svp)); const b=c.querySelector('#fbRun'); if(b)b.onclick=()=>fbRun(b); } }catch(e){ console.warn('Saisonkarte',e); }
   return r; }; }
 { const _si5=svInit; svInit=function(){ const r=_si5.apply(this,arguments); setTimeout(()=>fbLoad(),900); return r; }; }
+
+/* ---------- Runde 12: Spiel-Status je Spieler (Startelf · eingewechselt · Kader · zugeschaut · nicht da) ---------- */
+const FG_ST=[['da','Startelf','c1'],['spaet','Eingewechselt','c2'],['bank','Kader','c3'],['zuschauer','Zugeschaut','c4'],['weg','Nicht da','c5']];
+/* Spielbericht eines Tages als Vorschlag für „Spiel erfassen“ */
+function fbSpielAm(datum){
+  if(!FB.loaded)return null; const g=FB.m.find(x=>x.team==='A'&&x.datum===datum&&x.bericht); if(!g)return null;
+  const M=fbMap(), rows={}; let fehlt=0;
+  g.apps.forEach(a=>{ const pid=M.get(a.p); if(!pid){ fehlt++; return; } rows[pid]={status:a.s?'da':'spaet',tore:a.t||0}; });
+  g.bank.forEach(k=>{ const pid=M.get(k); if(!pid){ fehlt++; return; } if(!rows[pid])rows[pid]={status:'bank'}; });
+  return {rows,fehlt,gegner:g.wir_heim?g.gast:g.heim,heim:g.wir_heim,code:g.code};
+}
+/* Alle Pflichtspiele der Ersten seit Saisonstart: erfasste Spiele (App) haben Vorrang, sonst der Spielbericht */
+function fbSpielStatus(){
+  const since=fbSeasonStart(), M=fbMap(), byDate=new Map();
+  (TR.st.sessions||[]).filter(s=>s.t==='spiel'&&s.d>since).forEach(s=>byDate.set(s.d,{d:s.d,app:s}));
+  FB.m.filter(g=>g.team==='A'&&g.bericht&&g.datum>since).forEach(g=>{ const o=byDate.get(g.datum)||{d:g.datum}; o.fb=g; byDate.set(g.datum,o); });
+  const P=new Map(), get=pid=>{ if(!P.has(pid))P.set(pid,{pid,da:0,spaet:0,bank:0,zuschauer:0,weg:0,gr:{}}); return P.get(pid); };
+  const G=[...byDate.values()].sort((a,b)=>a.d<b.d?-1:1);
+  G.forEach(x=>{ const seen=new Set();
+    if(x.app)(x.app.a||[]).forEach(a=>{ const o=get(a[0]); o[a[1]]=(o[a[1]]||0)+1; if(a[1]==='weg'){ o.gr[a[2]||'ohne']=(o.gr[a[2]||'ohne']||0)+1; } seen.add(a[0]); });
+    if(x.fb){ x.fb.apps.forEach(a=>{ const pid=M.get(a.p); if(!pid||seen.has(pid))return; get(pid)[a.s?'da':'spaet']++; seen.add(pid); });
+      x.fb.bank.forEach(k=>{ const pid=M.get(k); if(!pid||seen.has(pid))return; get(pid).bank++; seen.add(pid); }); } });
+  return {spiele:G.length,erfasst:G.filter(x=>x.app).length,P};
+}
+function trViewGames(B){
+  if(!FB.loaded){ B.innerHTML='<div class="card"><div class="empty">Lade Spielberichte …</div></div>'; fbLoad().then(()=>{ if(TR.view==='games')trViewGames(B); }); return; }
+  const S=fbSpielStatus(), squad=trSquad(), rows=squad.map(p=>Object.assign({p},S.P.get(p.id)||{pid:p.id,da:0,spaet:0,bank:0,zuschauer:0,weg:0,gr:{}}));
+  S.P.forEach((v,pid)=>{ if(!squad.some(p=>p.id===pid)&&trP(pid))rows.push(Object.assign({p:trP(pid)},v)); });
+  rows.sort((a,b)=>(b.da+b.spaet)-(a.da+a.spaet)||b.da-a.da||b.bank-a.bank||a.p.name.localeCompare(b.p.name,'de'));
+  const n=Math.max(1,S.spiele), bar=r=>`<div class="fgbar">${FG_ST.map(([k],i)=>r[k]?`<i class="b${i+1}" style="width:${r[k]/n*100}%"></i>`:'').join('')}</div>`;
+  B.innerHTML=`<div class="card"><div class="vrat-h"><h3 class="trh" style="margin:0">${SVI('ball')} Spiele ${fbSeasonLabel()} – 1. Mannschaft</h3>${canTraining()?`<button class="btn ghost sm" id="fgRun">${SVI('refresh')} Spielberichte abrufen</button>`:''}</div>
+    <div class="note" style="margin-top:6px">${S.spiele} Pflichtspiele (inkl. Pokal) · ${S.erfasst} davon in der App erfasst. Startelf, Einwechslungen und Kader kommen automatisch aus den Spielberichten. „Zugeschaut/unterstützt“ und „nicht da mit Grund“ tragt ihr unter <b>Spiel erfassen</b> ein – oder sie kommen aus der Abstimmung.</div>
+    <div class="trtw"><table class="trtab fgtab"><thead><tr><th>Spieler</th>${FG_ST.map(([k,t,c])=>`<th class="${c}">${t}</th>`).join('')}<th></th></tr></thead><tbody>
+    ${rows.filter(r=>r.da+r.spaet+r.bank+r.zuschauer+r.weg>0||r.p.kader===1).map(r=>`<tr data-svp="${svEsc(r.p.id)}"><td><b>${svEsc(r.p.name)}</b>${r.p.kader===2?' <small>II</small>':''}</td>
+      ${FG_ST.map(([k,,c])=>`<td class="${r[k]?c:''}">${r[k]||'–'}${k==='weg'&&r.weg?`<span class="fggr">${Object.entries(r.gr).map(([g,x])=>svEsc(TRC.REASONS[g]||g)+(x>1?' '+x+'×':'')).join(', ')}</span>`:''}</td>`).join('')}<td>${bar(r)}</td></tr>`).join('')}</tbody></table></div></div>`;
+  B.querySelectorAll('tr[data-svp]').forEach(r=>r.onclick=()=>openModal(r.dataset.svp));
+  const b=document.getElementById('fgRun'); if(b)b.onclick=async()=>{ await fbRun(b); trViewGames(B); };
+}
+/* Im Spielerprofil: die fünf Zahlen der Saison */
+{ const _om9=openModal; openModal=function(){ const r=_om9.apply(this,arguments); try{ const pid=arguments[0], p=trP(pid), M=document.getElementById('modal');
+    if(p&&p.own&&canTraining()&&FB.loaded&&TR.loaded&&M&&!M.querySelector('.fgprofwrap')){ const o=fbSpielStatus().P.get(pid); if(o&&o.da+o.spaet+o.bank+o.zuschauer+o.weg){ const host=M.querySelector('.trprof'); if(host){
+      const el=document.createElement('div'); el.className='fgprofwrap'; el.innerHTML=`<h4 class="trh" style="margin-top:12px">${SVI('ball')} Spiele ${fbSeasonLabel()}</h4><div class="fgprof">${FG_ST.map(([k,t,c])=>`<div><b class="${o[k]?c:''}">${o[k]}</b><span>${t}</span></div>`).join('')}</div>${o.weg?`<div class="trabs"><span>Nicht da:</span> ${Object.entries(o.gr).map(([g,x])=>`<i>${svEsc(TRC.REASONS[g]||g)}${x>1?' '+x+'×':''}</i>`).join('')}</div>`:''}`;
+      host.appendChild(el); } } } }catch(e){ console.warn('Spielstatus',e); } return r; }; }
 
 /* =====================================================================
    SV/BSC Scout · Runde 11: „Kabine“
@@ -5741,13 +5787,13 @@ function kbPollDetail(id){
       ${fg.length?`<div class="sbsec"><h4>Im Kader, aber nicht auf der Liste <small>${fg.length}</small></h4><div class="chips">${fg.map(x=>`<button type="button" class="pchip" data-add="${svEsc(x.id)}">+ ${svEsc(x.name)}</button>`).join('')}</div></div>`:''}
       <div class="btnrow sbact"><button class="btn" id="kbTr">${SVI('activity')} ${p.art==='spiel'?'Spiel':'Anwesenheit'} vorbereiten</button><button class="btn ghost" id="kbCp">${SVI('copy')} Link kopieren</button><button class="btn ghost" id="kbEdit">Bearbeiten</button>
         <button class="btn ghost" id="kbClose">${p.geschlossen?'Wieder öffnen':'Abstimmung schließen'}</button></div>
-      <div class="note">„Vorbereiten“ übernimmt die Antworten ins Training bzw. Spiel: Zusagen als da, Absagen mit Grund. Danach nur noch korrigieren, wer wirklich gefehlt hat.</div>`;
+      <div class="note">„Vorbereiten“ übernimmt die Antworten ins Training bzw. Spiel: Zusagen als da (beim Spiel: im Kader), Absagen mit Grund. Beim Spiel danach „Aus Spielbericht übernehmen“ – Startelf und Einwechslungen kommen automatisch.</div>`;
     E.querySelectorAll('[data-set]').forEach(b=>b.onclick=async()=>{ const [pid,a]=b.dataset.set.split(':'); const cur=kbVotes(p).find(v=>v.player_id===pid);
       const q=cur&&cur.antwort===a?SVB.sb.from('poll_votes').delete().eq('poll_id',p.id).eq('player_id',pid):SVB.sb.from('poll_votes').upsert({poll_id:p.id,player_id:pid,antwort:a,grund:a==='ab'?(cur&&cur.grund)||null:null,via:'app',at:new Date().toISOString()});
       const {error}=await q; if(error)return kToast('⚠️ '+error.message); await kbLoad(true); draw(); });
     E.querySelectorAll('[data-add]').forEach(b=>b.onclick=async()=>{ const x=trP(b.dataset.add); const tn=[...(p.teilnehmer||[]),{id:x.id,name:x.name}];
       const {error}=await SVB.sb.from('polls').update({teilnehmer:tn}).eq('id',p.id); if(error)return kToast('⚠️ '+error.message); p.teilnehmer=tn; await kbLoad(true); draw(); kToast('✓ '+x.name+' hinzugefügt'); });
-    document.getElementById('kbTr').onclick=()=>{ const rows={}; kbVotes(p).forEach(v=>{ if(v.antwort==='zu')rows[v.player_id]={status:'da'}; else if(v.antwort==='ab')rows[v.player_id]={status:'weg',grund:v.grund||'privat',notiz:v.notiz||''}; });
+    document.getElementById('kbTr').onclick=()=>{ const rows={}; kbVotes(p).forEach(v=>{ if(v.antwort==='zu')rows[v.player_id]={status:p.art==='spiel'?'bank':'da'}; else if(v.antwort==='ab')rows[v.player_id]={status:'weg',grund:v.grund||'privat',notiz:v.notiz||''}; });
       TR.prefill={datum:p.datum,rows}; closeOverlay(); goTab('training'); setTimeout(()=>trSessionEditor(p.datum,null,p.art==='spiel'?'spiel':'training'),60); };
     document.getElementById('kbCp').onclick=async()=>{ try{ await kbLink(); kbCopy(kbUrl(p.id)); }catch(e){ kToast('⚠️ '+e.message); } };
     document.getElementById('kbEdit').onclick=()=>{ closeOverlay(); kbPollEditor(p.id); };
@@ -5887,17 +5933,21 @@ function kbKatEditor(){
 }
 function kbCfgEditor(){
   const c=KB.cfg||{};
-  svModal(`<div class="mhead"><div class="rm-ic" style="width:46px;height:46px">${SVI('sliders')}</div><div><h2 style="margin:0">Kasse einstellen</h2><div class="msub">Bezahlen per PayPal.me – kostenlos, ohne Händlerkonto</div></div></div>
+  svModal(`<div class="mhead"><div class="rm-ic" style="width:46px;height:46px">${SVI('sliders')}</div><div><h2 style="margin:0">Kasse einstellen</h2><div class="msub">Bezahlen per PayPal.me oder Überweisung – kostenlos</div></div></div>
     <div class="kbform"><div class="field"><label>PayPal.me-Name des Kassenwarts</label><input id="kcP" maxlength="40" value="${svEsc(c.paypal||'')}" placeholder="z.B. MaxMustermann (aus paypal.me/MaxMustermann)"></div>
       <div class="field"><label>Kassenwart</label><input id="kcK" maxlength="60" value="${svEsc(c.kassenwart||'')}" placeholder="Name"></div>
       <div class="field"><label>Anfangsbestand (€)</label><input id="kcA" type="number" step="0.5" value="${+c.anfang||0}"></div>
+      <div class="field"><label>IBAN für Überweisung (optional)</label><input id="kcI" maxlength="42" value="${svEsc(c.iban||'')}" placeholder="DE.." autocomplete="off"></div>
+      <div class="field"><label>Kontoinhaber</label><input id="kcO" maxlength="70" value="${svEsc(c.kontoinhaber||'')}" placeholder="Name"></div>
       <div class="field kbwide"><label>Hinweis für die Spieler (optional)</label><input id="kcH" maxlength="300" value="${svEsc(c.hinweis||'')}" placeholder="z.B. Bar geht auch – beim Kassenwart nach dem Training"></div></div>
     <div class="note">Die Spieler sehen einen „Mit PayPal bezahlen“-Knopf mit dem offenen Betrag und melden danach „Habe bezahlt“. Du bestätigst den Eingang – so bleibt alles nachvollziehbar. Stripe bräuchte ein Händlerkonto mit Gebühren je Zahlung und lohnt sich für eine Mannschaftskasse nicht.</div>
     <div class="btnrow sbact"><button class="btn" id="kcS">Speichern</button><button class="btn ghost" id="kcC">Abbrechen</button></div>`);
   document.getElementById('kcC').onclick=()=>closeOverlay();
   document.getElementById('kcS').onclick=async()=>{ let pp=document.getElementById('kcP').value.trim().replace(/^https?:\/\/(www\.)?paypal\.me\//i,'').replace(/\/.*$/,'');
     if(pp&&!/^[A-Za-z0-9._-]{2,40}$/.test(pp))return kToast('PayPal.me-Name: nur Buchstaben, Ziffern, Punkt, Minus');
-    const {error}=await SVB.sb.from('kasse_cfg').update({paypal:pp||null,kassenwart:document.getElementById('kcK').value.trim()||null,anfang:+document.getElementById('kcA').value||0,hinweis:document.getElementById('kcH').value.trim()||null}).eq('id',1);
+    const iban=document.getElementById('kcI').value.replace(/\s+/g,'').toUpperCase();
+    if(iban&&!kbIbanOk(iban))return kToast('Die IBAN scheint nicht zu stimmen – bitte prüfen');
+    const {error}=await SVB.sb.from('kasse_cfg').update({paypal:pp||null,kassenwart:document.getElementById('kcK').value.trim()||null,anfang:+document.getElementById('kcA').value||0,hinweis:document.getElementById('kcH').value.trim()||null,iban:iban||null,kontoinhaber:document.getElementById('kcO').value.trim()||null}).eq('id',1);
     if(error)return kToast('⚠️ '+error.message); closeOverlay(); await kbLoad(true); kToast('✓ Gespeichert'); };
 }
 
@@ -6008,6 +6058,9 @@ async function kbSpielerLinks(){
     const {error}=await SVB.sb.rpc('kabine_spieler_set',{p:rows}); if(error)return kToast('⚠️ '+error.message);
     closeOverlay(); kToast(`✓ ${rows.length} Nummer${rows.length>1?'n':''} gespeichert`); const r=await SVB.sb.rpc('kabine_bot_get'); KB.bot=r.data; if(KB.view==='link')kbRender(); };
 }
+
+/* IBAN-Prüfsumme (Modulo 97) – fängt Tippfehler ab */
+function kbIbanOk(i){ if(!/^[A-Z]{2}[0-9]{2}[A-Z0-9]{11,30}$/.test(i))return false; const r=(i.slice(4)+i.slice(0,4)).replace(/[A-Z]/g,c=>String(c.charCodeAt(0)-55)); let m=0; for(const ch of r)m=(m*10+(+ch))%97; return m===1; }
 
 /* ================= INIT ================= */
 renderWeights();

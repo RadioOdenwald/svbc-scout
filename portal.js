@@ -90,12 +90,14 @@
     B.innerHTML=`<div class="card hero"><span class="pill">Kassenstand</span><div class="big">${eur(stand)}</div><small>${cfg.kassenwart?'Kassenwart: '+esc(cfg.kassenwart):'Mannschaftskasse'}</small></div>
       <div class="card mine"><h2>Deine Strafen</h2>${mine.length?`<div class="grid2" style="margin-top:12px"><div class="stat"><span>Offen</span><b class="${sum?'mid':'ok'}">${eur(sum)}</b></div><div class="stat"><span>Bezahlt</span><b>${eur(mine.filter(b=>b.status==='bezahlt').reduce((a,b)=>a+ +b.betrag,0))}</b></div></div>
         ${pay?`<a class="pay" href="${esc(pay)}" target="_blank" rel="noopener">Mit PayPal bezahlen · ${eur(sum)}</a><p class="note">Bitte „Freunde &amp; Familie“ wählen – dann kostet es nichts.</p>`:''}
+        ${sum&&cfg.iban?`<div class="iban"><span>Oder per Überweisung</span><b>${esc(cfg.iban.replace(/(.{4})/g,'$1 ').trim())}</b><small>${esc(cfg.kontoinhaber||'')} · Verwendungszweck: Mannschaftskasse ${esc(ME.name)}</small><button class="btn2" id="ibanCp">IBAN kopieren</button></div>`:''}
         ${sum?`<button class="btn2" id="paid">Ich habe bezahlt</button>`:''}${myG.length?`<p class="note">⏳ ${myG.length} Posten als bezahlt gemeldet – der Kassenwart bestätigt den Eingang.</p>`:''}
         <h3>Deine Posten</h3>${mine.map(b=>`<div class="row"><b>${esc(b.titel)}</b><small>${esc(new Date(b.datum+'T12:00:00').toLocaleDateString('de-DE'))}</small><em>${eur(b.betrag)}</em><span class="st ${esc(b.status)}">${esc(b.status)}</span></div>`).join('')}`
         :'<p class="note">Weiße Weste – keine Strafen. 😇</p>'}${cfg.hinweis?`<p class="note">${esc(cfg.hinweis)}</p>`:''}</div>
       <div class="card"><h2>Alle Spieler</h2>${P.length?P.map(x=>`<div class="row"><b>${esc(x.name)}</b>${x.off?`<em class="mid">${eur(x.off)} offen</em>`:'<em class="ok">✓</em>'}<small>${eur(x.bez)} bezahlt</small></div>`).join(''):'<p class="note">Noch keine Einträge.</p>'}</div>
       ${(K.katalog||[]).length?`<div class="card"><h2>Strafenkatalog</h2>${K.katalog.map(k=>`<div class="row"><b>${esc(k.titel)}</b><em>${eur(k.betrag)}</em></div>`).join('')}</div>`:''}
       <div class="card"><h2>Letzte Buchungen</h2>${L.slice(0,40).map(b=>`<div class="row"><b>${b.art==='ausgabe'?'➖ ':b.art==='einzahlung'?'➕ ':''}${esc(b.p?b.name||'':b.titel)}</b><small>${b.p?esc(b.titel):''}</small><em class="${b.art==='ausgabe'?'bad':''}">${b.art==='ausgabe'?'−':''}${eur(b.betrag)}</em></div>`).join('')||'<p class="note">Noch keine Buchungen.</p>'}</div>`;
+    const ic=$('#ibanCp'); if(ic)ic.onclick=async()=>{ try{ await navigator.clipboard.writeText(cfg.iban); toast('✓ IBAN kopiert'); }catch(e){ prompt('IBAN:',cfg.iban); } };
     const pd=$('#paid'); if(pd)pd.onclick=async()=>{ if(!confirm(`Bestätigst du, dass du ${eur(sum)} bezahlt hast (PayPal oder bar)?`))return;
       try{ const n=await rpc('portal_paid',{p_key:KEY,p_player:ME.id}); toast(`✓ ${n} Posten gemeldet – danke!`); await load(); }catch(e){ toast('⚠️ '+e.message); } };
   }

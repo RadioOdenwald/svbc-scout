@@ -13,7 +13,7 @@
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <link rel="icon" type="image/png" href="favicon-64.png">
-<meta name="app-build" content="r11c-202609231959">
+<meta name="app-build" content="r12-202609240405">
 <title>SV/BSC Scout</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js" async></script>
 <style>
@@ -1460,6 +1460,22 @@ body:has(#overlay.open) .trfab{display:none;}
 @media(max-width:560px){ .kbplr{grid-template-columns:1fr 1fr auto auto;} }
 .kbbot .kbchk{display:flex;gap:8px;align-items:flex-start;margin:6px 0;font-size:13.5px;color:var(--ink);} .kbbot .kbchk small{color:var(--ink3);}
 
+/* ===== Runde 12: Spiel-Status (Startelf · eingewechselt · Kader · zugeschaut · nicht da) ===== */
+.trseg.trseg5{display:flex;flex-wrap:wrap;width:100%;margin-top:6px;}
+.trseg.trseg5 button{flex:1 1 auto;padding:8px 6px;font-size:12px;}
+.trseg.trseg5 button.on:nth-child(1){background:#16a34a;color:#fff;} .trseg.trseg5 button.on:nth-child(2){background:#0d9488;color:#fff;}
+.trseg.trseg5 button.on:nth-child(3){background:#2563eb;color:#fff;} .trseg.trseg5 button.on:nth-child(4){background:#7c3aed;color:#fff;} .trseg.trseg5 button.on:nth-child(5){background:#dc2626;color:#fff;}
+.trr.s-bank{border-color:rgba(37,99,235,.45);} .trr.s-zuschauer{border-color:rgba(124,58,237,.45);}
+.trr:has(.trseg5) .trr-h{flex-wrap:wrap;}
+.fgtab td,.fgtab th{text-align:center;} .fgtab td:first-child,.fgtab th:first-child{text-align:left;}
+.fgtab .c1{color:#86efac;} .fgtab .c2{color:#5eead4;} .fgtab .c3{color:#93c5fd;} .fgtab .c4{color:#c4b5fd;} .fgtab .c5{color:#fca5a5;}
+.fggr{display:block;font-size:11.5px;color:var(--ink3);font-weight:500;}
+.fgbar{display:flex;height:6px;border-radius:99px;overflow:hidden;background:rgba(148,163,196,.1);min-width:90px;}
+.fgbar i{display:block;height:100%;} .fgbar .b1{background:#16a34a;} .fgbar .b2{background:#0d9488;} .fgbar .b3{background:#2563eb;} .fgbar .b4{background:#7c3aed;} .fgbar .b5{background:#dc2626;}
+.fgprof{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin:10px 0 4px;} .fgprof div{background:rgba(148,163,196,.07);border-radius:12px;padding:8px;text-align:center;}
+.fgprof b{display:block;font-family:var(--disp);font-size:22px;} .fgprof span{font-size:11px;color:var(--ink3);font-weight:700;}
+@media(max-width:520px){ .fgprof{grid-template-columns:repeat(3,1fr);} }
+
 </style>
 <style id="v3gate">
 /* =====================================================================
@@ -2095,9 +2111,9 @@ a.kbtn{text-decoration:none;display:inline-block}
 
 
 <div class="overlay" id="overlay"><div class="modal" id="modal"></div></div>
-<script>window.SVBC_CFG={"url": "https://lvaukuzgcwgqipxwzabo.supabase.co", "anon": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imx2YXVrdXpnY3dncWlweHd6YWJvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTAxNTYwMTcsImV4cCI6MjEwNTczMjAxN30.jYZF8q8-SyCaWykM0wwcK58EzfTbO2VASKz1NIv1xbo", "build": "r11c-202609231959", "dataBytes": 3053230};</script>
-<script src="vendor/supabase.js?v=r11c-202609231959"></script>
-<script src="icons.js?v=r11c-202609231959"></script>
-<script src="boot.js?v=r11c-202609231959"></script>
+<script>window.SVBC_CFG={"url": "https://lvaukuzgcwgqipxwzabo.supabase.co", "anon": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imx2YXVrdXpnY3dncWlweHd6YWJvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTAxNTYwMTcsImV4cCI6MjEwNTczMjAxN30.jYZF8q8-SyCaWykM0wwcK58EzfTbO2VASKz1NIv1xbo", "build": "r12-202609240405", "dataBytes": 3053230};</script>
+<script src="vendor/supabase.js?v=r12-202609240405"></script>
+<script src="icons.js?v=r12-202609240405"></script>
+<script src="boot.js?v=r12-202609240405"></script>
 </body>
 </html>
