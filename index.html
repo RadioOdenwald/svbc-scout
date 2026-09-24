@@ -13,7 +13,7 @@
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <link rel="icon" type="image/png" href="favicon-64.png">
-<meta name="app-build" content="r18-09240816">
+<meta name="app-build" content="r19-09240910">
 <title>SV/BSC Scout</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js" async></script>
 <style>
@@ -1633,6 +1633,31 @@ body.onb-open{overflow:hidden;}
 .kbmk{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin:0 0 14px;padding:14px;border-radius:16px;background:linear-gradient(90deg,rgba(251,191,36,.14),rgba(251,191,36,.03));border:1px solid rgba(251,191,36,.28);}
 .kbmk-ic{font-size:24px;flex:none;} .kbmk-t{flex:1;min-width:180px;} .kbmk-t b{display:block;font-size:14.5px;} .kbmk-t small{display:block;color:var(--ink2);font-size:12.5px;margin-top:2px;line-height:1.4;}
 .kbmk-b{display:flex;gap:8px;flex-wrap:wrap;}
+/* Runde 19 · Kontakte */
+.kxbox{margin-top:16px;padding:14px;border-radius:16px;background:var(--s2,#121826);border:1px solid var(--line,rgba(148,163,196,.13));}
+.kx-h{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:8px;} .kx-h h3{font-size:15px;margin:0;}
+.kx-lnk{display:inline-flex;align-items:center;gap:5px;font-size:12.5px;font-weight:700;color:var(--ink2,#a2acbf);background:none;border:0;cursor:pointer;} .kx-lnk svg{width:14px;height:14px;}
+.kx-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:9px 0;border-top:1px solid var(--line,rgba(148,163,196,.13));} .kx-row:first-of-type{border-top:0;}
+.kx-ic svg{width:17px;height:17px;opacity:.7;} .kx-v{flex:1;min-width:140px;font-size:15px;word-break:break-all;}
+.kx-go{display:flex;gap:6px;flex-wrap:wrap;align-items:center;}
+.kx-b{display:inline-flex;align-items:center;justify-content:center;gap:5px;min-height:34px;padding:6px 11px;border-radius:10px;font-size:13px;font-weight:700;background:var(--s3,#182033);border:1px solid var(--line,rgba(148,163,196,.13));color:inherit;text-decoration:none;cursor:pointer;}
+.kx-b svg{width:15px;height:15px;} .kx-b.ic{min-width:34px;padding:6px 8px;} .kx-b.wa{background:linear-gradient(180deg,#25d366,#128c4a);border-color:transparent;color:#fff;}
+.kx-b.del{color:#fca5a5;} .kx-b.del.sure{background:#b91c1c;color:#fff;border-color:transparent;}
+.kx-add{display:flex;align-items:center;gap:8px;width:100%;margin-top:8px;padding:11px 12px;border-radius:12px;border:1px dashed rgba(91,155,255,.45);background:rgba(47,107,255,.07);color:#9cc3ff;font-weight:700;font-size:14px;cursor:pointer;}
+.kx-add svg{width:16px;height:16px;}
+.kx-ed{margin-top:8px;} .kx-in,.kx-ta{width:100%;padding:11px 12px;border-radius:12px;background:var(--s3,#182033);border:1px solid var(--line,rgba(148,163,196,.2));color:inherit;font:inherit;font-size:16px;}
+.kx-ta{font-size:14px;margin-top:10px;resize:vertical;}
+.kx-foot{margin-top:10px;} .note.small{font-size:12px;}
+.kx-hist{margin-top:10px;display:flex;flex-direction:column;gap:6px;} .kx-hr{display:flex;flex-direction:column;gap:2px;padding:8px 10px;border-radius:10px;background:var(--s3,#182033);font-size:13px;}
+.kx-hr span{font-size:11.5px;color:var(--ink3,#687288);} .kx-hr small{color:var(--ink2,#a2acbf);} .kx-hr .kx-b{align-self:flex-start;margin-top:4px;min-height:28px;padding:4px 9px;font-size:12px;}
+.kxstats{grid-template-columns:repeat(2,minmax(0,1fr));}
+.kx-seg{display:flex;gap:4px;padding:3px;border-radius:10px;background:rgba(148,163,196,.08);} .kx-seg button{padding:6px 10px;border-radius:8px;font-size:12.5px;font-weight:700;background:none;border:0;color:var(--ink2,#a2acbf);cursor:pointer;} .kx-seg button.on{background:var(--brand,#2f6bff);color:#fff;}
+.kx-list{margin-top:10px;} .kx-li{display:flex;align-items:center;gap:10px;padding:9px 0;border-top:1px solid var(--line,rgba(148,163,196,.13));} .kx-li:first-child{border-top:0;}
+.kx-nm{flex:1;min-width:0;text-align:left;background:none;border:0;color:inherit;cursor:pointer;padding:0;} .kx-nm b{display:block;font-size:14px;} .kx-nm small{display:block;color:var(--ink3,#687288);font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;} .kx-nm em{color:#fde68a;font-style:normal;}
+.kx-li .kx-b{min-width:36px;padding:6px;} .kx-all{margin-top:12px;display:inline-flex;}
+.kx-prev{display:flex;flex-direction:column;gap:6px;margin:12px 0;} .kx-pr{padding:8px 10px;border-radius:10px;background:var(--s3,#182033);} .kx-pr b{display:block;font-size:13.5px;} .kx-pr small{font-size:12px;color:var(--ink2,#a2acbf);} .kx-pr em{font-style:normal;} .kx-pr.bad{border:1px solid rgba(240,82,82,.35);}
+.kx-imp summary{display:flex;align-items:center;justify-content:space-between;gap:8px;cursor:pointer;list-style:none;} .kx-imp summary::-webkit-details-marker{display:none;}
+.kx-imp summary .trh{display:inline-flex;align-items:center;gap:8px;margin:0;} .kx-imp summary small{color:var(--ink3,#687288);font-size:12px;}
 
 </style>
 <style id="v3gate">
@@ -2269,9 +2294,9 @@ a.kbtn{text-decoration:none;display:inline-block}
 
 
 <div class="overlay" id="overlay"><div class="modal" id="modal"></div></div>
-<script>window.SVBC_CFG={"url": "https://lvaukuzgcwgqipxwzabo.supabase.co", "anon": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imx2YXVrdXpnY3dncWlweHd6YWJvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTAxNTYwMTcsImV4cCI6MjEwNTczMjAxN30.jYZF8q8-SyCaWykM0wwcK58EzfTbO2VASKz1NIv1xbo", "build": "r18-09240816", "dataBytes": 3053230};</script>
-<script src="vendor/supabase.js?v=r18-09240816"></script>
-<script src="icons.js?v=r18-09240816"></script>
-<script src="boot.js?v=r18-09240816"></script>
+<script>window.SVBC_CFG={"url": "https://lvaukuzgcwgqipxwzabo.supabase.co", "anon": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imx2YXVrdXpnY3dncWlweHd6YWJvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTAxNTYwMTcsImV4cCI6MjEwNTczMjAxN30.jYZF8q8-SyCaWykM0wwcK58EzfTbO2VASKz1NIv1xbo", "build": "r19-09240910", "dataBytes": 3053230};</script>
+<script src="vendor/supabase.js?v=r19-09240910"></script>
+<script src="icons.js?v=r19-09240910"></script>
+<script src="boot.js?v=r19-09240910"></script>
 </body>
 </html>

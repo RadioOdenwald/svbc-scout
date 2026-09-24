@@ -2100,7 +2100,7 @@ function openSlotPicker(i,depth){
 }
 
 /* ===== App-Modus: installierbar, offline-fest, aktualisiert sich selbst ===== */
-const APP_BUILD='r18-09240816', OUTBOX_KEY='svbcOutbox', APP_HIDE_KEY='svbcInstallHide';
+const APP_BUILD='r19-09240910', OUTBOX_KEY='svbcOutbox', APP_HIDE_KEY='svbcInstallHide';
 let _appPrompt=null, _appNew=null, _obT=null;
 function appStandalone(){ try{ return !!(window.matchMedia&&matchMedia('(display-mode: standalone)').matches)||navigator.standalone===true; }catch(e){ return false; } }
 function appPlatform(){
@@ -4208,6 +4208,7 @@ async function trChatSend(text){
   TR.chat.push({role:'user',content:text,imgs:att.imgs.map(i=>i.thumb),file:att.file&&att.file.name}); TR.chatBusy=true; trChatDraw();
   if(!TR.loaded)await trLoad();
   let reply=null;
+  if(typeof kxDeleteAsk==='function'&&kxDeleteAsk(text)){ TR.chatBusy=false; TR.chat.push({role:'assistant',local:true,content:KX_NO}); trChatDraw(); return; }
   if(att.imgs.length&&!(TR.ai&&TR.ai.ready)){
     TR.chatBusy=false; TR.chat.push({role:'assistant',local:true,content:'Screenshots kann nur der KI-Co-Trainer lesen – der Admin schaltet ihn unter „Nutzer & Rollen“ ein.\nTipp: In WhatsApp den Gruppenchat exportieren (⋮ → Mehr → Chat exportieren → ohne Medien) und die Textdatei hier anhängen – die verstehe ich auch ohne KI.'}); trChatDraw(); return;
   }
@@ -4227,9 +4228,11 @@ async function trChatSend(text){
   }
   if((!reply||reply.local)&&att.file&&!text.trim())text=att.file.text.slice(0,2000);
   if(!reply||reply.local){
-    const sq=trSquadLite(), PM=TRS.parseMatch(text,sq,trToday()), PE=PM?null:TRS.parseEvent(text,vrPeople(),trToday());
-    const P=PM?{actions:[PM.action],ambig:PM.ambig,warn:PM.warn}:PE?{actions:[PE.action],ambig:PE.ambig}:TRC.parse(text,sq,trToday(),TR.st);
+    const sq=trSquadLite(), PK=typeof kxParse==='function'&&kxOk()?kxParse(text,{list:/\n/.test(text)}):null, PM=PK&&PK.actions.length?null:TRS.parseMatch(text,sq,trToday()), PE=PM||(PK&&PK.actions.length)?null:TRS.parseEvent(text,vrPeople(),trToday());
+    const P=PK&&PK.actions.length?{actions:PK.actions,ambig:PK.ambig}:PM?{actions:[PM.action],ambig:PM.ambig,warn:PM.warn}:PE?{actions:[PE.action],ambig:PE.ambig}:TRC.parse(text,sq,trToday(),TR.st);
     let content, actions=P.actions;
+    if(PK&&!PK.actions.length&&PK.miss.length&&!(PK.ambig||[]).length&&!actions.length){ TR.chatBusy=false; TR.chat.push({role:'assistant',local:true,content:'Zu wem gehört die Nummer bzw. E-Mail? Schreib bitte den Namen dazu, z. B. „Max Mustermann 0171 1234567“.'}); trChatDraw(); return; }
+    if(PK&&PK.ambig&&PK.ambig.length&&!PK.actions.length)P.ambig=PK.ambig;
     if(P.ambig&&P.ambig.length){ content=(reply?reply.content+'\n':'')+P.ambig.map(a=>`Welchen meinst du mit „${a.k.replace(/^\w/,c=>c.toUpperCase())}“: ${a.names.join(', ')}?`).join('\n')+(actions.length?'\n\nDen Rest habe ich schon vorbereitet:':' Schreib bitte den vollen Namen.'); }
     else if(actions.length){ content=(reply?reply.content+'\n':'')+'Verstanden – so würde ich es eintragen:'+(P.warn?'\n⚠️ '+P.warn:''); }
     else { const ans=TRC.answer(text,sq,TR.st,trToday()); content=(reply?reply.content+'\n':'')+(ans||'Das habe ich nicht verstanden. Im einfachen Modus verstehe ich Sätze wie „Max und Tim waren heute nicht da (Arbeit), Tom hat eine Zerrung, drei Wochen“ oder Fragen wie „Ist Tom wieder fit?“.'+(TR.ai&&TR.ai.ready?'':' Für freie Fragen und Aufstellungs-Tipps kann der Admin die KI einschalten.')); }
@@ -5702,7 +5705,7 @@ function kbRender(){
   const P=document.getElementById('panel-kabine'); if(!P)return;
   if(!canTraining()){ P.innerHTML='<div class="card"><div class="empty">Die Kabine sehen Trainer, Kaderplanung und Vorstand.</div></div>'; return; }
   if(!KB.loaded){ P.innerHTML='<div class="card"><div class="empty">Lade Kabine …</div></div>'; kbLoad(); return; }
-  const tabs=[['abst','Abstimmungen'],['kasse','Mannschaftskasse'],['link','Automatik']];
+  const tabs=[['abst','Abstimmungen'],['kasse','Mannschaftskasse'],['kontakte','Kontakte'],['link','Automatik']];
   const act=KB.view==='abst'?`<button class="btn" data-kb-new>${SVI('plus')} Abstimmung</button>`:KB.view==='kasse'?`<button class="btn" data-kb-strafe>${SVI('plus')} Strafe</button><button class="btn ghost" data-kb-buch>${SVI('plus')} Ein-/Ausgabe</button>`:'';
   P.innerHTML=`<div class="trtop"><div class="trtabs">${tabs.map(([k,t])=>`<button class="${KB.view===k?'on':''}" data-kbv="${k}">${t}</button>`).join('')}</div><div class="tract">${act}</div></div><div id="kbBody"></div>`;
   P.querySelectorAll('[data-kbv]').forEach(b=>b.onclick=()=>{ KB.view=b.dataset.kbv; kbRender(); });
@@ -5710,7 +5713,7 @@ function kbRender(){
   const sb=P.querySelector('[data-kb-strafe]'); if(sb)sb.onclick=()=>kbStrafeEditor();
   const bb=P.querySelector('[data-kb-buch]'); if(bb)bb.onclick=()=>kbBuchEditor();
   const B=document.getElementById('kbBody');
-  ({abst:kbViewPolls,kasse:kbViewKasse,link:kbViewLink})[KB.view](B);
+  ({abst:kbViewPolls,kasse:kbViewKasse,kontakte:kxView,link:kbViewLink})[KB.view](B);
 }
 
 /* ----- Abstimmungen ----- */
@@ -6904,6 +6907,161 @@ function trWeiterWire(L){
 /* ---------- Export-Knöpfe in Training, Kasse ---------- */
 { const _trr=trRender; trRender=function(){ const r=_trr.apply(this,arguments); try{ const a=document.querySelector('#panel-training .tract'); if(a&&!a.querySelector('[data-sx]')){ a.insertAdjacentHTML('beforeend',`<button class="btn ghost" data-sx="${TR.view==='games'?'spiele':'training'}">${SVI('download')} Export</button>`); a.querySelector('[data-sx]').onclick=e=>sxExport(e.currentTarget.dataset.sx); } }catch(e){} return r; }; }
 { const _kvk=kbViewKasse; kbViewKasse=function(B){ const r=_kvk.apply(this,arguments); try{ const row=B.querySelector('.kbmoney')||B.querySelector('.kbstats'); if(row&&!B.querySelector('[data-sxk]')){ row.insertAdjacentHTML('afterend',`<div class="btnrow" style="margin:-4px 0 14px"><button class="btn ghost sm" data-sxk>${SVI('download')} Kasse als PDF/Excel</button></div>`); B.querySelector('[data-sxk]').onclick=()=>sxExport('kasse'); } }catch(e){} return r; }; }
+
+/* =====================================================================
+   SV/BSC Scout · Runde 19: Zentrale Kontakte (Handynummer & E-Mail je Spieler)
+   - Im Spielerprofil unten: WhatsApp · Anrufen · E-Mail, „+ Handynummer“ / „+ E-Mail“, Korrigieren mit Verlauf
+   - Kabine → Kontakte: Übersicht, wem noch was fehlt, Liste einfügen (füllt nur Leeres), E-Mail an alle
+   - Co-Trainer: „Die Nummer von Max ist 0171 …“ → Vorschlag zum Eintragen. Löschen geht nie über den Chat.
+   - Sehen & pflegen: Team (nicht Gäste). Löschen: nur Admin. Alles läuft über die Datenbank-Funktionen (Bremse & Verlauf dort).
+   ===================================================================== */
+const KX={map:new Map(),loaded:false,loading:null,imp:null};
+function kxOk(){ return canTraining(); }
+function kxLoad(force){
+  if(!kxOk())return Promise.resolve();
+  if(KX.loaded&&!force)return Promise.resolve(); if(KX.loading&&!force)return KX.loading;
+  KX.loading=SVB.sb.rpc('kontakt_liste').then(({data,error})=>{ if(error)throw error; KX.map=new Map((data||[]).map(k=>[k.id,k])); KX.loaded=true; }).catch(e=>console.warn('Kontakte',e)).finally(()=>{ KX.loading=null; });
+  return KX.loading;
+}
+const kxOf=id=>KX.map.get(id)||{};
+function kxTelFmt(t){ if(!t)return ''; t=String(t); return /^\+491\d{9,11}$/.test(t)?'0'+t.slice(3,6)+' '+t.slice(6):t; }
+function kxWa(t,text){ return 'https://wa.me/'+String(t).replace(/\D/g,'')+(text?'?text='+encodeURIComponent(text):''); }
+function kxFirst(id){ const p=trP(id); return p?p.name.split(' ')[0]:''; }
+function kxAllowed(p){ return p&&!p.isJugend; }
+
+/* ---------- Spielerprofil: Kontakt-Block ganz unten ---------- */
+function kxBoxHtml(p){
+  const k=kxOf(p.id), adm=isAdmin(), st=KX.edit&&KX.edit.id===p.id?KX.edit:null;
+  const row=(f)=>{ const v=k[f], lab=f==='tel'?'Handynummer':'E-Mail';
+    if(st&&st.f===f)return `<div class="kx-ed"><input class="kx-in" id="kxIn" type="${f==='tel'?'tel':'email'}" inputmode="${f==='tel'?'tel':'email'}" autocomplete="off" placeholder="${f==='tel'?'0171 1234567':'name@beispiel.de'}" value="${svEsc(v?(f==='tel'?kxTelFmt(v):v):'')}">
+      <div class="btnrow"><button class="btn sm" data-kx-save="${f}">${SVI('check')} Speichern</button><button class="btn ghost sm" data-kx-cancel>Abbrechen</button></div>
+      ${v?`<p class="note small">Die bisherige ${lab} bleibt im Verlauf und lässt sich zurückholen.</p>`:''}</div>`;
+    if(!v)return `<button class="kx-add" data-kx-edit="${f}">${SVI('plus')} ${lab}</button>`;
+    return `<div class="kx-row"><span class="kx-ic">${SVI(f==='tel'?'phone':'mail')}</span><b class="kx-v">${svEsc(f==='tel'?kxTelFmt(v):v)}</b>
+      <span class="kx-go">${f==='tel'?`<a class="kx-b wa" href="${svEsc(kxWa(v,'Hi '+kxFirst(p.id)+', '))}" target="_blank" rel="noopener" data-kx-wa>WhatsApp</a><a class="kx-b" href="tel:${svEsc(v)}">Anrufen</a>`
+        :`<a class="kx-b" href="mailto:${svEsc(v)}">E-Mail schreiben</a>`}
+      <button class="kx-b ic" data-kx-edit="${f}" title="Korrigieren" aria-label="Korrigieren">✎</button>${adm?`<button class="kx-b ic del" data-kx-del="${f}" title="Löschen (nur Admin)" aria-label="Löschen">${SVI('trash')}</button>`:''}</span></div>`; };
+  return `<div class="kx-h"><h3>📇 Kontakt</h3><button class="kx-lnk" data-kx-hist>${SVI('clock')} Verlauf</button></div>
+    ${!KX.loaded?'<div class="note">Lade …</div>':row('tel')+row('email')}
+    ${k.optout?'<p class="note small">Hat sich von automatischen WhatsApp-Nachrichten abgemeldet – persönliche Nachrichten gehen natürlich.</p>':''}
+    <div id="kxHist"></div><p class="note small kx-foot">🔒 Nur fürs Team sichtbar · jede Änderung steht im Verlauf${adm?'':' · löschen kann nur der Admin'}</p>`;
+}
+function kxBox(M,id){
+  const p=trP(id); if(!M||!kxAllowed(p)||!kxOk())return;
+  let d=M.querySelector('.kxbox'); if(!d){ d=document.createElement('div'); d.className='kxbox'; d.id='kxBox'; M.appendChild(d); }
+  const draw=()=>{ if(!document.body.contains(d))return; d.innerHTML=kxBoxHtml(p); kxWire(d,p,draw); };
+  draw(); if(!KX.loaded)kxLoad().then(draw);
+}
+function kxWire(d,p,draw){
+  d.querySelectorAll('[data-kx-edit]').forEach(b=>b.onclick=()=>{ KX.edit={id:p.id,f:b.dataset.kxEdit}; draw(); const i=d.querySelector('#kxIn'); if(i){ i.focus(); i.select(); } });
+  const c=d.querySelector('[data-kx-cancel]'); if(c)c.onclick=()=>{ KX.edit=null; draw(); };
+  const s=d.querySelector('[data-kx-save]'); if(s){ const go=async()=>{ const f=s.dataset.kxSave, v=d.querySelector('#kxIn').value.trim(); if(!v){ KX.edit=null; return draw(); }
+      s.disabled=true; const r=await kxSave(p.id,f==='tel'?v:null,f==='email'?v:null,'app'); s.disabled=false; if(r){ KX.edit=null; draw(); } };
+    s.onclick=go; d.querySelector('#kxIn').onkeydown=e=>{ if(e.key==='Enter'){ e.preventDefault(); go(); } }; }
+  d.querySelectorAll('[data-kx-del]').forEach(b=>b.onclick=async()=>{
+    if(!b.classList.contains('sure')){ b.classList.add('sure'); b.innerHTML='Wirklich löschen?'; setTimeout(()=>{ if(document.body.contains(b)){ b.classList.remove('sure'); b.innerHTML=SVI('trash'); } },4000); return; }
+    const {error}=await SVB.sb.rpc('kontakt_loeschen',{p_player:p.id,p_feld:b.dataset.kxDel}); if(error)return kToast('⚠️ '+error.message);
+    const k=Object.assign({},kxOf(p.id)); k[b.dataset.kxDel]=null; KX.map.set(p.id,k); kToast('Gelöscht – steht im Verlauf'); draw(); kxRefreshViews(); });
+  const h=d.querySelector('[data-kx-hist]'); if(h)h.onclick=()=>kxHist(d.querySelector('#kxHist'),p,draw);
+}
+async function kxSave(id,tel,email,via){
+  const p=trP(id); const {data,error}=await SVB.sb.rpc('kontakt_set',{p_player:id,p_name:p?p.name:id,p_tel:tel,p_email:email,p_via:via||'app'});
+  if(error){ kToast('⚠️ '+error.message); return null; }
+  const k=data.kontakt||{}; KX.map.set(id,Object.assign({},kxOf(id),{id,name:p&&p.name,tel:k.tel,email:k.email}));
+  const was=[data.tel,data.email].filter(x=>x&&x!=='gleich'); kToast(was.includes('korrektur')?'✓ Korrigiert – alter Wert steht im Verlauf':was.length?'✓ Gespeichert':'Unverändert');
+  kxRefreshViews(); return data;
+}
+async function kxHist(el,p,draw){
+  if(!el)return; if(el.innerHTML){ el.innerHTML=''; return; }
+  const {data,error}=await SVB.sb.rpc('kontakt_verlauf',{p_player:p.id}); if(error)return kToast('⚠️ '+error.message);
+  const A={neu:'eingetragen',korrektur:'korrigiert',geloescht:'gelöscht',zurueck:'zurückgeholt'}, V={ki:' (Co-Trainer)',import:' (Liste)',kabine:' (Kabine)',app:'',system:''};
+  el.innerHTML=(data||[]).length?`<div class="kx-hist">${data.map(v=>`<div class="kx-hr"><span>${svEsc(new Date(v.at).toLocaleDateString('de-DE'))} · ${svEsc(v.von||'System')}${V[v.via]||''}</span>
+      <b>${v.feld==='tel'?'📱':'✉️'} ${A[v.aktion]||v.aktion}: ${svEsc(v.neu?(v.feld==='tel'?kxTelFmt(v.neu):v.neu):'–')}</b>${v.alt?`<small>vorher ${svEsc(v.feld==='tel'?kxTelFmt(v.alt):v.alt)}</small><button class="kx-b" data-kx-back="${v.id}">↩︎ zurückholen</button>`:''}</div>`).join('')}</div>`
+    :'<p class="note small">Noch keine Einträge.</p>';
+  el.querySelectorAll('[data-kx-back]').forEach(b=>b.onclick=async()=>{ const {data:k,error:e2}=await SVB.sb.rpc('kontakt_zurueck',{p_id:+b.dataset.kxBack}); if(e2)return kToast('⚠️ '+e2.message);
+    KX.map.set(p.id,Object.assign({},kxOf(p.id),{tel:k.tel,email:k.email})); kToast('✓ Zurückgeholt'); draw(); kxRefreshViews(); });
+}
+{ const _omK=openModal; openModal=function(id){ const r=_omK.apply(this,arguments); try{ KX.edit=null; kxBox(document.getElementById('modal'),id); }catch(e){ console.warn(e); } return r; }; }
+
+/* ---------- Kabine → Kontakte ---------- */
+function kxSquad(){ return players.filter(p=>p.own&&!p.isJugend&&!p.verzicht&&(p.kader===1||p.kader===2||KX.map.has(p.id))).sort((a,b)=>(a.kader||9)-(b.kader||9)||a.name.localeCompare(b.name,'de')); }
+function kxRefreshViews(){ if(typeof KB!=='undefined'&&KB.view==='kontakte'){ const B=document.getElementById('kbBody'); if(B&&document.getElementById('panel-kabine')&&document.getElementById('panel-kabine').classList.contains('on'))kxView(B); } }
+function kxView(B){
+  if(!KX.loaded){ B.innerHTML='<div class="card"><div class="note">Lade Kontakte …</div></div>'; kxLoad().then(()=>{ if(KB.view==='kontakte')kxView(B); }); return; }
+  const S=kxSquad(), K=S.filter(p=>p.kader===1), withT=K.filter(p=>kxOf(p.id).tel).length, withM=K.filter(p=>kxOf(p.id).email).length;
+  const f=KX.filter||'erste', L=S.filter(p=>f==='zweite'?p.kader===2:f==='ohne'?p.kader!==2&&!(kxOf(p.id).tel&&kxOf(p.id).email):p.kader!==2);
+  const mails=S.map(p=>kxOf(p.id).email).filter(Boolean);
+  B.innerHTML=`<div class="kbstats kxstats"><div class="kbst"><span>Handynummern</span><b class="${withT<K.length?'mid':'ok'}">${withT}/${K.length}</b></div><div class="kbst"><span>E-Mails</span><b class="${withM<K.length?'mid':'ok'}">${withM}/${K.length}</b></div></div>
+    <details class="card kxcard kx-imp"${KX.imp?' open':''}><summary><span class="trh">${SVI('upload')} Liste einfügen</span><small>Excel · WhatsApp · Text</small></summary><p class="note">Namen mit Handynummer und/oder E-Mail einfügen – eine Zeile pro Spieler, z. B. aus Excel oder WhatsApp kopiert. Es wird nur ergänzt, was noch fehlt; abweichende Nummern werden angezeigt, aber nie überschrieben.</p>
+      <textarea class="kx-ta" id="kxTa" rows="5" placeholder="Max Mustermann 0171 1234567 max@web.de&#10;Tim Beispiel; +49 160 7654321"></textarea>
+      <div class="btnrow"><button class="btn sm" id="kxPrev">${SVI('check')} Prüfen</button></div><div id="kxImp"></div></details>
+    <div class="card kxcard"><div class="vrat-h"><h3 class="trh" style="margin:0">${SVI('users')} Spieler-Kontakte</h3><div class="kx-seg"><button class="${f==='erste'?'on':''}" data-kxf="erste">1. Mannschaft</button><button class="${f==='zweite'?'on':''}" data-kxf="zweite">2.</button><button class="${f==='ohne'?'on':''}" data-kxf="ohne">Fehlt was</button></div></div>
+      <div class="kx-list">${L.map(p=>{ const k=kxOf(p.id); return `<div class="kx-li"><button class="kx-nm" data-kx-open="${svEsc(p.id)}"><b>${svEsc(p.name)}</b><small>${p.kader===2?'2. Mannschaft · ':''}${k.tel?svEsc(kxTelFmt(k.tel)):'<em>keine Nummer</em>'}${k.email?' · '+svEsc(k.email):''}</small></button>
+        <span class="kx-go">${k.tel?`<a class="kx-b wa" href="${svEsc(kxWa(k.tel,'Hi '+p.name.split(' ')[0]+', '))}" target="_blank" rel="noopener" aria-label="WhatsApp">${SVI('chat')}</a>`:''}${k.email?`<a class="kx-b" href="mailto:${svEsc(k.email)}" aria-label="E-Mail">${SVI('mail')}</a>`:''}${!k.tel||!k.email?`<button class="kx-b" data-kx-open="${svEsc(p.id)}" aria-label="Ergänzen">${SVI('plus')}</button>`:''}</span></div>`; }).join('')||'<p class="note">Alles vollständig 🎉</p>'}</div>
+      ${mails.length?`<a class="btn ghost sm kx-all" href="mailto:?bcc=${svEsc(mails.join(','))}&subject=${encodeURIComponent('SV/BSC Mörlenbach')}">${SVI('mail')} E-Mail an alle (${mails.length}, Blindkopie)</a>`:''}</div>
+`;
+  B.querySelectorAll('[data-kxf]').forEach(b=>b.onclick=()=>{ KX.filter=b.dataset.kxf; kxView(B); });
+  B.querySelectorAll('[data-kx-open]').forEach(b=>b.onclick=()=>{ openModal(b.dataset.kxOpen); document.getElementById('overlay').classList.add('open'); setTimeout(()=>{ const x=document.getElementById('kxBox'); if(x)x.scrollIntoView({behavior:'smooth',block:'center'}); },150); });
+  document.getElementById('kxPrev').onclick=()=>kxPreview(document.getElementById('kxTa').value,document.getElementById('kxImp'),B);
+}
+function kxPreview(text,el,B){
+  const R=kxParse(text,{list:true}); KX.imp=R;
+  if(!R.actions.length&&!R.miss.length){ el.innerHTML='<p class="note">Keine Nummern oder E-Mails gefunden.</p>'; return; }
+  el.innerHTML=`<div class="kx-prev">${R.actions.map(a=>{ const k=kxOf(a.input.player_id), dT=a.input.tel&&k.tel&&k.tel!==a.input.tel, dM=a.input.email&&k.email&&k.email!==a.input.email;
+      return `<div class="kx-pr"><b>${svEsc(trName(a.input.player_id))}</b><small>${a.input.tel?'📱 '+svEsc(kxTelFmt(a.input.tel))+(dT?' <em class="mid">(hinterlegt: '+svEsc(kxTelFmt(k.tel))+' – bleibt)</em>':k.tel===a.input.tel?' <em>schon da</em>':''):''}${a.input.email?' ✉️ '+svEsc(a.input.email)+(dM?' <em class="mid">(hinterlegt: '+svEsc(k.email)+' – bleibt)</em>':k.email===a.input.email?' <em>schon da</em>':''):''}</small></div>`; }).join('')}
+    ${R.miss.map(m=>`<div class="kx-pr bad"><b>${svEsc(m.txt)}</b><small>${m.names&&m.names.length?'Mehrdeutig: '+m.names.map(svEsc).join(', '):'Spieler nicht erkannt – bitte vollen Namen schreiben'}</small></div>`).join('')}</div>
+    ${R.actions.length?`<button class="btn" id="kxGo">${SVI('check')} ${R.actions.length} Spieler übernehmen</button>`:''}`;
+  const g=document.getElementById('kxGo'); if(g)g.onclick=async()=>{ g.disabled=true;
+    const rows=R.actions.map(a=>({id:a.input.player_id,name:trName(a.input.player_id),tel:a.input.tel||null,email:a.input.email||null}));
+    const {data,error}=await SVB.sb.rpc('kontakt_import',{p_rows:rows}); g.disabled=false; if(error)return kToast('⚠️ '+error.message);
+    await kxLoad(true); kToast(`✓ ${data.neu} Einträge ergänzt${data.konflikt.length?` · ${data.konflikt.length} Abweichung${data.konflikt.length>1?'en':''} nicht überschrieben`:''}${data.fehler.length?` · ${data.fehler.length} Fehler`:''}`);
+    kxView(B); if(data.konflikt.length||data.fehler.length){ const e=document.getElementById('kxImp'); if(e)e.innerHTML=`<div class="kx-prev">${data.konflikt.map(c=>`<div class="kx-pr"><b>${svEsc(c.name)}</b><small>${c.feld==='tel'?'📱':'✉️'} hinterlegt ${svEsc(c.feld==='tel'?kxTelFmt(c.alt):c.alt)} · in der Liste ${svEsc(c.feld==='tel'?kxTelFmt(c.neu):c.neu)} – im Profil korrigieren, falls die neue stimmt</small></div>`).join('')}${data.fehler.map(x=>`<div class="kx-pr bad"><b>${svEsc(x.name)}</b><small>${svEsc(x.fehler)}</small></div>`).join('')}</div>`; } };
+}
+
+/* ---------- Text verstehen: „Nummer von Max: 0171 …“, Listen, E-Mails ---------- */
+const KX_TEL=/(?:\+|00)?\d[\d \t\/().-]{6,}\d/g, KX_MAIL=/[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}/g;
+function kxNormTel(t){ let x=String(t).replace(/[^\d+]/g,''); if(x.startsWith('00'))x='+'+x.slice(2); else if(x.startsWith('0'))x='+49'+x.slice(1); else if(!x.startsWith('+'))x='+'+x; return /^\+[1-9]\d{7,14}$/.test(x)?x:null; }
+function kxFind(txt){
+  const N=s=>TRS.key(s), words=String(txt).replace(/[^A-Za-zÄÖÜäöüßéèáàç' -]/g,' ').split(/\s+/).filter(w=>w.length>=2).map(N).filter(w=>!/^(nummer|handy|handynummer|tel|telefon|mail|email|emailadresse|adresse|von|ist|hat|die|der|das|und|neue|neu|mobil|whatsapp|seine|ihre|lautet)$/.test(w));
+  if(!words.length)return {p:null};
+  const pool=players.filter(p=>!p.isJugend&&p.name), full=pool.filter(p=>{ const nw=p.name.split(/\s+/).map(N); return nw.every(w=>words.includes(w)); });
+  if(full.length===1)return {p:full[0]};
+  const own=pool.filter(p=>p.own);
+  for(const src of [own,pool]){ const hit=src.filter(p=>{ const nw=p.name.split(/\s+/).map(N); return nw.some(w=>w.length>=3&&words.includes(w)); });
+    if(hit.length===1)return {p:hit[0]};
+    if(hit.length>1){ const best=hit.filter(p=>{ const nw=p.name.split(/\s+/).map(N); return nw.filter(w=>words.includes(w)).length>=2; }); if(best.length===1)return {p:best[0]}; if(src===own)return {p:null,names:hit.slice(0,5).map(p=>p.name)}; } }
+  return {p:null};
+}
+function kxParse(text,opt){
+  const out={actions:[],miss:[],ambig:[]}; if(!text)return out;
+  const lines=(opt&&opt.list)?String(text).split(/\r?\n/):[String(text)];
+  for(const line of lines){
+    const M=[]; let m; KX_MAIL.lastIndex=0; while((m=KX_MAIL.exec(line)))M.push({i:m.index,e:m.index+m[0].length,mail:m[0].toLowerCase()});
+    const noMail=line.replace(KX_MAIL,s=>' '.repeat(s.length)); KX_TEL.lastIndex=0;
+    while((m=KX_TEL.exec(noMail))){ const t=kxNormTel(m[0]); if(t&&m[0].replace(/\D/g,'').length>=9)M.push({i:m.index,e:m.index+m[0].length,tel:t}); }
+    if(!M.length)continue; M.sort((a,b)=>a.i-b.i);
+    // Name steht vor dem Wert (oder, falls davor nichts, dahinter)
+    let last=0; const grp=[];
+    for(const x of M){ const before=line.slice(last,x.i); const f=kxFind(before); if(f.p||f.names||!grp.length)grp.push({f,txt:before.trim(),vals:[x]}); else grp[grp.length-1].vals.push(x); last=x.e; }
+    grp.forEach((g,gi)=>{ if(!g.f.p&&!g.f.names){ const after=line.slice(g.vals[g.vals.length-1].e,(grp[gi+1]||{vals:[{i:line.length}]}).vals[0].i); const f2=kxFind(after); if(f2.p||f2.names){ g.f=f2; g.txt=after.trim(); } }
+      if(!g.f.p){ out.miss.push({txt:(g.txt||line).slice(0,60)||'?',names:g.f.names}); if(g.f.names)out.ambig.push({k:g.txt.split(/\s+/).pop()||'?',names:g.f.names}); return; }
+      const inp={player_id:g.f.p.id}; g.vals.forEach(v=>{ if(v.tel&&!inp.tel)inp.tel=v.tel; if(v.mail&&!inp.email)inp.email=v.mail; });
+      const ex=out.actions.find(a=>a.input.player_id===inp.player_id); if(ex)Object.assign(ex.input,Object.fromEntries(Object.entries(inp).filter(([k])=>!ex.input[k]))); else out.actions.push({type:'kontakt',input:inp}); });
+  }
+  return out;
+}
+const KX_DEL=/(lösch|losch|entfern|leer|weg\s*mach|raus\s*nehm|clear|delete)/i, KX_WHAT=/(nummer|handy|telefon|e-?mail|mail|kontakt)/i;
+function kxDeleteAsk(text){ return KX_DEL.test(text)&&KX_WHAT.test(text); }
+const KX_NO='Kontaktdaten lösche ich nicht – das geht aus Sicherheitsgründen weder über den Co-Trainer noch in einem Rutsch. Der Admin kann einzelne Einträge im Spielerprofil löschen; Korrekturen gehen dort für alle im Team (die alte Nummer bleibt im Verlauf).';
+
+/* ---------- Co-Trainer: Vorschlag „Kontakt eintragen“ ---------- */
+{ const _as=trActSummary; trActSummary=function(a){ if(a.type!=='kontakt')return _as.apply(this,arguments); const i=a.input||{}, k=kxOf(i.player_id);
+    const d=(v,alt,f)=>v?`<div>${f==='tel'?'📱 '+svEsc(kxTelFmt(v)):'✉️ '+svEsc(v)}${alt&&alt!==v?` <em class="mid">ersetzt ${svEsc(f==='tel'?kxTelFmt(alt):alt)} (bleibt im Verlauf)</em>`:alt===v?' <em>schon hinterlegt</em>':''}</div>`:'';
+    return `<b>📇 Kontakt: ${svEsc(trName(i.player_id))}</b>${d(i.tel,k.tel,'tel')}${d(i.email,k.email,'email')}`; };
+  const _ex=trExec; trExec=async function(a){ if(a.type!=='kontakt')return _ex.apply(this,arguments); const i=a.input||{};
+    await kxLoad(); const r=await kxSave(i.player_id,i.tel||null,i.email||null,'ki'); if(!r)throw new Error('Kontakt nicht gespeichert'); return 'Kontakt von '+trShort(i.player_id)+' gespeichert'; }; }
+// nach dem Anmelden im Hintergrund laden (für Profil & Co-Trainer)
+{ let t=0; const iv=setInterval(()=>{ if(++t>120)return clearInterval(iv); if(typeof SVU!=='undefined'&&SVU&&SVU.role&&typeof _remoteDone!=='undefined'&&_remoteDone){ clearInterval(iv); if(kxOk())kxLoad(); } },1000); }
 
 /* ================= INIT ================= */
 renderWeights();
