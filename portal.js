@@ -22,7 +22,7 @@
   let KEY=hp.get('k')||pathKey||ls.get('kab_k')||''; if(hp.get('k')||pathKey)ls.set('kab_k',KEY);
   const FOCUS=hp.get('a')||null;
   let ME=null; try{ ME=JSON.parse(ls.get('kab_me')||'null'); }catch(e){}
-  let S=null, view=FOCUS?'abst':(ls.get('kab_view')||'abst'), busy=false;
+  let S=null, view=FOCUS?'abst':(hp.get('v')==='kasse'?'kasse':(ls.get('kab_view')||'abst')), busy=false;
   const REASONS={arbeit:'Arbeit/Schicht',urlaub:'Urlaub',krank:'Krank',verletzt:'Verletzt',uni:'Schule/Uni',familie:'Familie',privat:'Privat'};
   const ART={training:'Training',spiel:'Spiel',event:'Event',sonstiges:'Termin'};
   const eur=v=>(Math.round((+v||0)*100)/100).toLocaleString('de-DE',{style:'currency',currency:'EUR'});
@@ -119,6 +119,7 @@
     const P=[...per.values()].sort((a,b)=>b.off-a.off||b.bez-a.bez);
     const pay=cfg.paypal&&sum>0?`https://www.paypal.com/paypalme/${encodeURIComponent(cfg.paypal)}/${sum.toFixed(2)}EUR`:null;
     B.innerHTML=`<div class="flip" id="flip"><div class="flin"><div class="card hero fl-f">${face(0)}</div><div class="card hero fl-b"></div></div></div>
+      ${C.kasse?`<a class="mklink" href="${esc(C.kasse.replace(/\/?$/,'/')+'#k='+encodeURIComponent(KEY))}"><span>🏆</span><b>Top-Supporter &amp; Kassen-Transparenz</b><i>→</i></a>`:''}
       <div class="card mine"><h2>Deine Strafen</h2>${mine.length?`<div class="grid2" style="margin-top:12px"><div class="stat"><span>Offen</span><b class="${sum?'mid':'ok'}">${eur(sum)}</b></div><div class="stat"><span>Bezahlt</span><b>${eur(mine.filter(b=>b.status==='bezahlt').reduce((a,b)=>a+ +b.betrag,0))}</b></div></div>
         ${pay?`<a class="pay" href="${esc(pay)}" target="_blank" rel="noopener">Mit PayPal bezahlen · ${eur(sum)}</a><p class="note">Bitte „Freunde &amp; Familie“ wählen – dann kostet es nichts.</p>`:''}
         ${sum&&cfg.iban?`<div class="iban"><span>Oder per Überweisung</span><b>${esc(cfg.iban.replace(/(.{4})/g,'$1 ').trim())}</b><small>${esc(cfg.kontoinhaber||'')} · Verwendungszweck: Mannschaftskasse ${esc(ME.name)}</small><button class="btn2" id="ibanCp">IBAN kopieren</button></div>`:''}

@@ -2100,7 +2100,7 @@ function openSlotPicker(i,depth){
 }
 
 /* ===== App-Modus: installierbar, offline-fest, aktualisiert sich selbst ===== */
-const APP_BUILD='r17-09240756', OUTBOX_KEY='svbcOutbox', APP_HIDE_KEY='svbcInstallHide';
+const APP_BUILD='r18-09240816', OUTBOX_KEY='svbcOutbox', APP_HIDE_KEY='svbcInstallHide';
 let _appPrompt=null, _appNew=null, _obT=null;
 function appStandalone(){ try{ return !!(window.matchMedia&&matchMedia('(display-mode: standalone)').matches)||navigator.standalone===true; }catch(e){ return false; } }
 function appPlatform(){
@@ -6185,6 +6185,16 @@ async function kbSpielerLinks(){
 
 /* IBAN-Prüfsumme (Modulo 97) – fängt Tippfehler ab */
 function kbIbanOk(i){ if(!/^[A-Z]{2}[0-9]{2}[A-Z0-9]{11,30}$/.test(i))return false; const r=(i.slice(4)+i.slice(0,4)).replace(/[A-Z]/g,c=>String(c.charCodeAt(0)-55)); let m=0; for(const ch of r)m=(m*10+(+ch))%97; return m===1; }
+
+/* ---------- Runde 18: Kassen-Transparenz-Seite (mannschaftskasse.albertklee.de) in die Gruppe teilen ---------- */
+const KB_MK='https://mannschaftskasse.albertklee.de/';
+function kbMkUrl(){ return KB_MK+'#k='+encodeURIComponent(KB.link||''); }
+function kbMkText(){ return '💰 Mannschaftskasse – alles transparent: Kassenstand, Top-Supporter 🏆 und die offenen Deckel 🧾\n'+kbMkUrl(); }
+function kbMkShare(copy){ const go=()=>copy?kbCopy(kbMkUrl()):kbWa(kbMkText()); if(KB.link)return go(); kbLink().then(go).catch(e=>kToast('⚠️ '+e.message)); }
+{ const _kvk2=kbViewKasse; kbViewKasse=function(B){ const r=_kvk2.apply(this,arguments); try{ const row=B.querySelector('.kbstats'); if(row&&!B.querySelector('[data-kbmk]')){
+    row.insertAdjacentHTML('afterend',`<div class="kbmk" data-kbmk><span class="kbmk-ic">🏆</span><div class="kbmk-t"><b>Transparenz-Seite für die Mannschaft</b><small>Kassenstand gesamt, Top-Supporter und offene Deckel – mannschaftskasse.albertklee.de</small></div>
+      <div class="kbmk-b"><button class="btn sm" data-kbmk-wa>${SVI('share')} In die Gruppe</button><button class="btn ghost sm" data-kbmk-cp>${SVI('copy')} Link</button></div></div>`);
+    B.querySelector('[data-kbmk-wa]').onclick=()=>kbMkShare(false); B.querySelector('[data-kbmk-cp]').onclick=()=>kbMkShare(true); } }catch(e){} return r; }; }
 
 /* =====================================================================
    SV/BSC Scout · Runde 16: Persönliche Einführung
