@@ -17,8 +17,16 @@ if(!CFG.url||!CFG.anon||!window.supabase){
   card.innerHTML='<h2>Noch nicht eingerichtet</h2><p class="sub">Die Datenbank ist noch nicht verbunden. Bitte später erneut versuchen.</p>';
   showCard(); return;
 }
-const sb=window.supabase.createClient(CFG.url,CFG.anon,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:false,storageKey:'svbc-auth',flowType:'implicit'}});
+// Speicher mit Rückfallebene: Klappt localStorage nicht (privater Modus, In-App-Browser) oder wird er von außen geleert, bleibt die Anmeldung im Speicher erhalten
+const MEM={}, store={getItem:k=>{ try{ const v=localStorage.getItem(k); return v!=null?v:(k in MEM?MEM[k]:null); }catch(e){ return k in MEM?MEM[k]:null; } },
+  setItem:(k,v)=>{ MEM[k]=v; try{ localStorage.setItem(k,v); }catch(e){} }, removeItem:k=>{ delete MEM[k]; try{ localStorage.removeItem(k); }catch(e){} }};
+const sb=window.supabase.createClient(CFG.url,CFG.anon,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:false,storageKey:'svbc-auth',flowType:'implicit',storage:store}});
 const SV=window.SVBC={sb,cfg:CFG,profile:null,offline:false,ROLE_T,initials,esc};
+// Sitzung aus dem Einladungs-/Anmeldelink zusätzlich im Speicher halten: Wird der Browser-Speicher zwischendurch geleert
+// (zweiter Tab mit demselben Link, In-App-Browser von WhatsApp …), lässt sie sich wiederherstellen statt „Auth session missing“.
+let KEEP=null; const keepS=s=>{ if(s&&s.access_token&&s.refresh_token)KEEP={access_token:s.access_token,refresh_token:s.refresh_token}; };
+async function keepNow(){ try{ const {data:{session}}=await sb.auth.getSession(); keepS(session); }catch(e){} }
+async function ensureSession(){ const {data:{session}}=await sb.auth.getSession(); if(session)return true; if(!KEEP)return false; const {error}=await sb.auth.setSession(KEEP); return !error; }
 
 /* ---------- kleine Helfer ---------- */
 function showCard(){ load.classList.add('hide'); card.style.display=''; }
@@ -41,6 +49,7 @@ function errText(e){
   if(/rate|too many|security purposes/i.test(m))return 'Zu viele Versuche. Bitte einen Moment warten.';
   if(/should be different/i.test(m))return 'Das neue Passwort muss sich vom alten unterscheiden.';
   if(/Password should be/i.test(m))return 'Das Passwort ist zu schwach.';
+  if(/session missing|not authenticated|JWT expired|invalid JWT/i.test(m))return 'Deine Anmeldung ist auf diesem Gerät verloren gegangen (z. B. weil der Link zweimal geöffnet wurde).';
   return 'Das hat nicht geklappt ('+m.slice(0,120)+').';
 }
 function pwScore(p){ let s=0; if(p.length>=10)s++; if(p.length>=14)s++; if(/[a-z]/.test(p)&&/[A-Z]/.test(p))s++; if(/\d/.test(p))s++; if(/[^A-Za-z0-9]/.test(p))s++; return Math.min(4,s); }
@@ -150,10 +159,19 @@ function viewSetPassword(mode,prof){
     if(p1.value.length<10)return msg(m,'err','Bitte mindestens 10 Zeichen.');
     if(p1.value!==p2.value)return msg(m,'err','Die beiden Passwörter sind nicht gleich.');
     const b=document.getElementById('gGo'); busy(b,true,'Speichern …');
-    try{ const {error}=await sb.auth.updateUser({password:p1.value}); if(error&&!/should be different/i.test(error.message))throw error;
+    try{ await ensureSession();
+      let {error}=await sb.auth.updateUser({password:p1.value});
+      if(error&&/session missing/i.test(error.message)&&KEEP){ await sb.auth.setSession(KEEP).catch(()=>{}); ({error}=await sb.auth.updateUser({password:p1.value})); }
+      if(error&&!/should be different/i.test(error.message))throw error;
       await sb.rpc('me_update',{p_name:null,p_pw_set:true}); if(SV.profile)SV.profile.pw_set=true;
       await loadAndStart(); }
-    catch(err){ busy(b,false); msg(m,'err',errText(err)); }
+    catch(err){ busy(b,false); msg(m,'err',errText(err));
+      if(/session missing|not authenticated|JWT/i.test(String(err&&err.message))&&prof&&prof.email&&!document.getElementById('gNewLink')){   // Selbsthilfe: neuen Link per E-Mail
+        m.insertAdjacentHTML('afterend',`<div class="g-msg show" id="gNewLinkBox">Kein Problem: Hol dir einfach einen frischen Link per E-Mail an ${esc(prof.email)} – darüber legst du dann dein Passwort fest.<br><button type="button" class="g-btn alt" id="gNewLink" style="margin-top:10px">${I('mail')} Neuen Link per E-Mail</button></div>`);
+        document.getElementById('gNewLink').onclick=async ev=>{ const nb=ev.currentTarget; busy(nb,true,'Senden …');
+          try{ const {error}=await sb.auth.resetPasswordForEmail(prof.email,{redirectTo:location.origin+location.pathname}); if(error)throw error; busy(nb,false); nb.remove();
+            msg(m,'ok','Der Link ist unterwegs – bitte im Postfach (auch im Spam-Ordner) nachsehen und von dort öffnen.'); }
+          catch(e2){ busy(nb,false); msg(m,'err',errText(e2)); } }; } }
   };
 }
 function viewBlocked(kind){
@@ -176,9 +194,9 @@ async function enter(opts){
   }
   if(!prof){ viewBlocked('none'); return; }
   if(!prof.active){ ls.set('svbcProfile',null); viewBlocked('locked'); return; }
-  SV.profile=prof; ls.set('svbcProfile',JSON.stringify(prof));
+  SV.profile=prof; ls.set('svbcProfile',JSON.stringify(prof)); await keepNow();
   if(opts.mode==='recovery'){ viewSetPassword('recovery',prof); return; }
-  if(opts.viaLink&&!prof.pw_set){ viewSetPassword('invite',prof); return; }
+  if(!prof.pw_set&&!SV.offline){ viewSetPassword('invite',prof); return; }   // noch kein eigenes Passwort → erst festlegen (egal ob per Link, Code oder gespeicherter Anmeldung)
   await loadAndStart();
 }
 async function fetchDataset(token){
@@ -233,7 +251,7 @@ SV.admin=async function(action,payload){
   return data;
 };
 SV.errText=errText; SV.isNet=isNet; SV.pwScore=pwScore;
-sb.auth.onAuthStateChange(ev=>{ if(ev==='SIGNED_OUT'&&window.__SVBC_USER){ location.replace(location.pathname); } });
+sb.auth.onAuthStateChange((ev,s)=>{ if(s)keepS(s); if(ev==='SIGNED_OUT'&&window.__SVBC_USER){ location.replace(location.pathname); } });
 
 /* ---------- Start: Links aus Einladungen / E-Mails auswerten ---------- */
 (async function start(){
@@ -243,9 +261,12 @@ sb.auth.onAuthStateChange(ev=>{ if(ev==='SIGNED_OUT'&&window.__SVBC_USER){ locat
     for(const [tag,type] of [['invite','invite'],['login','magiclink'],['recovery','recovery']]){
       if(h.get(tag)){
         const token_hash=h.get(tag); clean(); loading('Einladung wird geprüft …');
-        await sb.auth.signOut({scope:'local'}).catch(()=>{});
-        const {error}=await sb.auth.verifyOtp({token_hash,type});
-        if(error){ viewLogin(errText(error),'err'); return; }
+        const {data:vd,error}=await sb.auth.verifyOtp({token_hash,type});
+        if(error){   // Link schon benutzt (z. B. zweimal geöffnet)? Wenn hier schon angemeldet: einfach weitermachen
+          const {data:{session}}=await sb.auth.getSession();
+          if(session&&type!=='recovery'){ keepS(session); await enter({viaLink:true,mode:'invite'}); return; }
+          viewLogin(errText(error)+(type==='invite'?' Falls du dein Passwort noch nicht festgelegt hast: „Passwort vergessen“ antippen – dann kommt ein neuer Link per E-Mail.':''),'err'); return; }
+        keepS(vd&&vd.session);
         await enter({viaLink:true,mode:type==='recovery'?'recovery':'invite'}); return;
       }
     }

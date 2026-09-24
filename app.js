@@ -2100,7 +2100,7 @@ function openSlotPicker(i,depth){
 }
 
 /* ===== App-Modus: installierbar, offline-fest, aktualisiert sich selbst ===== */
-const APP_BUILD='r19-09240910', OUTBOX_KEY='svbcOutbox', APP_HIDE_KEY='svbcInstallHide';
+const APP_BUILD='r20-09241113', OUTBOX_KEY='svbcOutbox', APP_HIDE_KEY='svbcInstallHide';
 let _appPrompt=null, _appNew=null, _obT=null;
 function appStandalone(){ try{ return !!(window.matchMedia&&matchMedia('(display-mode: standalone)').matches)||navigator.standalone===true; }catch(e){ return false; } }
 function appPlatform(){
@@ -6985,7 +6985,7 @@ async function kxHist(el,p,draw){
 
 /* ---------- Kabine → Kontakte ---------- */
 function kxSquad(){ return players.filter(p=>p.own&&!p.isJugend&&!p.verzicht&&(p.kader===1||p.kader===2||KX.map.has(p.id))).sort((a,b)=>(a.kader||9)-(b.kader||9)||a.name.localeCompare(b.name,'de')); }
-function kxRefreshViews(){ if(typeof KB!=='undefined'&&KB.view==='kontakte'){ const B=document.getElementById('kbBody'); if(B&&document.getElementById('panel-kabine')&&document.getElementById('panel-kabine').classList.contains('on'))kxView(B); } }
+function kxRefreshViews(){ if(typeof KB!=='undefined'&&KB.view==='kontakte'){ const B=document.getElementById('kbBody'); if(B&&document.getElementById('panel-kabine')&&document.getElementById('panel-kabine').classList.contains('active'))kxView(B); } }
 function kxView(B){
   if(!KX.loaded){ B.innerHTML='<div class="card"><div class="note">Lade Kontakte …</div></div>'; kxLoad().then(()=>{ if(KB.view==='kontakte')kxView(B); }); return; }
   const S=kxSquad(), K=S.filter(p=>p.kader===1), withT=K.filter(p=>kxOf(p.id).tel).length, withM=K.filter(p=>kxOf(p.id).email).length;
@@ -7062,6 +7062,126 @@ const KX_NO='Kontaktdaten lösche ich nicht – das geht aus Sicherheitsgründen
     await kxLoad(); const r=await kxSave(i.player_id,i.tel||null,i.email||null,'ki'); if(!r)throw new Error('Kontakt nicht gespeichert'); return 'Kontakt von '+trShort(i.player_id)+' gespeichert'; }; }
 // nach dem Anmelden im Hintergrund laden (für Profil & Co-Trainer)
 { let t=0; const iv=setInterval(()=>{ if(++t>120)return clearInterval(iv); if(typeof SVU!=='undefined'&&SVU&&SVU.role&&typeof _remoteDone!=='undefined'&&_remoteDone){ clearInterval(iv); if(kxOk())kxLoad(); } },1000); }
+
+/* =====================================================================
+   SV/BSC Scout · Runde 20: „Was ist neu“ – Update-Fenster & Patch-Historie
+   - Nach jedem Update ein Pop-up: das Wichtigste in Kürze → „OK“ oder „Mehr erfahren“ (ganze Historie)
+   - Jederzeit erreichbar: Seitenleiste / „Mehr“ / Mein Konto → „Was ist neu“
+   - Gesehen wird je Nutzer gespeichert (geräteübergreifend), neue Nutzer bekommen nach der Einführung kein Update-Fenster
+   - NEUE VERSION: oben in SV_PATCHES eintragen (id eindeutig, neueste zuerst) – mehr ist nicht nötig
+   Sichtbarkeit je Punkt: r:'team' (ohne Gäste) · r:'scout' · r:'admin' · ohne r = alle
+   ===================================================================== */
+const SV_PATCHES=[
+  {id:'3.5',datum:'2026-09-24',titel:'Kontakte, Kassen-Transparenz & Update-Fenster',kurz:'Handynummern & E-Mails zentral, Kassen-Rangliste für die Mannschaft und ab jetzt dieses Fenster bei jedem Update.',
+   punkte:[
+    {ic:'📇',t:'Zentrale Kontakte',d:'Im Spielerprofil ganz unten: Handynummer und E-Mail hinzufügen – mit einem Tipp per WhatsApp schreiben, anrufen oder mailen. Korrekturen landen im Verlauf (alte Nummer lässt sich zurückholen), löschen kann nur der Admin. Unter Kabine → Kontakte siehst du, wem noch etwas fehlt, und kannst ganze Listen einfügen.',r:'team',go:'kontakte'},
+    {ic:'🏆',t:'Kassen-Transparenz für die Mannschaft',d:'Neue Seite mannschaftskasse.albertklee.de: Kassenstand gesamt, Top-Supporter (Hauptsponsor, Premium-Partner, Trikotsponsor), offene Deckel und – für Lukas – die Tunnelkönige im Eck. Nur mit dem Link aus der Mannschaftsgruppe.',go:'kasse'},
+    {ic:'⭐',t:'Smartes Scouting',d:'Bei jedem Spieler: Merken, „Halte mich up to date“ (Spieltag für Spieltag) oder „Kein Interesse“ – dann taucht er nie wieder auf. Das Radar zeigt nur noch die wichtigsten Tipps und richtet sich nach eurem Positions-Bedarf.',r:'scout',go:'scout'},
+    {ic:'🧩',t:'Positions-Bedarf & Schattenkader',d:'Im Kaderplan je Position festlegen, wie dringend (hoch, mittel, kurz- oder langfristig, kein Bedarf) – plus Schattenkader für diese, nächste und übernächste Saison.',r:'scout',go:'kaderplan'},
+    {ic:'🔎',t:'KI-Scouting-Aufträge',d:'„Scout mir mal den Spieler“ oder „Wir brauchen einen Torwart“: läuft im Hintergrund, du bekommst eine Meldung, sobald der Bericht fertig ist.',r:'scout',go:'scout'},
+    {ic:'📄',t:'Berichte als PDF & Excel',d:'Scouting, Trainingsbeteiligung, Spiele, Kasse und Kaderplanung als PDF oder Excel – herunterladen, per WhatsApp teilen, in den Drive legen oder mailen.',r:'team',go:'training'},
+    {ic:'🧠',t:'Co-Trainer denkt mit',d:'Nach jeder Antwort schlägt er die nächsten Schritte zum Antippen vor und weist auf blinde Flecken hin. Neu: Kontaktdaten per Satz eintragen („Die Nummer von … ist …“).',r:'team',go:'cotrainer'},
+    {ic:'🔑',t:'Einladung & Passwort zuverlässiger',d:'Wer den Einladungslink zweimal öffnet oder dessen Browser die Anmeldung zwischendurch verliert, kann sein Passwort jetzt trotzdem festlegen. Wer noch kein eigenes Passwort hat, wird beim nächsten Öffnen direkt danach gefragt.'},
+    {ic:'✨',t:'Was ist neu',d:'Dieses Fenster erscheint ab jetzt bei jedem Update. Die ganze Historie findest du jederzeit unter „Mehr“ bzw. in der Seitenleiste.'}]},
+  {id:'3.4',datum:'2026-09-24',titel:'Kasse mit Kassenwart, Einladen & Einführung',kurz:'Zahlungen zählen erst nach Bestätigung, Einladen per Gruppenlink, persönliche Einführung.',
+   punkte:[
+    {ic:'💶',t:'Mannschaftskasse mit Kassenwart',d:'„Ich habe bezahlt“ zählt erst, wenn der Kassenwart abhakt. Er bekommt eine Meldung und eine Liste, bucht Zuzahlungen, Gebühren und Korrekturen. Kassenstand je Konto (Bank, PayPal, bar) mit Dreh-Karte.',go:'kasse'},
+    {ic:'📣',t:'Spieler zum Training einladen',d:'Pop-up mit fertigem Link fürs nächste Training – einmal in die Gruppe, jeder tippt Vor- und Nachname an und sagt „dabei“ oder „nicht dabei“. Kurzadresse svbsc.albertklee.de.',r:'team',go:'abst'},
+    {ic:'👋',t:'Persönliche Einführung',d:'Begrüßung, deine Aufgaben, Erlaubnis für Pop-ups und Uploads und ein Rundgang mit Pfeil. Jederzeit wiederholbar unter Mein Konto.'},
+    {ic:'⚽',t:'Spiele genauer erfassen',d:'Startelf, eingewechselt, im Kader, zugeschaut oder nicht da – und direkt aus dem Spielbericht übernehmen.',r:'team',go:'training'}]},
+  {id:'3.3',datum:'2026-09-23',titel:'Kabine & Spieltag',kurz:'Abstimmungen per WhatsApp-Link, Mannschaftskasse, Gegnercheck und Elf der Woche.',
+   punkte:[
+    {ic:'🗳️',t:'Kabine: Abstimmungen',d:'Trainings-Abstimmungen per WhatsApp-Link, auf Wunsch automatisch; persönliche Links je Spieler, Nachhaken per WhatsApp.',go:'abst'},
+    {ic:'💰',t:'Mannschaftskasse',d:'Strafen, Beiträge und Ausgaben – Spieler sehen ihre offenen Posten und zahlen per PayPal oder Überweisung.',go:'kasse'},
+    {ic:'🎯',t:'Gegnercheck & Elf der Woche',d:'Vor dem Spiel: Gegner in einem Satz, auf wen achten, wo wir sie packen. Ergebnisse und Saison-Statistik kommen automatisch aus den Spielberichten.',go:'gegner'},
+    {ic:'🌱',t:'A-Jugend-Radar',d:'Talente aus der A-Jugend im Umkreis im Blick – mit Realismus-Filter.',r:'scout',go:'jugend'}]},
+  {id:'3.2',datum:'2026-09-23',titel:'Training, Verein & Radar',kurz:'Co-Trainer fürs Training, Rankings & Vereinsleben, Scouting-Radar.',
+   punkte:[
+    {ic:'🏃',t:'Training mit Co-Trainer',d:'Anwesenheit, Gründe, Motivation, Fitness und Verletzungen – per Satz, Screenshot oder WhatsApp-Export. Warnt bei sinkender Beteiligung.',r:'team',go:'training'},
+    {ic:'🏅',t:'Rankings & Verein',d:'Trainings- und Loyalitäts-Ranking, Helfer bei Veranstaltungen, Allzeit-Statistik mit Legenden und Meilensteinen.',go:'verein'},
+    {ic:'📡',t:'Scouting-Radar',d:'Meldet automatisch Torserien, Überflieger und junge Talente aus der Region.',r:'scout',go:'radar'}]},
+  {id:'3.0',datum:'2026-09-23',titel:'Die App mit Login',kurz:'Anmeldung mit Rollen, als App installierbar, Push-Erinnerungen, Saison 26/27 live.',
+   punkte:[
+    {ic:'🔐',t:'Login & Rollen',d:'Jeder sieht, was er braucht: Admin, Vorstand, Kaderplanung, Trainer, Gast. Daten nur noch hinter der Anmeldung.'},
+    {ic:'📲',t:'Als App installieren',d:'Auf dem Handy „Zum Startbildschirm“ – startet wie eine richtige App und aktualisiert sich selbst.'},
+    {ic:'🔔',t:'Push-Erinnerungen',d:'Fällige Kandidaten-Kontakte, Trainings-Hinweise und das Wochen-Briefing aufs Handy – im Konto pro Gerät einschalten.',r:'team'},
+    {ic:'🃏',t:'Spielerbogen & Positions-Check',d:'Spielerkarten wie in EA FC und ein Check, ob jeder auf seiner Position spielt.',go:'elf'}]},
+  {id:'2.0',datum:'2026-09-22',titel:'Kaderplanung',kurz:'Kandidaten-Pipeline mit Überfällig-Ampel und druckbarem Kaderplan.',
+   punkte:[
+    {ic:'📋',t:'Kandidaten-Pipeline',d:'Letzter Kontakt, Wechselchance, Zielposition und wer sich kümmert – mit Ampel, wenn der Kontakt zu lange her ist.',r:'scout',go:'kandidaten'},
+    {ic:'🖨️',t:'Kaderplan-Board',d:'Traumelf plus Backups je Position – zum Ausdrucken für die Sitzung.',r:'scout',go:'kaderplan'}]},
+  {id:'1.1',datum:'2026-07-30',titel:'Datenbank & Schattenelf',kurz:'Alle Kader der Region, Scouting-Markierungen und die Schattenelf.',
+   punkte:[
+    {ic:'🗄️',t:'Komplett-Datenbank',d:'Alle Kader von Kreisoberliga bis Kreisliga D in der Region – über 2.600 Spieler.',r:'scout',go:'db'},
+    {ic:'👥',t:'Schattenelf',d:'Startelf, Backup und Transferziel je Position auf dem Feld.',r:'scout',go:'sxi'}]},
+  {id:'1.0',datum:'2026-07-26',titel:'Der Start',kurz:'Die erste Version: Scouting, Aufstellung und Transfer-Vorschläge.',
+   punkte:[
+    {ic:'🚀',t:'SV/BSC Scout ist da',d:'Scouting-Datenbank, Aufstellung mit Formationen und Drag & Drop, Bedarfsanalyse und Transfer-Vorschläge.'}]}
+];
+const SV_PATCH_LATEST=SV_PATCHES[0].id;
+function spFor(p){ return (p.punkte||[]).filter(x=>!x.r||(x.r==='team'&&canTraining())||(x.r==='scout'&&canScout())||(x.r==='admin'&&isAdmin())); }
+function spDate(d){ try{ return new Date(d+'T12:00:00').toLocaleDateString('de-DE',{day:'2-digit',month:'2-digit',year:'numeric'}); }catch(e){ return d; } }
+function spSeen(){ let l=''; try{ l=localStorage.getItem('sv_patch')||''; }catch(e){} return (SV_PREFS&&SV_PREFS.patch_seen)||l||''; }
+function spUnseen(){ const s=spSeen(), i=SV_PATCHES.findIndex(p=>p.id===s); return i<0?(s?SV_PATCHES.slice(0,1):SV_PATCHES.slice(0,1)):SV_PATCHES.slice(0,i); }
+async function spMark(){ try{ localStorage.setItem('sv_patch',SV_PATCH_LATEST); }catch(e){} if(SV_PREFS)SV_PREFS.patch_seen=SV_PATCH_LATEST; spBadge();
+  try{ await SVB.sb.rpc('patch_gesehen',{p_id:SV_PATCH_LATEST}); }catch(e){ console.warn(e); } }
+function spGo(k){
+  closeOverlay(); try{ svSheet(false); }catch(e){}
+  const kb=v=>{ KB.view=v; goTab('kabine'); };
+  const F={kontakte:()=>kb('kontakte'),kasse:()=>kb('kasse'),abst:()=>kb('abst'),cotrainer:()=>{ const f=document.getElementById('trFab'); if(f)f.click(); }}[k];
+  if(F)F(); else goTab(k);
+}
+const SP_TEAM=['kontakte','kasse','abst','cotrainer','training'], SP_SCOUT=['scout','radar','kaderplan','kandidaten','db','sxi','jugend'];
+function spCanGo(g){ return !!g&&(SP_TEAM.includes(g)?canTraining():SP_SCOUT.includes(g)?canScout():true); }
+function spItem(x,btn){ return `<div class="sp-it"><span class="sp-ic">${x.ic||'•'}</span><div><b>${svEsc(x.t)}</b><p>${svEsc(x.d)}</p>${btn&&spCanGo(x.go)?`<button class="sp-go" data-spgo="${svEsc(x.go)}">Ausprobieren →</button>`:''}</div></div>`; }
+function spWire(M){ M.querySelectorAll('[data-spgo]').forEach(b=>b.onclick=()=>spGo(b.dataset.spgo)); }
+
+/* ---------- Pop-up nach einem Update ---------- */
+function spPopup(force){
+  if(!force){
+    if(!SV_PREFS||!(SV_PREFS.onboarding_at||SV_PREFS.skip))return;
+    if(SV_PREFS.skip){ let t=''; try{ t=localStorage.getItem('sv_patch_test')||''; }catch(e){} if(!t)return; }   // automatisierte Browser: nur auf Wunsch
+    if(spSeen()===SV_PATCH_LATEST||window.__spShown)return;
+    const g=document.getElementById('gate');
+    if((g&&!g.classList.contains('done'))||document.querySelector('#overlay.open')||document.getElementById('onb')||document.getElementById('onbTourL')){   // gerade ein anderes Fenster offen → gleich nochmal versuchen
+      spPopup.n=(spPopup.n||0)+1; if(spPopup.n<30)setTimeout(()=>spPopup(),2000); return; }
+  }
+  window.__spShown=true;
+  const U=spUnseen(), P=SV_PATCHES[0], L=spFor(P), more=U.length-1;
+  svModal(`<div class="sp-pop"><div class="sp-burst">🚀</div><span class="trpill">Update · Version ${svEsc(P.id)}</span>
+    <h2>${svEsc(P.titel)}</h2><p class="note">${svEsc(P.kurz)} Wir arbeiten laufend an der App – das ist neu:</p>
+    <div class="sp-list">${L.slice(0,4).map(x=>`<div class="sp-li"><span>${x.ic}</span><div><b>${svEsc(x.t)}</b></div></div>`).join('')}${L.length>4?`<div class="sp-li more">+ ${L.length-4} weitere Neuerung${L.length-4>1?'en':''}</div>`:''}</div>
+    ${more>0?`<p class="note small">Dazu ${more} weitere${more>1?'':'s'} Update${more>1?'s':''} seit deinem letzten Besuch.</p>`:''}
+    <button class="btn kbpop-go" id="spMore">✨ Mehr erfahren</button><div class="btnrow"><button class="btn ghost sm" id="spOk">OK, verstanden</button></div></div>`);
+  document.getElementById('spOk').onclick=()=>{ spMark(); closeOverlay(); };
+  document.getElementById('spMore').onclick=()=>{ spMark(); spHistory(); };
+}
+/* ---------- Patch-Historie ---------- */
+function spHistory(){
+  const U=new Set(spUnseen().map(p=>p.id));
+  const M=svModal(`<div class="sp-hist"><div class="sp-head"><span class="sp-burst sm">✨</span><div><h2>Was ist neu</h2><p class="note">Die App wird laufend weiterentwickelt – hier siehst du, was nach und nach dazukam.</p></div></div>
+    <div class="sp-tl">${SV_PATCHES.map((p,i)=>{ const L=spFor(p); if(!L.length)return ''; return `<details class="sp-v${i===0?' now':''}"${i===0?' open':''}><summary><span class="sp-dot"></span><div class="sp-vh"><span class="sp-ver">${svEsc(p.id)}</span><b>${svEsc(p.titel)}</b>${U.has(p.id)&&i!==0?'<em class="sp-new">neu</em>':''}<small>${spDate(p.datum)} · ${svEsc(p.kurz)}</small></div></summary>
+      <div class="sp-items">${L.map(x=>spItem(x,true)).join('')}</div></details>`; }).join('')}</div>
+    <p class="note small" style="text-align:center;margin-top:14px">Ideen oder Wünsche? Einfach dem Admin sagen – vieles hier kam genau so zustande. 💬</p></div>`);
+  spWire(M);
+}
+/* ---------- Einstiege: Seitenleiste, „Mehr“, Mein Konto ---------- */
+function spBadge(){ const n=spSeen()===SV_PATCH_LATEST?0:1; document.querySelectorAll('.sp-badge').forEach(b=>b.style.display=n?'':'none'); }
+function spEntries(){
+  const nav=document.querySelector('.snav'); if(nav&&!nav.querySelector('.sp-nav')){ const b=document.createElement('button'); b.className='sp-nav'; b.type='button'; b.setAttribute('data-tip','Was ist neu');
+    b.innerHTML=`<span class="sp-nic">✨</span><span>Was ist neu</span><span class="cnt sp-badge">neu</span>`; b.onclick=()=>spHistory(); const h=nav.querySelector('[data-tab="home"]'); if(h)h.after(b); else nav.prepend(b); }
+  const sh=document.getElementById('moreSheet'); if(sh&&!sh.querySelector('.sp-sheet')){ const b=document.createElement('button'); b.className='sp-sheet'; b.type='button';
+    b.innerHTML=`<span>✨</span><div><b>Was ist neu</b><small>Version ${svEsc(SV_PATCH_LATEST)} · ${spDate(SV_PATCHES[0].datum)}</small></div><em class="sp-badge">neu</em><i>›</i>`; b.onclick=()=>{ svSheet(false); spHistory(); };
+    const g=sh.querySelector('.grab'); if(g)g.after(b); else sh.prepend(b); }
+  spBadge();
+}
+{ const _acc5=svAccount; svAccount=function(){ const r=_acc5.apply(this,arguments); try{ const M=document.getElementById('modal'); if(M&&!M.querySelector('#spAcc')){ const s=document.createElement('div'); s.className='editsec'; s.id='spAcc';
+    s.innerHTML=`<h4>Was ist neu</h4><button class="btn ghost sm" id="spAccB">✨ Patch-Historie · Version ${svEsc(SV_PATCH_LATEST)}</button>`; M.appendChild(s); document.getElementById('spAccB').onclick=()=>spHistory(); } }catch(e){ console.warn(e); } return r; }; }
+// Einführung gerade gemacht → kein Update-Fenster hinterher
+{ const _od=svOnbDone; svOnbDone=async function(){ if(!spSeen())spMark(); return _od.apply(this,arguments); }; }
+// nach dem Laden: zuerst das Update-Fenster, danach die übrigen Pop-ups wie gehabt
+{ const _pr=svPopupsRun; svPopupsRun=function(){ try{ spEntries(); spPopup(); }catch(e){ console.warn(e); } return _pr.apply(this,arguments); }; }
+{ let t=0; const iv=setInterval(()=>{ if(++t>60)return clearInterval(iv); if(document.querySelector('.snav')||document.getElementById('moreSheet')){ try{ spEntries(); }catch(e){} if(SV_PREFS)clearInterval(iv); } },1000); }
 
 /* ================= INIT ================= */
 renderWeights();
