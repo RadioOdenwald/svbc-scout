@@ -2100,7 +2100,7 @@ function openSlotPicker(i,depth){
 }
 
 /* ===== App-Modus: installierbar, offline-fest, aktualisiert sich selbst ===== */
-const APP_BUILD='r14-202609240534', OUTBOX_KEY='svbcOutbox', APP_HIDE_KEY='svbcInstallHide';
+const APP_BUILD='r15-202609240604', OUTBOX_KEY='svbcOutbox', APP_HIDE_KEY='svbcInstallHide';
 let _appPrompt=null, _appNew=null, _obT=null;
 function appStandalone(){ try{ return !!(window.matchMedia&&matchMedia('(display-mode: standalone)').matches)||navigator.standalone===true; }catch(e){ return false; } }
 function appPlatform(){
@@ -5649,6 +5649,7 @@ SV_TBL.kabine=['users','Kabine'];
 
 const KB={loaded:false,loading:false,view:'abst',polls:[],votes:[],cfg:{},kat:[],buch:[],link:null,showOld:false,kf:'offen'};
 const KB_ART={training:'Training',spiel:'Spiel',event:'Event',sonstiges:'Sonstiges'};
+const KB_KONTO={bank:['🏦','Bank'],paypal:['🅿️','PayPal'],bar:['💶','Bar']};
 const KB_ANS={zu:['Dabei','ok'],vllt:['Vielleicht','mid'],ab:['Nicht dabei','bad']};
 const kbEur=v=>(Math.round((+v||0)*100)/100).toLocaleString('de-DE',{style:'currency',currency:'EUR'});
 const kbWd=d=>{ try{ return new Date(d+'T12:00:00').toLocaleDateString('de-DE',{weekday:'short',day:'2-digit',month:'2-digit'}); }catch(e){ return d; } };
@@ -5667,6 +5668,7 @@ async function kbLoad(force){
     KB.polls=p.data||[]; KB.cfg=c.data||{}; KB.kat=k.data||[]; KB.buch=b.data||[];
     try{ const r=await SVB.sb.rpc('kabine_bot_get'); KB.bot=r.data||null; }catch(e){ KB.bot=null; }
     try{ const r=await SVB.sb.rpc('kabine_popup_get'); KB.popup=!r.error&&!!r.data; }catch(e){ KB.popup=false; }
+    try{ const r=await SVB.sb.rpc('kasse_ich'); KB.ich=(!r.error&&r.data)||{darf:true}; }catch(e){ KB.ich={darf:true}; }
     try{ if(!KB.link)await kbLink(); }catch(e){}
     const ids=KB.polls.map(x=>x.id); KB.votes=[];
     if(ids.length){ const v=await SVB.sb.from('poll_votes').select('*').in('poll_id',ids).limit(5000); KB.votes=v.data||[]; }
@@ -5674,7 +5676,7 @@ async function kbLoad(force){
   }catch(e){ console.warn('Kabine',e); KB.loaded=true; }
   KB.loading=false; kbAfter();
 }
-function kbAfter(){ try{ if(document.querySelector('#panel-kabine.active'))kbRender(); }catch(e){ console.warn(e); } try{ kbHomeCard(); }catch(e){} try{ if(!document.querySelector('#panel-kabine.active'))kbPopup(); }catch(e){ console.warn(e); } }
+function kbAfter(){ try{ if(document.querySelector('#panel-kabine.active'))kbRender(); }catch(e){ console.warn(e); } try{ kbHomeCard(); }catch(e){} try{ if(!document.querySelector('#panel-kabine.active')){ kbPopup(); kbKassePopup(); } }catch(e){ console.warn(e); } }
 async function kbLink(renew){ const {data,error}=await SVB.sb.rpc('team_link',{p_new:!!renew}); if(error)throw new Error(error.message); KB.link=data; return data; }
 function kbBase(){ return location.origin+location.pathname.replace(/[^/]*$/,''); }
 function kbUrl(poll){ const L=KB.bot&&KB.bot.link_url; if(L&&L!==kbBase()&&KB.link)return L+encodeURIComponent(KB.link)+(poll?'#a='+poll:'');
@@ -5814,7 +5816,10 @@ const KB_DEFAULT_KAT=[['Zu spät zum Training',5,'Training'],['Zu spät zum Spie
 function kbSaldo(){
   const bez=KB.buch.filter(b=>b.status==='bezahlt'), plus=bez.filter(b=>b.art!=='ausgabe').reduce((a,b)=>a+ +b.betrag,0), minus=bez.filter(b=>b.art==='ausgabe').reduce((a,b)=>a+ +b.betrag,0);
   const offen=KB.buch.filter(b=>b.status==='offen'||b.status==='gemeldet').reduce((a,b)=>a+ +b.betrag,0);
-  return {stand:(+KB.cfg.anfang||0)+plus-minus,offen,plus,minus,gemeldet:KB.buch.filter(b=>b.status==='gemeldet')};
+  const c=KB.cfg||{}, k={bank:+c.anfang||0,paypal:+c.anfang_paypal||0,bar:+c.anfang_bar||0};
+  bez.forEach(b=>{ const kk=b.konto||'bank'; k[kk]=(k[kk]||0)+(b.art==='ausgabe'?-b.betrag:+b.betrag); });
+  Object.keys(k).forEach(x=>k[x]=Math.round(k[x]*100)/100);
+  return {stand:k.bank+k.paypal+k.bar,konten:k,offen,plus,minus,gemeldet:KB.buch.filter(b=>b.status==='gemeldet')};
 }
 function kbByPlayer(){
   const M=new Map(); KB.buch.filter(b=>b.player_id&&(b.art==='strafe'||b.art==='beitrag')).forEach(b=>{ const o=M.get(b.player_id)||{pid:b.player_id,name:(trP(b.player_id)||{}).name||b.name||b.player_id,offen:0,bez:0,n:0}; o.n++;
@@ -5838,21 +5843,24 @@ function kbViewKasse(B){
   const S=kbSaldo(), BP=kbByPlayer(), V=kbVorschlaege(), cfg=KB.cfg||{};
   const stat=b=>({offen:['offen','mid'],gemeldet:['gemeldet','mid'],bezahlt:['bezahlt','ok'],erlassen:['erlassen','']}[b.status]);
   const list=KB.buch.filter(b=>KB.kf==='alle'||(KB.kf==='offen'?(b.status==='offen'||b.status==='gemeldet'):KB.kf==='bewegung'?(b.art==='einzahlung'||b.art==='ausgabe'):true)).slice(0,120);
-  B.innerHTML=`<div class="kbstats"><div class="kbst"><span>Kassenstand</span><b class="${S.stand<0?'bad':''}">${kbEur(S.stand)}</b></div><div class="kbst"><span>Noch offen</span><b class="mid">${kbEur(S.offen)}</b></div>
-      <div class="kbst"><span>Eingenommen</span><b>${kbEur(S.plus)}</b></div><div class="kbst"><span>Ausgegeben</span><b>${kbEur(S.minus)}</b></div></div>
+  const darf=!KB.ich||KB.ich.darf!==false;
+  B.innerHTML=`<div class="kbstats"><div class="kbst kbflipw">${kbFlipHtml(S.konten,'kbFlip')}</div><div class="kbst"><span>Noch offen</span><b class="mid">${kbEur(S.offen)}</b></div>
+      <div class="kbst"><span>Zu prüfen</span><b class="${S.gemeldet.length?'mid':''}">${S.gemeldet.length}</b></div><div class="kbst"><span>Gesamt · alle Konten</span><b class="${S.stand<0?'bad':''}">${kbEur(S.stand)}</b></div></div>
+    ${darf?`<div class="btnrow kbmoney"><button class="btn ghost sm" id="kbAbg">${SVI('check')} Kontostand abgleichen</button><button class="btn ghost sm" id="kbBu2">${SVI('plus')} Zuzahlung · Gebühr · Umbuchung</button></div>`:''}
     ${!cfg.paypal?`<div class="card kbhint">${SVI('info')} <div><b>PayPal.me hinterlegen</b><span>Dann können die Spieler ihre Strafen direkt über den Team-Link bezahlen – mit „Freunde &amp; Familie“ kostenlos.</span></div><button class="btn sm" id="kbCfg1">Einrichten</button></div>`:''}
-    ${S.gemeldet.length?`<div class="card"><h3 class="trh">${SVI('check')} Als bezahlt gemeldet – bitte prüfen <small>${S.gemeldet.length}</small></h3>${S.gemeldet.map(b=>`<div class="kbb"><b>${svEsc((trP(b.player_id)||{}).name||b.name||'')}</b><span>${svEsc(b.titel)}</span><em>${kbEur(b.betrag)}</em><div class="btnrow"><button class="btn sm" data-ok="${b.id}">Eingang bestätigt</button><button class="btn ghost sm" data-back="${b.id}">Noch nicht da</button></div></div>`).join('')}</div>`:''}
+    ${S.gemeldet.length?kbGemeldetHtml(S.gemeldet,darf):''}
     ${V.length?`<div class="card"><h3 class="trh">${SVI('bell')} Vorschläge <small>${V.length}</small></h3><div class="note" style="margin-top:0">Aus Anwesenheit und Abstimmungen – nichts wird automatisch gebucht.</div>${V.slice(0,15).map((v,i)=>`<div class="kbb"><b>${svEsc(trP(v.pid).name)}</b><span>${svEsc(v.titel)} <small>${svEsc(v.why)}</small></span><em>${kbEur(v.betrag)}</em><div class="btnrow"><button class="btn sm" data-vb="${i}">Buchen</button><button class="btn ghost sm" data-vi="${i}">Ignorieren</button></div></div>`).join('')}
       ${V.length>1?`<button class="btn ghost sm" id="kbAllV">Alle ${Math.min(V.length,15)} buchen</button>`:''}</div>`:''}
     <div class="vrgrid"><div class="card"><h3 class="trh">${SVI('users')} Spieler</h3>${BP.length?BP.map(x=>`<div class="kbpl" data-kbp="${svEsc(x.pid)}"><b>${svEsc(x.name)}</b><span>${x.offen?`<i class="mid">${kbEur(x.offen)} offen</i>`:'<i class="ok">alles bezahlt</i>'}</span><small>${kbEur(x.bez)} bezahlt</small></div>`).join(''):'<div class="note">Noch keine Strafen oder Beiträge gebucht.</div>'}</div>
       <div class="card"><div class="vrat-h"><h3 class="trh" style="margin:0">${SVI('book')} Strafenkatalog</h3><button class="btn ghost sm" id="kbKat">Bearbeiten</button></div>${KB.kat.filter(k=>k.aktiv).length?`<div class="kbkat">${KB.kat.filter(k=>k.aktiv).map(k=>`<div><span>${svEsc(k.titel)}</span><b>${kbEur(k.betrag)}</b></div>`).join('')}</div>`:`<div class="note">Noch kein Katalog. <button class="lnk" id="kbKatDef">Standard-Katalog laden</button> (11 übliche Strafen, alles änderbar)</div>`}
         <div class="btnrow" style="margin-top:10px"><button class="btn ghost sm" id="kbCfg">${SVI('sliders')} Kasse einstellen</button></div></div></div>
     <div class="card"><div class="vrat-h"><h3 class="trh" style="margin:0">${SVI('clock')} Buchungen</h3><div class="trtabs sm">${[['offen','Offen'],['bewegung','Ein-/Ausgaben'],['alle','Alle']].map(([k,t])=>`<button class="${KB.kf===k?'on':''}" data-kf="${k}">${t}</button>`).join('')}</div></div>
-      ${list.length?list.map(b=>{ const s=stat(b); return `<div class="kbb" data-bu="${b.id}"><b>${b.art==='einzahlung'?'➕ ':b.art==='ausgabe'?'➖ ':''}${svEsc(b.player_id?((trP(b.player_id)||{}).name||b.name||''):(b.art==='ausgabe'?'Ausgabe':'Einzahlung'))}</b><span>${svEsc(b.titel)} <small>${TRC.fmt(b.datum)}</small></span><em class="${b.art==='ausgabe'?'bad':''}">${b.art==='ausgabe'?'−':''}${kbEur(b.betrag)}</em><span class="trpill ${s[1]}">${s[0]}</span></div>`; }).join(''):'<div class="note">Keine Buchungen in dieser Ansicht.</div>'}
+      ${list.length?list.map(b=>{ const s=stat(b); return `<div class="kbb" data-bu="${b.id}"><b>${b.art==='einzahlung'?'➕ ':b.art==='ausgabe'?'➖ ':''}${svEsc(b.player_id?((trP(b.player_id)||{}).name||b.name||''):(b.art==='ausgabe'?'Ausgabe':'Einzahlung'))}</b><span>${svEsc(b.titel)} <small>${TRC.fmt(b.datum)}${b.status==='bezahlt'?' · '+KB_KONTO[b.konto||'bank'][1]:b.status==='gemeldet'&&b.zahlweg?' · per '+KB_KONTO[b.zahlweg][1]:''}</small></span><em class="${b.art==='ausgabe'?'bad':''}">${b.art==='ausgabe'?'−':''}${kbEur(b.betrag)}</em><span class="trpill ${s[1]}">${s[0]}</span></div>`; }).join(''):'<div class="note">Keine Buchungen in dieser Ansicht.</div>'}
       <div class="note">Alle Spieler sehen Kassenstand, Katalog und alle Strafen über den Team-Link – volle Transparenz. Antippen ändert eine Buchung.</div></div>`;
   const upd=async(id,patch)=>{ const {error}=await SVB.sb.from('kasse_buchungen').update(patch).eq('id',id); if(error)return kToast('⚠️ '+error.message); await kbLoad(true); };
-  B.querySelectorAll('[data-ok]').forEach(b=>b.onclick=()=>upd(b.dataset.ok,{status:'bezahlt',bezahlt_am:trToday()}));
-  B.querySelectorAll('[data-back]').forEach(b=>b.onclick=()=>upd(b.dataset.back,{status:'offen',gemeldet_at:null}));
+  kbGemeldetWire(B,()=>kbViewKasse(B)); kbFlipWire('kbFlip',S.konten);
+  const ab=document.getElementById('kbAbg'); if(ab)ab.onclick=()=>kbAbgleich(KB.flipK||'bank');
+  const b2=document.getElementById('kbBu2'); if(b2)b2.onclick=()=>kbBuchEditor();
   const book=async L=>{ const rows=L.map(v=>({art:'strafe',player_id:v.pid,name:trP(v.pid).name,titel:v.titel,betrag:v.betrag,datum:v.datum,quelle:v.ref.split(':')[0]==='poll'?'abstimmung':'anwesenheit',ref:v.ref,notiz:v.why}));
     const {error}=await SVB.sb.from('kasse_buchungen').insert(rows); if(error)return kToast('⚠️ '+error.message); await kbLoad(true); kToast(`✓ ${rows.length} Strafe${rows.length>1?'n':''} gebucht`); };
   B.querySelectorAll('[data-vb]').forEach(b=>b.onclick=()=>book([V[+b.dataset.vb]]));
@@ -5870,9 +5878,9 @@ function kbPlayerDetail(pid){
   svModal(`<div class="mhead"><div class="rm-ic" style="width:46px;height:46px">${SVI('user')}</div><div><h2 style="margin:0">${svEsc(p?p.name:pid)}</h2><div class="msub">Mannschaftskasse</div></div></div><div id="kbPd"></div>`);
   const draw=()=>{ const E=document.getElementById('kbPd'); if(!E)return; const L=KB.buch.filter(b=>b.player_id===pid), off=L.filter(b=>b.status==='offen'||b.status==='gemeldet');
     E.innerHTML=`${L.map(b=>`<div class="kbb" data-bu="${b.id}"><b>${svEsc(b.titel)}</b><span>${TRC.fmt(b.datum)}${b.notiz?' · '+svEsc(b.notiz):''}</span><em>${kbEur(b.betrag)}</em><span class="trpill ${b.status==='bezahlt'?'ok':b.status==='erlassen'?'':'mid'}">${b.status}</span></div>`).join('')||'<div class="note">Keine Buchungen.</div>'}
-      <div class="btnrow sbact">${off.length?`<button class="btn" id="kbPaid">Alles bezahlt (${kbEur(off.reduce((a,b)=>a+ +b.betrag,0))})</button>`:''}<button class="btn ghost" id="kbNew">${SVI('plus')} Strafe</button></div>`;
+      <div class="btnrow sbact">${off.length&&(!KB.ich||KB.ich.darf!==false)?`<span class="kbpaylbl">Alles bezahlt (${kbEur(off.reduce((a,b)=>a+ +b.betrag,0))}):</span>${['bank','paypal','bar'].map(k=>`<button class="btn sm" data-pk="${k}">${KB_KONTO[k][0]} ${KB_KONTO[k][1]}</button>`).join('')}`:''}<button class="btn ghost" id="kbNew">${SVI('plus')} Strafe</button></div>`;
     E.querySelectorAll('[data-bu]').forEach(b=>b.onclick=()=>kbBuchEdit(b.dataset.bu,()=>kbPlayerDetail(pid)));
-    const pd=document.getElementById('kbPaid'); if(pd)pd.onclick=async()=>{ const {error}=await SVB.sb.from('kasse_buchungen').update({status:'bezahlt',bezahlt_am:trToday()}).in('id',off.map(b=>b.id)); if(error)return kToast('⚠️ '+error.message); await kbLoad(true); draw(); kToast('✓ Als bezahlt verbucht'); };
+    E.querySelectorAll('[data-pk]').forEach(x=>x.onclick=async()=>{ const {error}=await SVB.sb.rpc('kasse_bestaetigen',{p_ids:off.map(b=>b.id),p_ok:true,p_konto:x.dataset.pk}); if(error)return kToast('⚠️ '+error.message); await kbLoad(true); draw(); kToast('✓ Als bezahlt verbucht ('+KB_KONTO[x.dataset.pk][1]+')'); });
     document.getElementById('kbNew').onclick=()=>{ closeOverlay(); kbStrafeEditor([pid]); };
   };
   draw();
@@ -5898,26 +5906,38 @@ function kbStrafeEditor(pre){
   };
   draw();
 }
-function kbBuchEditor(){
-  svModal(`<div class="mhead"><div class="rm-ic" style="width:46px;height:46px">${SVI('plus')}</div><div><h2 style="margin:0">Einnahme oder Ausgabe</h2><div class="msub">z.B. Spende, Kasten für die Kabine, Mannschaftsabend</div></div></div>
-    <div class="kbform"><div class="field"><label>Art</label><select id="kbA2"><option value="ausgabe">Ausgabe</option><option value="einzahlung">Einnahme</option></select></div>
-      <div class="field"><label>Wofür</label><input id="kbT2" maxlength="120" placeholder="z.B. Kasten Wasser"></div><div class="field"><label>Betrag (€)</label><input id="kbB2" type="number" min="0.5" max="5000" step="0.5" inputmode="decimal"></div>
+function kbBuchEditor(pre){
+  const P=pre||{};
+  svModal(`<div class="mhead"><div class="rm-ic" style="width:46px;height:46px">${SVI('plus')}</div><div><h2 style="margin:0">Geld bewegen</h2><div class="msub">Zuzahlung, Ausgabe, Gebühren oder Umbuchung zwischen den Konten</div></div></div>
+    <div class="chips kbpre">${[['Eigene Zuzahlung','einzahlung','bank'],['Bankgebühren','ausgabe','bank'],['PayPal-Gebühr','ausgabe','paypal'],['Kasten für die Kabine','ausgabe','bar'],['PayPal → Bank','umbuchung','paypal','bank'],['Bar → Bank','umbuchung','bar','bank']].map((x,i)=>`<button type="button" class="pchip" data-pre="${i}">${x[0]}</button>`).join('')}</div>
+    <div class="kbform"><div class="field"><label>Art</label><select id="kbA2"><option value="ausgabe">Ausgabe</option><option value="einzahlung">Einnahme / Zuzahlung</option><option value="umbuchung">Umbuchung</option></select></div>
+      <div class="field"><label id="kbKl">Konto</label><select id="kbK2">${['bank','paypal','bar'].map(k=>`<option value="${k}">${KB_KONTO[k][0]} ${KB_KONTO[k][1]}</option>`).join('')}</select></div>
+      <div class="field" id="kbZf" style="display:none"><label>Nach</label><select id="kbZ2">${['bank','paypal','bar'].map(k=>`<option value="${k}">${KB_KONTO[k][0]} ${KB_KONTO[k][1]}</option>`).join('')}</select></div>
+      <div class="field"><label>Wofür</label><input id="kbT2" maxlength="120" placeholder="z.B. Kasten Wasser"></div><div class="field"><label>Betrag (€)</label><input id="kbB2" type="number" min="0.01" max="5000" step="0.01" inputmode="decimal"></div>
       <div class="field"><label>Datum</label><input id="kbD2" type="date" value="${trToday()}"></div></div>
     <div class="btnrow sbact"><button class="btn" id="kbS2">Buchen</button><button class="btn ghost" id="kbC2">Abbrechen</button></div>`);
-  document.getElementById('kbC2').onclick=()=>closeOverlay();
-  document.getElementById('kbS2').onclick=async()=>{ const t=document.getElementById('kbT2').value.trim(), be=Math.round(parseFloat(String(document.getElementById('kbB2').value).replace(',','.'))*100)/100;
-    if(!t)return kToast('Bitte angeben, wofür'); if(!(be>0&&be<=5000))return kToast('Betrag zwischen 0,50 und 5.000 €');
-    const {error}=await SVB.sb.from('kasse_buchungen').insert({art:document.getElementById('kbA2').value,titel:t,betrag:be,datum:document.getElementById('kbD2').value||trToday(),status:'bezahlt',bezahlt_am:trToday(),quelle:'hand'});
+  const $i=id=>document.getElementById(id), PRE=[['Eigene Zuzahlung','einzahlung','bank'],['Bankgebühren','ausgabe','bank'],['PayPal-Gebühr','ausgabe','paypal'],['Kasten für die Kabine','ausgabe','bar'],['Umbuchung PayPal → Bank','umbuchung','paypal','bank'],['Bar eingezahlt','umbuchung','bar','bank']];
+  const sync=()=>{ const u=$i('kbA2').value==='umbuchung'; $i('kbZf').style.display=u?'':'none'; $i('kbKl').textContent=u?'Von':'Konto'; };
+  const set=x=>{ $i('kbA2').value=x[1]; $i('kbK2').value=x[2]; if(x[3])$i('kbZ2').value=x[3]; $i('kbT2').value=x[0]; sync(); };
+  document.querySelectorAll('#modal [data-pre]').forEach(b=>b.onclick=()=>set(PRE[+b.dataset.pre]));
+  $i('kbA2').onchange=sync; if(P.art)set([P.titel||'',P.art,P.konto||'bank',P.nach]); if(P.betrag)$i('kbB2').value=P.betrag;
+  $i('kbC2').onclick=()=>closeOverlay();
+  $i('kbS2').onclick=async()=>{ const art=$i('kbA2').value, t=$i('kbT2').value.trim(), be=Math.round(parseFloat(String($i('kbB2').value).replace(',','.'))*100)/100, k=$i('kbK2').value, z=$i('kbZ2').value, d=$i('kbD2').value||trToday();
+    if(!t)return kToast('Bitte angeben, wofür'); if(!(be>0&&be<=5000))return kToast('Betrag zwischen 0,01 und 5.000 €');
+    if(art==='umbuchung'&&k===z)return kToast('Von und Nach sind dasselbe Konto');
+    const base={titel:t,betrag:be,datum:d,status:'bezahlt',bezahlt_am:trToday(),quelle:art==='umbuchung'?'umbuchung':'hand'};
+    const rows=art==='umbuchung'?[Object.assign({},base,{art:'ausgabe',konto:k,titel:t+' (ab '+KB_KONTO[k][1]+')'}),Object.assign({},base,{art:'einzahlung',konto:z,titel:t+' (an '+KB_KONTO[z][1]+')'})]:[Object.assign({},base,{art,konto:k})];
+    const {error}=await SVB.sb.from('kasse_buchungen').insert(rows);
     if(error)return kToast('⚠️ '+error.message); closeOverlay(); await kbLoad(true); kToast('✓ Gebucht'); };
 }
 function kbBuchEdit(id,back){
   const b=KB.buch.find(x=>x.id===id); if(!b)return;
   const who=b.player_id?((trP(b.player_id)||{}).name||b.name):(b.art==='ausgabe'?'Ausgabe':'Einnahme');
   svModal(`<div class="mhead"><div><h2 style="margin:0">${svEsc(b.titel)}</h2><div class="msub">${svEsc(who||'')} · ${TRC.fmt(b.datum)} · ${kbEur(b.betrag)}</div></div></div>
-    <div class="btnrow sbact">${b.player_id?['offen','bezahlt','erlassen'].map(s=>`<button class="btn ${b.status===s?'':'ghost'}" data-st="${s}">${s==='offen'?'Offen':s==='bezahlt'?'Bezahlt':'Erlassen'}</button>`).join(''):''}
+    <div class="btnrow sbact">${b.player_id?[['offen','Offen'],['bezahlt:bank','Bezahlt · Bank'],['bezahlt:paypal','Bezahlt · PayPal'],['bezahlt:bar','Bezahlt · Bar'],['erlassen','Erlassen']].map(([s,t])=>`<button class="btn ${(b.status+(b.status==='bezahlt'?':'+(b.konto||'bank'):''))===s?'':'ghost'}" data-st="${s}">${t}</button>`).join(''):''}
       <button class="btn ghost" id="kbDelB" style="margin-left:auto;color:#fca5a5">Löschen</button></div>`);
   const fin=async()=>{ await kbLoad(true); if(back)back(); else closeOverlay(); };
-  document.querySelectorAll('#modal [data-st]').forEach(x=>x.onclick=async()=>{ const s=x.dataset.st; const {error}=await SVB.sb.from('kasse_buchungen').update({status:s,bezahlt_am:s==='bezahlt'?trToday():null,gemeldet_at:null}).eq('id',id); if(error)return kToast('⚠️ '+error.message); fin(); });
+  document.querySelectorAll('#modal [data-st]').forEach(x=>x.onclick=async()=>{ const [s,k]=x.dataset.st.split(':'); const {error}=await SVB.sb.from('kasse_buchungen').update({status:s,konto:s==='bezahlt'?k:null,bezahlt_am:s==='bezahlt'?trToday():null,gemeldet_at:null}).eq('id',id); if(error)return kToast('⚠️ '+error.message); fin(); });
   document.getElementById('kbDelB').onclick=async()=>{ if(!confirm('Buchung löschen?'))return; const {error}=await SVB.sb.from('kasse_buchungen').delete().eq('id',id); if(error)return kToast('⚠️ '+error.message); fin(); };
 }
 function kbKatEditor(){
@@ -5942,18 +5962,27 @@ function kbCfgEditor(){
   svModal(`<div class="mhead"><div class="rm-ic" style="width:46px;height:46px">${SVI('sliders')}</div><div><h2 style="margin:0">Kasse einstellen</h2><div class="msub">Bezahlen per PayPal.me oder Überweisung – kostenlos</div></div></div>
     <div class="kbform"><div class="field"><label>PayPal.me-Name des Kassenwarts</label><input id="kcP" maxlength="40" value="${svEsc(c.paypal||'')}" placeholder="z.B. MaxMustermann (aus paypal.me/MaxMustermann)"></div>
       <div class="field"><label>Kassenwart</label><input id="kcK" maxlength="60" value="${svEsc(c.kassenwart||'')}" placeholder="Name"></div>
-      <div class="field"><label>Anfangsbestand (€)</label><input id="kcA" type="number" step="0.5" value="${+c.anfang||0}"></div>
+      <div class="field"><label>Anfangsbestand Bank (€)</label><input id="kcA" type="number" step="0.01" value="${+c.anfang||0}"></div>
+      <div class="field"><label>Anfangsbestand PayPal (€)</label><input id="kcAp" type="number" step="0.01" value="${+c.anfang_paypal||0}"></div>
+      <div class="field"><label>Anfangsbestand Bar (€)</label><input id="kcAb" type="number" step="0.01" value="${+c.anfang_bar||0}"></div>
+      <div class="field kbwide"><label>Kassenwart in der App <small>(bekommt die gemeldeten Zahlungen zum Abhaken – nur er bzw. der Admin kann bestätigen)</small></label><div class="chips" id="kcW"><span class="note">Lade …</span></div></div>
       <div class="field"><label>IBAN für Überweisung (optional)</label><input id="kcI" maxlength="42" value="${svEsc(c.iban||'')}" placeholder="DE.." autocomplete="off"></div>
       <div class="field"><label>Kontoinhaber</label><input id="kcO" maxlength="70" value="${svEsc(c.kontoinhaber||'')}" placeholder="Name"></div>
       <div class="field kbwide"><label>Hinweis für die Spieler (optional)</label><input id="kcH" maxlength="300" value="${svEsc(c.hinweis||'')}" placeholder="z.B. Bar geht auch – beim Kassenwart nach dem Training"></div></div>
     <div class="note">Die Spieler sehen einen „Mit PayPal bezahlen“-Knopf mit dem offenen Betrag und melden danach „Habe bezahlt“. Du bestätigst den Eingang – so bleibt alles nachvollziehbar. Stripe bräuchte ein Händlerkonto mit Gebühren je Zahlung und lohnt sich für eine Mannschaftskasse nicht.</div>
     <div class="btnrow sbact"><button class="btn" id="kcS">Speichern</button><button class="btn ghost" id="kcC">Abbrechen</button></div>`);
   document.getElementById('kcC').onclick=()=>closeOverlay();
+  SVB.sb.rpc('kasse_team').then(r=>{ KB.team=r.data||[]; const W=document.getElementById('kcW'); if(!W)return; const ids=new Set(c.kassenwart_ids||[]);
+    W.innerHTML=KB.team.map(x=>`<button type="button" class="pchip${ids.has(x.id)?' on':''}" data-kw="${svEsc(x.id)}">${svEsc(x.name)}</button>`).join('')||'<span class="note">Keine Team-Mitglieder gefunden.</span>';
+    W.querySelectorAll('[data-kw]').forEach(b=>b.onclick=()=>b.classList.toggle('on')); });
   document.getElementById('kcS').onclick=async()=>{ let pp=document.getElementById('kcP').value.trim().replace(/^https?:\/\/(www\.)?paypal\.me\//i,'').replace(/\/.*$/,'');
     if(pp&&!/^[A-Za-z0-9._-]{2,40}$/.test(pp))return kToast('PayPal.me-Name: nur Buchstaben, Ziffern, Punkt, Minus');
     const iban=document.getElementById('kcI').value.replace(/\s+/g,'').toUpperCase();
     if(iban&&!kbIbanOk(iban))return kToast('Die IBAN scheint nicht zu stimmen – bitte prüfen');
-    const {error}=await SVB.sb.from('kasse_cfg').update({paypal:pp||null,kassenwart:document.getElementById('kcK').value.trim()||null,anfang:+document.getElementById('kcA').value||0,hinweis:document.getElementById('kcH').value.trim()||null,iban:iban||null,kontoinhaber:document.getElementById('kcO').value.trim()||null}).eq('id',1);
+    const kw=[...document.querySelectorAll('#kcW [data-kw].on')].map(x=>x.dataset.kw), kwn=document.getElementById('kcK').value.trim()||(kw.length?(((KB.team||[]).find(x=>x.id===kw[0])||{}).name||''):'');
+    const patch={paypal:pp||null,kassenwart:kwn||null,anfang:+document.getElementById('kcA').value||0,anfang_paypal:+document.getElementById('kcAp').value||0,anfang_bar:+document.getElementById('kcAb').value||0,hinweis:document.getElementById('kcH').value.trim()||null,iban:iban||null,kontoinhaber:document.getElementById('kcO').value.trim()||null};
+    if(JSON.stringify(kw.slice().sort())!==JSON.stringify((c.kassenwart_ids||[]).slice().sort()))patch.kassenwart_ids=kw;
+    const {error}=await SVB.sb.from('kasse_cfg').update(patch).eq('id',1);
     if(error)return kToast('⚠️ '+error.message); closeOverlay(); await kbLoad(true); kToast('✓ Gespeichert'); };
 }
 
@@ -5992,12 +6021,67 @@ function kbHomeCard(){
 { const _si6=svInsights; svInsights=function(){ const base=_si6.apply(this,arguments), add=[];
   try{ if(KB.loaded&&canTraining()){ const today=trToday(); KB.polls.filter(p=>p.datum>=today&&!p.geschlossen&&TRC.diffDays(p.datum,today)<=3).forEach(p=>{ const s=kbStat(p);
       if(s.offen.length)add.push({prio:svRole()==='trainer'?0.3:3,lvl:TRC.diffDays(p.datum,today)<=1?'hoch':'mittel',t:`${s.offen.length} ohne Antwort: ${p.titel} (${kbWd(p.datum)})`,d:s.offen.slice(0,5).map(x=>x.name.split(' ')[0]).join(', ')+(s.offen.length>5?' …':'')+' – jetzt nachhaken',go:()=>{ KB.view='abst'; goTab('kabine'); }}); });
-    const g=KB.buch.filter(b=>b.status==='gemeldet').length; if(g)add.push({prio:4,lvl:'info',t:`Kasse: ${g} Zahlung${g>1?'en':''} gemeldet`,d:'Eingang prüfen und bestätigen',go:()=>{ KB.view='kasse'; goTab('kabine'); }}); } }catch(e){}
+    const g=KB.buch.filter(b=>b.status==='gemeldet').length; if(g)add.push({prio:KB.ich&&KB.ich.kassenwart?0.2:4,lvl:'info',t:`Kasse: ${g} Zahlung${g>1?'en':''} gemeldet`,d:'Eingang prüfen und bestätigen',go:()=>{ KB.view='kasse'; goTab('kabine'); }}); } }catch(e){}
   return add.concat(base).sort((a,b)=>a.prio-b.prio).slice(0,6); }; }
 SV_ACTIONS.trainer.splice(2,0,['users','Abstimmung',()=>{ KB.view='abst'; goTab('kabine'); setTimeout(()=>kbPollEditor(null,kbSuggest()[0]),80); }]); SV_ACTIONS.trainer.length=4;
 { const _gt6=goTab; goTab=function(tab){ const r=_gt6.apply(this,arguments); try{ if(tab==='kabine')kbRender(); }catch(e){ console.warn(e); } return r; }; }
 { const _si7=svInit; svInit=function(){ const r=_si7.apply(this,arguments); setTimeout(()=>kbLoad(),1100); return r; }; }
 SV_TABBAR.trainer=['home','training','kabine','elf'];
+
+/* ---------- Kasse: Konten, Dreh-Karte, Abgleich, gemeldete Zahlungen ---------- */
+function kbFlipHtml(K,id){ const k=KB.flipK||'bank';
+  return `<div class="kbflip" id="${id}" title="Antippen: Bank ↔ PayPal ↔ Bar"><div class="kbfl-in"><div class="kbfl-f">${kbFaceHtml(K,k)}</div><div class="kbfl-b"></div></div></div>`; }
+function kbFaceHtml(K,k){ return `<span>${KB_KONTO[k][0]} ${KB_KONTO[k][1]} <i class="kbfl-hint">⟲</i></span><b class="${K[k]<0?'bad':''}">${kbEur(K[k])}</b><small>${['bank','paypal','bar'].filter(x=>x!==k).map(x=>KB_KONTO[x][1]+' '+kbEur(K[x])).join(' · ')}</small>`; }
+function kbFlipWire(id,K){ const el=document.getElementById(id); if(!el)return; let busy=false;
+  el.onclick=()=>{ if(busy)return; busy=true; const order=['bank','paypal','bar'].filter(x=>x!=='bar'||K.bar||(KB.flipK==='bar')), cur=KB.flipK||'bank', nx=order[(order.indexOf(cur)+1)%order.length];
+    const inn=el.querySelector('.kbfl-in'), back=el.querySelector('.kbfl-b'), front=el.querySelector('.kbfl-f');
+    back.innerHTML=kbFaceHtml(K,nx); inn.classList.add('turn');
+    setTimeout(()=>{ front.innerHTML=kbFaceHtml(K,nx); inn.style.transition='none'; inn.classList.remove('turn'); void inn.offsetWidth; inn.style.transition=''; KB.flipK=nx; busy=false; },620); }; }
+function kbAbgleich(k){
+  const S=kbSaldo(), cur=S.konten[k];
+  svModal(`<div class="mhead"><div class="rm-ic" style="width:46px;height:46px">${SVI('check')}</div><div><h2 style="margin:0">Kontostand abgleichen</h2><div class="msub">Stand laut Bank- bzw. PayPal-App eintragen – die App bucht die Differenz</div></div></div>
+    <div class="chips">${['bank','paypal','bar'].map(x=>`<button type="button" class="pchip${x===k?' on':''}" data-ak="${x}">${KB_KONTO[x][0]} ${KB_KONTO[x][1]}</button>`).join('')}</div>
+    <div class="kbform"><div class="field"><label>In der App</label><input disabled value="${kbEur(cur)}"></div><div class="field"><label>Tatsächlich auf dem Konto (€)</label><input id="kbIst" type="number" step="0.01" inputmode="decimal" placeholder="${(+cur).toFixed(2)}"></div>
+      <div class="field kbwide"><label>Grund</label><input id="kbGr" maxlength="100" value="Kontoabgleich (Gebühren/Zinsen)"></div></div><div class="note" id="kbDiff"></div>
+    <div class="btnrow sbact"><button class="btn" id="kbAbS">Differenz buchen</button><button class="btn ghost" id="kbAbC">Abbrechen</button></div>`);
+  document.querySelectorAll('#modal [data-ak]').forEach(b=>b.onclick=()=>kbAbgleich(b.dataset.ak));
+  const ist=document.getElementById('kbIst'), D=document.getElementById('kbDiff'), diff=()=>Math.round((parseFloat(String(ist.value).replace(',','.'))-cur)*100)/100;
+  ist.oninput=()=>{ const d=diff(); D.textContent=isFinite(d)?(d===0?'Passt – keine Differenz.':`Es wird ${d>0?'eine Einnahme':'eine Ausgabe'} von ${kbEur(Math.abs(d))} auf ${KB_KONTO[k][1]} gebucht.`):''; };
+  document.getElementById('kbAbC').onclick=()=>closeOverlay();
+  document.getElementById('kbAbS').onclick=async()=>{ const d=diff(); if(!isFinite(d))return kToast('Bitte den tatsächlichen Stand eintragen'); if(d===0){ closeOverlay(); return kToast('✓ Stimmt überein'); }
+    const {error}=await SVB.sb.from('kasse_buchungen').insert({art:d>0?'einzahlung':'ausgabe',titel:document.getElementById('kbGr').value.trim()||'Kontoabgleich',betrag:Math.abs(d),konto:k,status:'bezahlt',bezahlt_am:trToday(),quelle:'abgleich'});
+    if(error)return kToast('⚠️ '+error.message); closeOverlay(); await kbLoad(true); kToast('✓ '+KB_KONTO[k][1]+' abgeglichen'); };
+}
+function kbGemeldetHtml(G,darf){
+  return `<div class="card kbgem"><h3 class="trh">${SVI('check')} Als bezahlt gemeldet – bitte aufs Konto schauen <small>${G.length}</small></h3>
+    ${G.map(b=>`<div class="kbb"><b>${svEsc((trP(b.player_id)||{}).name||b.name||'')}</b><span>${svEsc(b.titel)} <small>${b.zahlweg?'per '+KB_KONTO[b.zahlweg][1]:''}${b.gemeldet_at?' · '+new Date(b.gemeldet_at).toLocaleString('de-DE',{weekday:'short',day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}):''}</small></span><em>${kbEur(b.betrag)}</em>
+      ${darf?`<div class="btnrow"><select class="kbkto" data-kto="${b.id}">${['bank','paypal','bar'].map(k=>`<option value="${k}"${(b.zahlweg||'bank')===k?' selected':''}>${KB_KONTO[k][1]}</option>`).join('')}</select><button class="btn sm" data-ok="${b.id}">✓ Angekommen</button><button class="btn ghost sm" data-back="${b.id}">Nicht da</button></div>`:''}</div>`).join('')}
+    ${darf&&G.length>1?`<button class="btn sm" id="kbOkAll">✓ Alle ${G.length} angekommen (${kbEur(G.reduce((a,b)=>a+ +b.betrag,0))})</button>`:''}
+    ${darf?'':`<div class="note">Abhaken kann nur der Kassenwart${KB.cfg&&KB.cfg.kassenwart?' ('+svEsc(KB.cfg.kassenwart)+')':''} – erst dann zählt es im Kassenstand.</div>`}</div>`;
+}
+function kbGemeldetWire(R,after){
+  const go=async(ids,ok,konto)=>{ const {data,error}=await SVB.sb.rpc('kasse_bestaetigen',{p_ids:ids,p_ok:ok,p_konto:konto||null}); if(error)return kToast('⚠️ '+error.message);
+    await kbLoad(true); kToast(ok?`✓ ${data} Zahlung${data>1?'en':''} verbucht`:'Zurück auf offen'); if(after)after(); };
+  R.querySelectorAll('[data-ok]').forEach(b=>b.onclick=()=>{ const s=R.querySelector(`[data-kto="${b.dataset.ok}"]`); go([b.dataset.ok],true,s&&s.value); });
+  R.querySelectorAll('[data-back]').forEach(b=>b.onclick=()=>go([b.dataset.back],false));
+  const all=R.querySelector('#kbOkAll'); if(all)all.onclick=async()=>{ const G=KB.buch.filter(b=>b.status==='gemeldet'); const by={}; G.forEach(b=>{ const s=R.querySelector(`[data-kto="${b.id}"]`), k=(s&&s.value)||b.zahlweg||'bank'; (by[k]=by[k]||[]).push(b.id); });
+    let n=0; for(const [k,ids] of Object.entries(by)){ const {data,error}=await SVB.sb.rpc('kasse_bestaetigen',{p_ids:ids,p_ok:true,p_konto:k}); if(error)return kToast('⚠️ '+error.message); n+=data; }
+    await kbLoad(true); kToast(`✓ ${n} Zahlungen verbucht`); if(after)after(); };
+}
+// Kassenwart: Pop-up, sobald neue Zahlungen gemeldet sind
+function kbKassePopup(){
+  if(!KB.loaded||!KB.ich||!KB.ich.kassenwart)return; const G=KB.buch.filter(b=>b.status==='gemeldet'); if(!G.length)return;
+  const last=G.map(b=>b.gemeldet_at||'').sort().pop(), k='kb_kpop'; let seen=''; try{ seen=localStorage.getItem(k)||''; }catch(e){}
+  if(seen>=last||window.__kbKPop===last)return; if(document.querySelector('#overlay.open'))return;
+  const g=document.getElementById('gate'); if(g&&!g.classList.contains('done'))return;
+  window.__kbKPop=last;
+  svModal(`<div class="kbpop"><div class="kbpop-ic kasse">${SVI('check')}</div><span class="trpill">Mannschaftskasse</span><h2>${G.length} Zahlung${G.length>1?'en':''} gemeldet</h2>
+    <p class="note">Kurz aufs Konto schauen und abhaken, was angekommen ist – erst dann zählt es im Kassenstand.</p><div id="kbKp" style="text-align:left"></div>
+    <div class="btnrow"><button class="btn ghost sm" id="kbKpL">Später</button></div></div>`);
+  const draw=()=>{ const E=document.getElementById('kbKp'); if(!E)return; const G2=KB.buch.filter(b=>b.status==='gemeldet'); if(!G2.length){ closeOverlay(); return; } E.innerHTML=kbGemeldetHtml(G2,true); kbGemeldetWire(E,draw); };
+  draw();
+  document.getElementById('kbKpL').onclick=()=>{ try{ localStorage.setItem(k,last); }catch(e){} closeOverlay(); };
+}
 
 /* ---------- Einladen: Link in die Mannschaftsgruppe (einer teilt, alle sehen es) ---------- */
 function kbShare(p){

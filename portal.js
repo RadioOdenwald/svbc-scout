@@ -98,25 +98,30 @@
   }
   function kasse(B){
     const K=S.kasse||{}, cfg=K.cfg||{}, L=K.buchungen||[];
-    const bez=L.filter(b=>b.status==='bezahlt'), stand=(+cfg.anfang||0)+bez.filter(b=>b.art!=='ausgabe').reduce((a,b)=>a+ +b.betrag,0)-bez.filter(b=>b.art==='ausgabe').reduce((a,b)=>a+ +b.betrag,0);
+    const bez=L.filter(b=>b.status==='bezahlt'), KT=K.konten||{bank:(+cfg.anfang||0)+bez.filter(b=>b.art!=='ausgabe').reduce((a,b)=>a+ +b.betrag,0)-bez.filter(b=>b.art==='ausgabe').reduce((a,b)=>a+ +b.betrag,0),paypal:0,bar:0};
+    const stand=(+KT.bank||0)+(+KT.paypal||0)+(+KT.bar||0), KO=[['bank','🏦 Bankkonto'],['paypal','🅿️ PayPal'],['bar','💶 Bar']].filter(([k])=>k!=='bar'||+KT.bar), FIX={bank:'Überweisung',paypal:'PayPal',bar:'bar'};
+    const face=i=>{ const [k,t]=KO[i%KO.length]; return `<span class="pill">${t} ⟲</span><div class="big">${eur(KT[k])}</div><small>Gesamt ${eur(stand)}${cfg.kassenwart?' · Kassenwart: '+esc(cfg.kassenwart):''}</small>`; };
     const offen=b=>b.status==='offen'||b.status==='gemeldet';
     const mine=L.filter(b=>b.p===ME.id), myOpen=mine.filter(b=>b.status==='offen'), myG=mine.filter(b=>b.status==='gemeldet'), sum=myOpen.reduce((a,b)=>a+ +b.betrag,0);
     const per=new Map(); L.filter(b=>b.p&&(b.art==='strafe'||b.art==='beitrag')).forEach(b=>{ const o=per.get(b.p)||{name:b.name||'?',off:0,bez:0}; if(offen(b))o.off+= +b.betrag; else if(b.status==='bezahlt')o.bez+= +b.betrag; per.set(b.p,o); });
     const P=[...per.values()].sort((a,b)=>b.off-a.off||b.bez-a.bez);
     const pay=cfg.paypal&&sum>0?`https://www.paypal.com/paypalme/${encodeURIComponent(cfg.paypal)}/${sum.toFixed(2)}EUR`:null;
-    B.innerHTML=`<div class="card hero"><span class="pill">Kassenstand</span><div class="big">${eur(stand)}</div><small>${cfg.kassenwart?'Kassenwart: '+esc(cfg.kassenwart):'Mannschaftskasse'}</small></div>
+    B.innerHTML=`<div class="flip" id="flip"><div class="flin"><div class="card hero fl-f">${face(0)}</div><div class="card hero fl-b"></div></div></div>
       <div class="card mine"><h2>Deine Strafen</h2>${mine.length?`<div class="grid2" style="margin-top:12px"><div class="stat"><span>Offen</span><b class="${sum?'mid':'ok'}">${eur(sum)}</b></div><div class="stat"><span>Bezahlt</span><b>${eur(mine.filter(b=>b.status==='bezahlt').reduce((a,b)=>a+ +b.betrag,0))}</b></div></div>
         ${pay?`<a class="pay" href="${esc(pay)}" target="_blank" rel="noopener">Mit PayPal bezahlen · ${eur(sum)}</a><p class="note">Bitte „Freunde &amp; Familie“ wählen – dann kostet es nichts.</p>`:''}
         ${sum&&cfg.iban?`<div class="iban"><span>Oder per Überweisung</span><b>${esc(cfg.iban.replace(/(.{4})/g,'$1 ').trim())}</b><small>${esc(cfg.kontoinhaber||'')} · Verwendungszweck: Mannschaftskasse ${esc(ME.name)}</small><button class="btn2" id="ibanCp">IBAN kopieren</button></div>`:''}
-        ${sum?`<button class="btn2" id="paid">Ich habe bezahlt</button>`:''}${myG.length?`<p class="note">⏳ ${myG.length} Posten als bezahlt gemeldet – der Kassenwart bestätigt den Eingang.</p>`:''}
+        ${sum?`<button class="btn2" id="paid">Ich habe bezahlt</button><div class="weg" id="weg" hidden><p class="note"><b>Wie hast du bezahlt?</b> Der Kassenwart schaut dann aufs richtige Konto.</p><div class="ans">${['paypal','bank','bar'].map(k=>`<button data-weg="${k}"><span>${{paypal:'🅿️',bank:'🏦',bar:'💶'}[k]}</span>${{paypal:'PayPal',bank:'Überweisung',bar:'Bar'}[k]}</button>`).join('')}</div></div>`:''}${myG.length?`<p class="note">⏳ ${myG.length} Posten als bezahlt gemeldet${myG[0].zahlweg?' ('+FIX[myG[0].zahlweg]+')':''} – zählt, sobald der Kassenwart den Eingang abhakt.</p>`:''}
         <h3>Deine Posten</h3>${mine.map(b=>`<div class="row"><b>${esc(b.titel)}</b><small>${esc(new Date(b.datum+'T12:00:00').toLocaleDateString('de-DE'))}</small><em>${eur(b.betrag)}</em><span class="st ${esc(b.status)}">${esc(b.status)}</span></div>`).join('')}`
         :'<p class="note">Weiße Weste – keine Strafen. 😇</p>'}${cfg.hinweis?`<p class="note">${esc(cfg.hinweis)}</p>`:''}</div>
       <div class="card"><h2>Alle Spieler</h2>${P.length?P.map(x=>`<div class="row"><b>${esc(x.name)}</b>${x.off?`<em class="mid">${eur(x.off)} offen</em>`:'<em class="ok">✓</em>'}<small>${eur(x.bez)} bezahlt</small></div>`).join(''):'<p class="note">Noch keine Einträge.</p>'}</div>
       ${(K.katalog||[]).length?`<div class="card"><h2>Strafenkatalog</h2>${K.katalog.map(k=>`<div class="row"><b>${esc(k.titel)}</b><em>${eur(k.betrag)}</em></div>`).join('')}</div>`:''}
       <div class="card"><h2>Letzte Buchungen</h2>${L.slice(0,40).map(b=>`<div class="row"><b>${b.art==='ausgabe'?'➖ ':b.art==='einzahlung'?'➕ ':''}${esc(b.p?b.name||'':b.titel)}</b><small>${b.p?esc(b.titel):''}</small><em class="${b.art==='ausgabe'?'bad':''}">${b.art==='ausgabe'?'−':''}${eur(b.betrag)}</em></div>`).join('')||'<p class="note">Noch keine Buchungen.</p>'}</div>`;
     const ic=$('#ibanCp'); if(ic)ic.onclick=async()=>{ try{ await navigator.clipboard.writeText(cfg.iban); toast('✓ IBAN kopiert'); }catch(e){ prompt('IBAN:',cfg.iban); } };
-    const pd=$('#paid'); if(pd)pd.onclick=async()=>{ if(!confirm(`Bestätigst du, dass du ${eur(sum)} bezahlt hast (PayPal oder bar)?`))return;
-      try{ const n=await rpc('portal_paid',{p_key:KEY,p_player:ME.id}); toast(`✓ ${n} Posten gemeldet – danke!`); await load(); }catch(e){ toast('⚠️ '+e.message); } };
+    const pd=$('#paid'); if(pd)pd.onclick=()=>{ pd.hidden=true; $('#weg').hidden=false; };
+    document.querySelectorAll('[data-weg]').forEach(b=>b.onclick=async()=>{ if(busy)return; busy=true;
+      try{ const n=await rpc('portal_bezahlt',{p_key:KEY,p_player:ME.id,p_weg:b.dataset.weg}); toast(`✓ ${n} Posten gemeldet (${FIX[b.dataset.weg]}) – der Kassenwart hakt ab`); busy=false; await load(); }catch(e){ busy=false; toast('⚠️ '+e.message); } });
+    let fi=0, fb=false; const fl=$('#flip'); if(fl&&KO.length>1)fl.onclick=()=>{ if(fb)return; fb=true; const inn=fl.querySelector('.flin'); fl.querySelector('.fl-b').innerHTML=face(fi+1); inn.classList.add('turn');
+      setTimeout(()=>{ fi++; fl.querySelector('.fl-f').innerHTML=face(fi); inn.style.transition='none'; inn.classList.remove('turn'); void inn.offsetWidth; inn.style.transition=''; fb=false; },620); };
   }
   window.addEventListener('hashchange',()=>location.reload());
   document.addEventListener('visibilitychange',()=>{ if(document.visibilityState==='visible'&&S)load(); });

@@ -13,7 +13,7 @@
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <link rel="icon" type="image/png" href="favicon-64.png">
-<meta name="app-build" content="r14-202609240534">
+<meta name="app-build" content="r15-202609240604">
 <title>SV/BSC Scout</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js" async></script>
 <style>
@@ -1490,6 +1490,23 @@ body:has(#overlay.open) .trfab{display:none;}
 .kbpop .btnrow{justify-content:center;flex-wrap:wrap;}
 .kbpop-set{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:14px 2px 4px;padding:10px 14px;border-radius:14px;background:rgba(148,163,196,.07);font-size:13.5px;}
 .kbpop-set span{display:flex;align-items:center;gap:8px;} .kbpop-set svg{width:16px;height:16px;}
+/* Runde 15: Kasse – Dreh-Karte je Konto, gemeldete Zahlungen */
+.kbflipw{padding:0!important;overflow:visible;background:none!important;border:none!important;}
+.kbflip{perspective:900px;cursor:pointer;height:100%;-webkit-tap-highlight-color:transparent;}
+.kbfl-in{position:relative;height:100%;transition:transform .6s cubic-bezier(.4,.1,.2,1);transform-style:preserve-3d;}
+.kbfl-in.turn{transform:rotateY(180deg);}
+.kbfl-f,.kbfl-b{backface-visibility:hidden;-webkit-backface-visibility:hidden;border-radius:18px;padding:14px 16px;border:1px solid rgba(34,197,94,.35);background:linear-gradient(160deg,rgba(34,197,94,.22),var(--surface) 75%);min-height:100%;box-sizing:border-box;}
+.kbfl-b{position:absolute;inset:0;transform:rotateY(180deg);}
+.kbfl-f span,.kbfl-b span{display:flex;align-items:center;gap:6px;font-size:11.5px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--ink3);}
+.kbfl-f b,.kbfl-b b{display:block;font-family:var(--disp);font-size:28px;font-weight:800;} .kbfl-f b.bad,.kbfl-b b.bad{color:#fca5a5;}
+.kbfl-f small,.kbfl-b small{display:block;font-size:11.5px;color:var(--ink3);margin-top:2px;}
+.kbfl-hint{font-style:normal;margin-left:auto;font-size:15px;opacity:.7;}
+.kbmoney{margin:-4px 0 14px;}
+.kbkto{background:var(--surface2);border:1px solid var(--line);color:var(--ink);border-radius:10px;padding:6px 8px;font:inherit;font-size:13px;}
+.kbpaylbl{align-self:center;font-weight:700;font-size:13px;margin-right:4px;}
+.kbpop-ic.kasse{background:linear-gradient(135deg,#22c55e,#0ea5e9);}
+.kbpre{margin:4px 0 8px;}
+#kcW .pchip.on{background:rgba(91,155,255,.25);border-color:rgba(91,155,255,.6);color:#dbe7ff;}
 
 </style>
 <style id="v3gate">
@@ -2126,9 +2143,9 @@ a.kbtn{text-decoration:none;display:inline-block}
 
 
 <div class="overlay" id="overlay"><div class="modal" id="modal"></div></div>
-<script>window.SVBC_CFG={"url": "https://lvaukuzgcwgqipxwzabo.supabase.co", "anon": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imx2YXVrdXpnY3dncWlweHd6YWJvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTAxNTYwMTcsImV4cCI6MjEwNTczMjAxN30.jYZF8q8-SyCaWykM0wwcK58EzfTbO2VASKz1NIv1xbo", "build": "r14-202609240534", "dataBytes": 3053230};</script>
-<script src="vendor/supabase.js?v=r14-202609240534"></script>
-<script src="icons.js?v=r14-202609240534"></script>
-<script src="boot.js?v=r14-202609240534"></script>
+<script>window.SVBC_CFG={"url": "https://lvaukuzgcwgqipxwzabo.supabase.co", "anon": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imx2YXVrdXpnY3dncWlweHd6YWJvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTAxNTYwMTcsImV4cCI6MjEwNTczMjAxN30.jYZF8q8-SyCaWykM0wwcK58EzfTbO2VASKz1NIv1xbo", "build": "r15-202609240604", "dataBytes": 3053230};</script>
+<script src="vendor/supabase.js?v=r15-202609240604"></script>
+<script src="icons.js?v=r15-202609240604"></script>
+<script src="boot.js?v=r15-202609240604"></script>
 </body>
 </html>
