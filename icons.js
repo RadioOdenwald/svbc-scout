@@ -31,6 +31,7 @@ window.SVI=(function(){
     trash:'<path d="M4 7h16M10 11v6M14 11v6"/><path d="M6 7l1 13h10l1-13M9 7V4h6v3"/>',
     ban:'<circle cx="12" cy="12" r="9"/><path d="m5.6 5.6 12.8 12.8"/>',
     check:'<path d="m5 12 5 5 9-10"/>',
+    wallet:'<rect x="3" y="6" width="18" height="14" rx="2.5"/><path d="M16 13.5h.01"/><path d="M3 10h18"/><path d="M7 6V4.8A1.8 1.8 0 0 1 8.8 3H17"/>',
     chat:'<path d="M20 12a8 8 0 0 1-11.6 7.1L4 20l1-4.2A8 8 0 1 1 20 12z"/>',
     mail:'<rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/>',
     copy:'<rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2"/>',

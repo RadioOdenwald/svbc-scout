@@ -2,7 +2,7 @@
    - App-Seite: erst Netz (max. 4 s), sonst gespeicherte Version → startet auch im Funkloch
    - Icons/Wappen/Chart-Bibliothek: aus dem Speicher, im Hintergrund aufgefrischt
    - Sync (Make) und version.json laufen NIE über den Speicher */
-const BUILD = 'r21-09241145';
+const BUILD = '4.0-202609241534';
 const CACHE = 'svbc-scout-' + BUILD;
 const SHELL = ['./', './manifest.webmanifest', './icon-192.png', './icon-512.png', './apple-touch-icon.png', './favicon-64.png', './crest.svg',
   './fonts/inter-var.woff2', './fonts/barlowc-700.woff2', './vendor/supabase.js?v=' + BUILD, './icons.js?v=' + BUILD, './boot.js?v=' + BUILD, './app.js?v=' + BUILD];
@@ -75,7 +75,7 @@ self.addEventListener('message', e => { if (e.data === 'skipWaiting') self.skipW
 self.addEventListener('push', e => {
   let d = {};
   try { d = e.data ? e.data.json() : {}; } catch (_) { d = { body: e.data ? e.data.text() : '' }; }
-  const title = String(d.title || 'SV/BSC Scout').slice(0, 120);
+  const title = String(d.title || 'SV/BSC Sportzentrale').slice(0, 120);
   const opts = { body: String(d.body || '').slice(0, 400), icon: './icon-192.png', badge: './favicon-64.png', tag: d.tag || 'svbc-scout',
     renotify: true, data: { url: d.url || './#kandidaten' }, lang: 'de' };
   e.waitUntil((async () => {

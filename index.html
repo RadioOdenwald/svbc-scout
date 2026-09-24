@@ -9,12 +9,12 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="SV/BSC Scout">
+<meta name="apple-mobile-web-app-title" content="Sportzentrale">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <link rel="icon" type="image/png" href="favicon-64.png">
-<meta name="app-build" content="r21-09241145">
-<title>SV/BSC Scout</title>
+<meta name="app-build" content="4.0-202609241534">
+<title>SV/BSC Sportzentrale</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js" async></script>
 <style>
   :root{
@@ -1687,6 +1687,372 @@ body.onb-open{overflow:hidden;}
 .sp-sheet em{font-style:normal;font-size:11px;font-weight:800;padding:2px 7px;border-radius:6px;} .sp-sheet i{font-style:normal;font-size:20px;color:var(--ink3,#687288);}
 .trai-steps{margin:12px 0 4px 18px;font-size:13.5px;line-height:1.6;color:var(--ink2,#a2acbf);} .trai-steps b{color:var(--ink,#eef2f8);} .trai-steps code{font-size:12.5px;padding:1px 6px;border-radius:6px;background:var(--s3,#182033);color:#fde68a;}
 
+/* ===================== SV/BSC Sportzentrale 4.0 ===================== */
+/* Seitenleiste: sichtbare, dezente Scrollbar statt versteckter Einträge */
+.snav{scrollbar-width:thin;scrollbar-color:rgba(148,163,196,.25) transparent;}
+.snav::-webkit-scrollbar{width:6px;}.snav::-webkit-scrollbar-thumb{background:rgba(148,163,196,.22);border-radius:6px;}
+
+/* Unter-Navigation je Arbeitsbereich */
+.hubbar{align-self:stretch;width:100%;box-sizing:border-box;padding:0;border-bottom:1px solid var(--line2);background:rgba(5,7,12,.55);}
+.hubbar[hidden]{display:none;}
+.hub-in{display:flex;gap:2px;overflow-x:auto;scrollbar-width:none;max-width:1320px;margin:0 auto;padding:0 20px;box-sizing:border-box;}
+.hub-in::-webkit-scrollbar{display:none;}
+.hub-in button{font:inherit;font-size:13.5px;font-weight:700;color:var(--ink3);background:none;border:0;padding:12px 14px 11px;white-space:nowrap;cursor:pointer;border-bottom:2px solid transparent;display:inline-flex;align-items:center;gap:6px;}
+.hub-in button:hover{color:var(--ink);}
+.hub-in button.on{color:var(--ink);border-bottom-color:var(--brand2);}
+.hub-in .cnt{position:static!important;margin:0!important;}
+#panel-training .trtop .trtabs,#panel-kabine .trtop .trtabs{display:none;}
+#panel-training .trtop,#panel-kabine .trtop{justify-content:flex-end;}
+body.kasse-on #panel-kabine .trtop{justify-content:flex-start;}
+@media (max-width:760px){ .hub-in{padding:0 6px;} .hub-in button{padding:11px 11px 10px;font-size:13px;} }
+
+/* Info-i */
+.i4{display:inline-grid;place-items:center;width:17px;height:17px;border-radius:50%;border:1px solid var(--line);background:rgba(148,163,196,.08);color:var(--ink3);font:italic 700 11px/1 Georgia,serif;cursor:pointer;vertical-align:1px;margin-left:3px;padding:0;flex:0 0 auto;}
+.i4:hover,.i4:focus-visible{color:var(--ink);border-color:var(--brand2);outline:none;}
+.i4pop{position:fixed;z-index:9999;background:#141b2b;border:1px solid rgba(148,163,196,.22);border-radius:14px;box-shadow:var(--sh-3);padding:12px 14px;font-size:13px;color:var(--ink2);animation:i4in .14s var(--ease);}
+@keyframes i4in{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:none}}
+.i4h{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:6px;}
+.i4h b{color:var(--ink);font-size:13.5px;}
+.i4h button{background:none;border:0;color:var(--ink3);cursor:pointer;font-size:13px;padding:2px 4px;}
+.i4pop p{margin:0 0 8px;line-height:1.45;}
+.i4rows>div{display:flex;justify-content:space-between;gap:10px;padding:4px 0;border-top:1px solid var(--line2);}
+.i4rows>div span{color:var(--ink3);}.i4rows>div b{color:var(--ink);font-weight:650;text-align:right;}
+.i4b{margin-top:8px;padding-top:8px;border-top:1px solid var(--line2);line-height:1.45;}
+.i4b span{display:block;font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--ink3);margin-bottom:3px;}
+
+/* Chips & Segmente */
+.c4{display:inline-flex;align-items:center;gap:4px;font-size:12px;font-weight:750;padding:3px 9px;border-radius:999px;border:1px solid var(--line);background:rgba(148,163,196,.08);color:var(--ink2);white-space:nowrap;}
+.c4.ok{color:#5fe09b;border-color:rgba(34,197,94,.35);background:rgba(34,197,94,.1);}
+.c4.info{color:#8fb8ff;border-color:rgba(91,155,255,.35);background:rgba(91,155,255,.1);}
+.c4.warn{color:#fcd34d;border-color:rgba(245,158,11,.35);background:rgba(245,158,11,.1);}
+.c4.bad{color:#ff8a8a;border-color:rgba(240,82,82,.35);background:rgba(240,82,82,.1);}
+.seg4{display:inline-flex;gap:3px;padding:3px;border-radius:13px;background:rgba(148,163,196,.07);border:1px solid var(--line);overflow-x:auto;max-width:100%;}
+.seg4 button{font:inherit;font-size:13.5px;font-weight:700;padding:8px 13px;border-radius:10px;border:0;background:none;color:var(--ink2);cursor:pointer;white-space:nowrap;}
+.seg4 button i{font-style:normal;font-size:10.5px;opacity:.75;margin-left:3px;text-transform:uppercase;letter-spacing:.04em;}
+.seg4 button.on{background:linear-gradient(180deg,#3b78ff,#2459e6);color:#fff;}
+.seg4.sm button{font-size:12.5px;padding:6px 11px;}
+.chips4{display:flex;flex-wrap:wrap;gap:6px;margin:10px 0;}
+.chips4 button{font:inherit;font-size:12.5px;font-weight:700;padding:6px 11px;border-radius:999px;border:1px solid var(--line);background:rgba(148,163,196,.06);color:var(--ink2);cursor:pointer;}
+.chips4 button i{font-style:normal;opacity:.7;margin-left:3px;}
+.chips4 button.on{border-color:var(--brand2);color:#fff;background:var(--brandSoft);}
+.lk4{font:inherit;font-size:12.5px;font-weight:650;color:#9cc3ff;background:rgba(91,155,255,.08);border:1px solid rgba(91,155,255,.22);border-radius:10px;padding:6px 10px;cursor:pointer;text-align:left;}
+.lk4:hover{background:rgba(91,155,255,.16);}
+.two4{display:flex;gap:6px;}.two4 input{min-width:0;}
+.field.w{grid-column:1/-1;}
+
+/* ---------- Spielerprofil ---------- */
+.pf4{display:flex;flex-direction:column;gap:14px;}
+.pf4-head{display:flex;gap:16px;align-items:flex-start;padding-right:64px;}
+.pf4-ava .ava{width:64px!important;height:64px!important;border-radius:18px!important;font-size:21px!important;}
+.pf4-hm{min-width:0;flex:1;}
+.pf4-hm h2{margin:0 0 6px;font-size:24px;letter-spacing:-.02em;line-height:1.15;}
+.pf4-l1,.pf4-l2{display:flex;flex-wrap:wrap;gap:6px 12px;align-items:center;font-size:13.5px;color:var(--ink2);margin-bottom:6px;}
+.pf4-l2 i{font-style:normal;color:var(--ink3);font-size:12px;}
+.pf4-pos b{display:inline-block;background:var(--brandSoft);color:#fff;border:1px solid rgba(91,155,255,.35);border-radius:8px;padding:1px 8px;font-size:12.5px;margin-right:6px;}
+.pf4-act{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;}
+.pf4-sc2 .sc2b{margin-top:8px;}
+.pf4-top{display:grid;grid-template-columns:auto 1fr;gap:18px;align-items:start;}
+.pf4-card{display:flex;flex-direction:column;align-items:center;gap:8px;min-width:200px;}
+.pf4-card .fut-hero{margin:0!important;}
+.pf4-eyel{font-size:12.5px;color:var(--ink3);text-align:center;max-width:240px;}
+.pf4-eyel b{color:var(--ink);}
+.pf4-eye{width:100%;}
+.pf4-glance{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px;}
+.g4{background:rgba(148,163,196,.05);border:1px solid var(--line);border-radius:14px;padding:11px 13px;display:flex;flex-direction:column;gap:2px;min-width:0;}
+.g4>span{font-size:11.5px;font-weight:750;color:var(--ink3);text-transform:uppercase;letter-spacing:.05em;display:flex;align-items:center;gap:2px;}
+.g4>b{font-family:var(--disp);font-size:26px;font-weight:800;letter-spacing:-.01em;line-height:1.05;color:var(--ink);}
+.g4>b i{font-style:normal;font-size:16px;color:var(--ink3);}
+.g4>small{font-size:12px;color:var(--ink3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.g4.big>b{font-size:34px;}
+.g4.zk{grid-column:span 2;}
+.zk4{display:flex;flex-wrap:wrap;gap:5px;margin-top:5px;}
+.zk4 button{font:inherit;font-size:12.5px;font-weight:700;padding:6px 10px;border-radius:9px;border:1px solid var(--line);background:none;color:var(--ink2);cursor:pointer;}
+.zk4 button.on.ok{background:rgba(34,197,94,.15);border-color:rgba(34,197,94,.5);color:#5fe09b;}
+.zk4 button.on.warn{background:rgba(245,158,11,.15);border-color:rgba(245,158,11,.5);color:#fcd34d;}
+.zk4 button.on.bad{background:rgba(240,82,82,.15);border-color:rgba(240,82,82,.5);color:#ff8a8a;}
+.zk4 button.on.info{background:rgba(91,155,255,.15);border-color:rgba(91,155,255,.5);color:#9cc3ff;}
+.pf4-hints{display:flex;flex-direction:column;gap:6px;background:rgba(148,163,196,.04);border:1px solid var(--line2);border-radius:14px;padding:10px 12px;}
+.pf4-hints .h{display:flex;gap:8px;font-size:13px;color:var(--ink2);line-height:1.45;}
+.pf4-hints .h p{margin:0;}
+.pf4-hints .h.warn{color:#fcd34d;}
+.pf4-hints.more:not(.all) .h.x{display:none;}
+.pf4-hints .h:first-child p{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
+.pf4-hints.all .h p{display:block;}
+.pf4-hmore{align-self:flex-start;font:inherit;font-size:12px;font-weight:700;color:#9cc3ff;background:none;border:0;padding:0;cursor:pointer;}
+.pf4-secs{display:flex;flex-direction:column;gap:8px;}
+.pf4-sec{border:1px solid var(--line);border-radius:16px;background:rgba(148,163,196,.035);overflow:hidden;}
+.pf4-sec>summary{list-style:none;cursor:pointer;display:flex;align-items:center;gap:10px;padding:13px 16px;font-weight:750;font-size:14.5px;color:var(--ink);}
+.pf4-sec>summary::-webkit-details-marker{display:none;}
+.pf4-sec>summary::after{content:'';width:8px;height:8px;border-right:2px solid var(--ink3);border-bottom:2px solid var(--ink3);transform:rotate(45deg);margin-left:auto;transition:transform .2s var(--ease);}
+.pf4-sec[open]>summary::after{transform:rotate(-135deg);}
+.pf4-sec>summary em{font-style:normal;font-size:12px;font-weight:700;color:var(--ink3);background:rgba(148,163,196,.1);border-radius:8px;padding:2px 7px;}
+.pf4-b{padding:2px 16px 16px;}
+.pf4-b>.card,.pf4-b>.seas,.pf4-b>.pressbox,.pf4-b>.kxbox,.pf4-b>.editsec{margin:8px 0 0!important;border:0!important;background:none!important;padding:0!important;box-shadow:none!important;}
+.pf4-b .sbside{width:100%;}
+.pf4-st{width:100%;border-collapse:collapse;font-size:13px;}
+.pf4-st th,.pf4-st td{text-align:left;padding:8px 6px;border-bottom:1px solid var(--line2);vertical-align:top;}
+.pf4-st thead th{font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--ink3);font-weight:750;}
+.pf4-st tbody th{font-family:var(--disp);font-size:15px;white-space:nowrap;color:var(--ink);}
+.pf4-st td small{display:block;color:var(--ink3);font-size:11.5px;}
+.pf4-st tr.arc th{color:var(--ink2);}
+.pf4-sds{margin-top:10px;font-size:13px;color:var(--ink2);}
+.pf4-sc{display:flex;flex-direction:column;gap:7px;}
+.sc4r{display:grid;grid-template-columns:minmax(120px,170px) 1fr 40px 44px;align-items:center;gap:10px;font-size:13px;}
+.sc4r>span{color:var(--ink2);display:flex;align-items:center;}
+.sc4r>i{height:8px;border-radius:6px;background:rgba(148,163,196,.1);overflow:hidden;}
+.sc4r>i u{display:block;height:100%;border-radius:6px;}
+.sc4r>b{text-align:right;font-variant-numeric:tabular-nums;}
+.sc4r>em{font-style:normal;color:var(--ink3);font-size:12px;text-align:right;}
+.sc4r.off{opacity:.5;}
+.sc4r.add>i{background:none;}
+.sc4r.tot{border-top:1px solid var(--line);padding-top:8px;font-weight:800;}
+.sc4r.tot>b{font-size:16px;}
+.pf4-kp{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:12px;}
+.pf4-kp>div{background:rgba(148,163,196,.05);border:1px solid var(--line2);border-radius:12px;padding:9px 11px;display:flex;flex-direction:column;gap:2px;}
+.pf4-kp span{font-size:11.5px;color:var(--ink3);font-weight:700;}
+.pf4-kp b{font-size:13.5px;}
+.pf4-kp i{font-style:normal;font-size:12px;font-weight:700;}
+.pf4-kp i.ok{color:#5fe09b;}.pf4-kp i.warn{color:#fcd34d;}.pf4-kp i.bad{color:#ff8a8a;}.pf4-kp i.info{color:#9cc3ff;}
+.gs4{border-left:3px solid rgba(91,155,255,.4);padding:4px 0 8px 11px;margin-bottom:8px;font-size:13px;color:var(--ink2);}
+.gs4 b{color:var(--ink);margin-right:8px;}
+.gs4 p{margin:4px 0 0;}
+.gs4 p i{color:var(--ink3);}
+.pf4-bk h5,.ey4-l h5,.bd4h{font-size:12px;text-transform:uppercase;letter-spacing:.06em;color:var(--ink3);margin:14px 0 8px;font-weight:800;}
+.bd4h i{font-style:normal;opacity:.7;}
+.bk4{font-size:13px;color:var(--ink2);padding:3px 0;}
+.pf4-x{margin-top:12px;}
+/* Eye-Test-Formular */
+.ey4{background:rgba(148,163,196,.05);border:1px solid var(--line);border-radius:16px;padding:14px;text-align:left;}
+.ey4-h{display:flex;flex-direction:column;gap:2px;margin-bottom:10px;}
+.ey4-h small{color:var(--ink3);font-size:12px;}
+.ey4-g{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px 16px;}
+.ey4-r{display:grid;grid-template-columns:86px 1fr 30px;align-items:center;gap:8px;font-size:13px;color:var(--ink2);}
+.ey4-r input{width:100%;accent-color:var(--brand2);}
+.ey4-r output{font-family:var(--disp);font-weight:800;font-size:16px;color:var(--ink);text-align:right;}
+.ey4-m{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:12px 0 10px;}
+.ey4-m label{display:flex;flex-direction:column;gap:4px;font-size:12px;color:var(--ink3);font-weight:700;}
+.ey4-m label.w{grid-column:1/-1;}
+.ey4-i{position:relative;border-top:1px solid var(--line2);padding:8px 34px 8px 0;font-size:12.5px;color:var(--ink2);display:flex;flex-wrap:wrap;gap:2px 10px;}
+.ey4-i b{color:var(--ink);}.ey4-i em{font-style:normal;width:100%;color:var(--ink);}.ey4-i p{margin:2px 0 0;width:100%;}
+.ey4-i .kx-b{position:absolute;right:0;top:8px;}
+@media (max-width:760px){
+  .pf4-head{padding-right:40px;gap:12px;}
+  .pf4-ava .ava{width:52px!important;height:52px!important;}
+  .pf4-hm h2{font-size:20px;}
+  .pf4-top{grid-template-columns:1fr;}
+  .pf4-card{min-width:0;}
+  .pf4-glance{grid-template-columns:1fr 1fr;}
+  .g4.zk{grid-column:1/-1;}
+  .g4>b{font-size:22px;}.g4.big>b{font-size:28px;}
+  .ey4-g,.ey4-m{grid-template-columns:1fr;}
+  .sc4r{grid-template-columns:110px 1fr 32px 38px;gap:6px;font-size:12.5px;}
+  .pf4-kp{grid-template-columns:1fr;}
+  .pf4-b{padding:2px 12px 14px;}
+  .pf4-st{font-size:12px;}.pf4-st th,.pf4-st td{padding:7px 4px;}
+}
+
+/* ---------- Kader ---------- */
+.kd4-top{display:flex;flex-wrap:wrap;gap:10px 14px;align-items:center;}
+.kd4-top .note{width:100%;margin:0;}
+.kd4-sum{display:flex;flex-wrap:wrap;gap:6px 14px;font-size:13px;color:var(--ink2);}
+.kd4-sum b{color:var(--ink);font-size:14.5px;}
+.kd4-sum .warn b{color:#fcd34d;}.kd4-sum .bad b{color:#ff8a8a;}.kd4-sum .ok b{color:#5fe09b;}.kd4-sum .info b{color:#9cc3ff;}
+.kd4-main{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.1fr);gap:16px;align-items:start;}
+.kd4-main>.card{margin:0!important;}
+.kd4-lh{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:6px;}
+.kd4-lh h3{margin:0;font-size:16px;}
+.kd4-lh h3 small{font-weight:600;color:var(--ink3);font-size:12px;margin-left:6px;}
+.kl4{margin-top:10px;}
+.kl4 h5,.kl4>summary{font-size:11.5px;text-transform:uppercase;letter-spacing:.07em;color:var(--ink3);margin:0 0 4px;font-weight:800;display:flex;gap:6px;cursor:default;}
+.kl4>summary{cursor:pointer;list-style:none;}
+.kl4 h5 i,.kl4>summary i{font-style:normal;opacity:.7;}
+.kr4{display:grid;grid-template-columns:44px minmax(0,1fr) 34px auto auto;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid var(--line2);}
+.kr4.out{opacity:.55;}
+.kr4.ziel .kr4-n b{color:#9cc3ff;}
+.kr4-pos{font-family:var(--disp);font-weight:800;font-size:13px;color:var(--ink2);background:rgba(148,163,196,.08);border-radius:7px;text-align:center;padding:3px 0;}
+.kr4-n{font:inherit;background:none;border:0;color:inherit;text-align:left;cursor:pointer;min-width:0;padding:0;display:flex;flex-direction:column;}
+.kr4-n b{font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.kr4-n small{font-size:11.5px;color:var(--ink3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.kr4-o{font-family:var(--disp);font-weight:800;font-size:16px;text-align:right;}
+.kr4-g{font-size:11.5px;color:var(--ink3);white-space:nowrap;}
+.kr4-g.old{color:#fcd34d;}.kr4-g.none{opacity:.5;}
+.kr4-z{font:inherit;font-size:12px;font-weight:750;padding:5px 9px;border-radius:9px;border:1px solid var(--line);background:rgba(148,163,196,.06);color:var(--ink2);cursor:pointer;white-space:nowrap;}
+.kr4-z.ok{color:#5fe09b;border-color:rgba(34,197,94,.3);}.kr4-z.warn{color:#fcd34d;border-color:rgba(245,158,11,.4);background:rgba(245,158,11,.08);}
+.kr4-z.bad{color:#ff8a8a;border-color:rgba(240,82,82,.4);background:rgba(240,82,82,.08);}.kr4-z.info{color:#9cc3ff;border-color:rgba(91,155,255,.4);}
+.zm4{position:fixed;z-index:9998;background:#141b2b;border:1px solid rgba(148,163,196,.22);border-radius:14px;box-shadow:var(--sh-3);padding:8px;display:flex;flex-direction:column;gap:3px;min-width:200px;max-width:280px;}
+.zm4>b{font-size:12px;color:var(--ink3);padding:4px 8px 6px;}
+.zm4 button{font:inherit;font-size:13.5px;font-weight:650;text-align:left;padding:8px 10px;border-radius:9px;border:0;background:none;color:var(--ink);cursor:pointer;}
+.zm4 button:hover,.zm4 button.on{background:rgba(148,163,196,.1);}
+.zm4 button.ok{color:#5fe09b;}.zm4 button.warn{color:#fcd34d;}.zm4 button.bad{color:#ff8a8a;}.zm4 button.info{color:#9cc3ff;}.zm4 button.mut{color:var(--ink2);}
+/* Aufstellung im FIFA-Stil */
+.kd4-ph{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:8px;}
+.kd4-ph select{width:auto!important;min-width:110px;}
+.pitch4{position:relative;aspect-ratio:.78;border-radius:18px;overflow:hidden;background:
+  repeating-linear-gradient(180deg,rgba(255,255,255,.035) 0 9%,transparent 9% 18%),linear-gradient(180deg,#14532d,#0f3d22);border:1px solid rgba(34,197,94,.25);margin-top:6px;}
+.pl4{position:absolute;inset:4%;border:2px solid rgba(255,255,255,.18);border-radius:4px;}
+.pl4::before{content:'';position:absolute;left:0;right:0;top:50%;border-top:2px solid rgba(255,255,255,.18);}
+.pl4::after{content:'';position:absolute;left:50%;top:50%;width:22%;aspect-ratio:1;border:2px solid rgba(255,255,255,.18);border-radius:50%;transform:translate(-50%,-50%);}
+.ps4{position:absolute;transform:translate(-50%,-50%);width:74px;display:flex;flex-direction:column;align-items:center;gap:1px;font:inherit;color:#fff;cursor:pointer;
+  background:linear-gradient(180deg,#e9c46a 0%,#b8860b 100%);border:1px solid rgba(255,230,160,.8);border-radius:10px 10px 14px 14px;padding:4px 4px 5px;box-shadow:0 8px 20px -8px rgba(0,0,0,.7);z-index:2;}
+.ps4 em{font-style:normal;font-family:var(--disp);font-weight:800;font-size:15px;line-height:1;color:#1a1300;align-self:flex-start;margin-left:3px;}
+.ps4 i{width:34px;height:34px;border-radius:50%;background:rgba(0,0,0,.22);display:grid;place-items:center;font-style:normal;font-weight:800;font-size:12px;color:#1a1300;overflow:hidden;margin-top:-10px;}
+.ps4 i img{width:100%;height:100%;object-fit:cover;}
+.ps4 b{font-family:var(--disp);font-size:12.5px;font-weight:800;color:#1a1300;max-width:66px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.ps4 span{font-size:9.5px;font-weight:800;color:rgba(26,19,0,.7);letter-spacing:.04em;}
+.ps4.misfit{outline:2px solid #f59e0b;outline-offset:1px;}
+.ps4.empty{background:rgba(255,255,255,.08);border:1px dashed rgba(255,255,255,.4);height:72px;justify-content:center;}
+.ps4.empty b{font-size:22px;color:#fff;}.ps4.empty span{color:rgba(255,255,255,.75);}
+.bank4{margin-top:12px;}
+.bank4 h5{font-size:11.5px;text-transform:uppercase;letter-spacing:.07em;color:var(--ink3);margin:0 0 6px;font-weight:800;}
+.bank4 h5 i{font-style:normal;opacity:.7;}
+.bank4>div{display:flex;flex-wrap:wrap;gap:6px;}
+.bk4c{font:inherit;font-size:12.5px;font-weight:700;display:inline-flex;align-items:center;gap:6px;padding:6px 9px;border-radius:10px;border:1px solid var(--line);background:rgba(148,163,196,.06);color:var(--ink);cursor:pointer;}
+.bk4c em{font-style:normal;font-family:var(--disp);font-weight:800;color:var(--c);}
+.bk4c span{font-size:11px;color:var(--ink3);}
+.bk4c.add{min-width:38px;justify-content:center;color:var(--ink3);border-style:dashed;}
+.rs4{font-size:12px;color:var(--ink2);background:rgba(148,163,196,.05);border-radius:8px;padding:4px 8px;}
+.rs4 i{font-style:normal;color:var(--ink3);font-size:11px;}
+/* Bedarfsanalyse */
+.kd4-nh{display:flex;flex-wrap:wrap;gap:4px 12px;align-items:baseline;margin-bottom:10px;}
+.kd4-nh h3{margin:0;font-size:16px;}
+.nd4g{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:10px;}
+.nd4{border:1px solid var(--line);border-radius:14px;padding:11px 12px;background:rgba(148,163,196,.04);border-left:3px solid rgba(34,197,94,.6);}
+.nd4.warn{border-left-color:#f59e0b;}.nd4.bad{border-left-color:#f05252;background:rgba(240,82,82,.05);}
+.nd4-h{display:flex;align-items:center;gap:8px;}
+.nd4-h b{font-size:14px;flex:1;}
+.nd4-c{font-family:var(--disp);font-weight:800;font-size:18px;}.nd4-c i{font-style:normal;color:var(--ink3);font-size:13px;}
+.nd4-h em{font-style:normal;font-size:11.5px;font-weight:800;border-radius:8px;padding:2px 7px;}
+.nd4-h em.bad{color:#ff8a8a;background:rgba(240,82,82,.12);}.nd4-h em.warn{color:#fcd34d;background:rgba(245,158,11,.12);}.nd4-h em.ok{color:#5fe09b;background:rgba(34,197,94,.1);}
+.nd4-d{font-size:12.5px;color:var(--ink2);margin-top:5px;line-height:1.45;}
+.nd4-d .warn{color:#fcd34d;}.nd4-d .bad{color:#ff8a8a;}
+.nd4-a{display:flex;flex-wrap:wrap;gap:6px;margin-top:9px;}
+/* Auswahl-Listen */
+.pk4{display:flex;flex-direction:column;gap:4px;max-height:60vh;overflow:auto;margin-top:8px;}
+.pk4 button{font:inherit;text-align:left;display:grid;grid-template-columns:1fr auto;gap:0 10px;padding:9px 11px;border-radius:11px;border:1px solid var(--line2);background:rgba(148,163,196,.04);color:var(--ink);cursor:pointer;}
+.pk4 button b{font-size:14px;}.pk4 button span{grid-column:1;font-size:12px;color:var(--ink3);}.pk4 button i{grid-row:1/3;grid-column:2;align-self:center;font-style:normal;font-size:12px;color:#9cc3ff;}
+.pk4 button.on{border-color:var(--brand2);background:var(--brandSoft);}.pk4 button.rm b{color:#ff8a8a;}
+/* Gespräche */
+.gl4{display:flex;flex-direction:column;}
+.gr4{display:grid;grid-template-columns:minmax(150px,1.2fr) 120px auto minmax(0,2fr) auto;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--line2);font-size:13px;}
+.gr4-d{color:var(--ink2);}.gr4-d i{font-style:normal;color:var(--ink3);font-size:11.5px;display:block;}
+.gr4-t{color:var(--ink3);font-size:12.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}.gr4-t em{font-style:normal;color:#9cc3ff;}
+.gs4f textarea{min-height:70px;}
+@media (max-width:980px){ .kd4-main{grid-template-columns:1fr;} .pitch4{max-width:460px;margin-left:auto;margin-right:auto;} }
+@media (max-width:760px){
+  .kr4{grid-template-columns:38px minmax(0,1fr) 28px auto;}
+  .kr4-g{display:none;}
+  .ps4{width:60px;padding:3px 3px 4px;}.ps4 i{width:26px;height:26px;margin-top:-8px;font-size:10px;}.ps4 b{font-size:11px;max-width:54px;}.ps4 em{font-size:13px;}.ps4.empty{height:58px;}
+  .gr4{grid-template-columns:1fr auto;}.gr4-t{grid-column:1/-1;white-space:normal;}.gr4 .btn{grid-column:1/-1;justify-self:start;}
+  .nd4g{grid-template-columns:1fr;}
+}
+
+/* ---------- Scouting ---------- */
+.mk4,.rd4{display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px;margin-bottom:12px;}
+.mk4 .note{margin:0;}
+.r4 .pmeta{row-gap:2px;}
+.pm4-pos{font-weight:800;color:var(--ink)!important;}
+.pm4-s{color:var(--ink2)!important;}.pm4-s i{font-style:normal;color:var(--ink3);}
+.bd4-top .kd4-lh h3{display:flex;align-items:center;gap:6px;}
+.flow4{display:flex;flex-wrap:wrap;align-items:center;gap:4px;margin:8px 0 4px;font-size:11.5px;font-weight:750;color:var(--ink3);}
+.flow4 span{padding:3px 8px;border-radius:999px;background:rgba(148,163,196,.06);}
+.flow4 span.on{color:#9cc3ff;background:rgba(91,155,255,.12);}
+.flow4 span.now{color:#fff;background:linear-gradient(180deg,#3b78ff,#2459e6);}
+.flow4 i{font-style:normal;opacity:.5;}
+.bd4g{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:10px;margin-top:6px;}
+.bd4c{font:inherit;text-align:left;cursor:pointer;display:flex;flex-direction:column;gap:3px;padding:12px 13px;border-radius:14px;border:1px solid var(--line);background:rgba(148,163,196,.04);color:var(--ink);border-left:3px solid rgba(91,155,255,.5);}
+.bd4c.p-hoch{border-left-color:#f05252;}.bd4c.p-niedrig{border-left-color:rgba(148,163,196,.4);}
+.bd4c.on{border-color:var(--brand2);background:var(--brandSoft);}
+.bd4c b{font-size:14.5px;}.bd4c span{font-size:12.5px;color:var(--ink2);}.bd4c small{font-size:12px;color:var(--ink3);}
+.bd4c em{font-style:normal;font-size:11.5px;font-weight:750;color:#9cc3ff;}
+.st4{display:block;height:5px;border-radius:5px;background:rgba(148,163,196,.1);overflow:hidden;margin-top:5px;}.st4 u{display:block;height:100%;background:linear-gradient(90deg,#3b78ff,#5fe09b);}
+.bd4d{border-color:rgba(91,155,255,.35)!important;}
+.bd4-p{display:flex;flex-direction:column;gap:3px;font-size:13px;color:var(--ink2);margin:8px 0;}
+.bk4l{display:flex;flex-direction:column;}
+.bk4r{display:grid;grid-template-columns:minmax(0,1fr) 34px 54px 48px 130px;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid var(--line2);font-size:12.5px;}
+.bk4r select{padding:6px 8px!important;font-size:12.5px!important;}
+.bk4r.s-shortlist{background:linear-gradient(90deg,rgba(91,155,255,.08),transparent);}.bk4r.s-kontakt,.bk4r.s-zusage{background:linear-gradient(90deg,rgba(34,197,94,.08),transparent);}.bk4r.s-absage,.bk4r.s-verworfen{opacity:.5;}
+.bk4w,.bk4e{color:var(--ink3);white-space:nowrap;}
+.sg4{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:8px;}
+.sg4c{font:inherit;text-align:left;cursor:pointer;display:flex;flex-direction:column;gap:2px;padding:9px 11px;border-radius:12px;border:1px dashed rgba(148,163,196,.3);background:none;color:var(--ink);}
+.sg4c:hover{border-color:var(--brand2);background:var(--brandSoft);}
+.sg4c span{font-size:12px;color:var(--ink3);}.sg4c i{font-style:normal;font-size:12px;color:#9cc3ff;font-weight:700;}
+.bj4{display:flex;flex-wrap:wrap;gap:8px;align-items:center;}
+.bj4 .sc2j{font:inherit;text-align:left;cursor:pointer;}
+.bd4-st{margin-top:14px;padding-top:12px;border-top:1px solid var(--line2);flex-wrap:wrap;}
+.sc4prio>summary{cursor:pointer;font-weight:750;}
+.cm4 .chips4{margin-bottom:0;}
+.kn4{margin:0 0 12px;}
+@media (max-width:760px){ .bk4r{grid-template-columns:minmax(0,1fr) 30px 110px;} .bk4r .bk4w,.bk4r .bk4e{display:none;} }
+
+/* ---------- Mannschaft, Spieltag, Jugend ---------- */
+.tm4s{margin:0 0 12px;}
+.rt4 .btnrow{flex-wrap:wrap;}
+.r4sp{display:flex;gap:6px;align-items:stretch;margin:10px 0;}
+.r4sp textarea{flex:1;min-height:52px;}
+.r4sp .btn.on{background:#f05252!important;color:#fff!important;}
+.r4l{display:flex;flex-direction:column;max-height:48vh;overflow:auto;}
+.r4r{display:grid;grid-template-columns:minmax(120px,1fr) auto minmax(0,1.2fr);gap:8px;align-items:center;padding:6px 0;border-bottom:1px solid var(--line2);font-size:13px;}
+.r4n{display:flex;gap:3px;}
+.r4n button{font:inherit;font-weight:800;width:30px;height:30px;border-radius:8px;border:1px solid var(--line);background:none;color:var(--ink2);cursor:pointer;}
+.r4n button.on{background:linear-gradient(180deg,#3b78ff,#2459e6);color:#fff;border-color:transparent;}
+.r4r input{min-width:0;padding:6px 8px!important;font-size:12.5px!important;}
+@media (max-width:760px){ .r4r{grid-template-columns:1fr auto;} .r4r input{grid-column:1/-1;} }
+.nx4{width:100%;font:inherit;display:flex;align-items:center;gap:10px;padding:12px 14px;border-radius:14px;border:1px solid var(--line);background:rgba(148,163,196,.04);color:var(--ink2);cursor:pointer;text-align:left;margin-bottom:16px;}
+.nx4 span{flex:1;font-size:13.5px;}.nx4 b{color:var(--ink);}.nx4 i{font-style:normal;color:#9cc3ff;font-weight:700;font-size:13px;white-space:nowrap;}
+.fo4 p{font-size:13.5px;color:var(--ink2);}
+.ar4{display:flex;flex-direction:column;}
+.ar4>div{display:grid;grid-template-columns:70px 1fr 50px auto;gap:8px;padding:6px 0;border-bottom:1px solid var(--line2);font-size:13px;align-items:center;}
+.ar4 span{color:var(--ink3);}.ar4 i{font-style:normal;font-weight:800;text-align:right;}.ar4 em{font-style:normal;font-size:11px;color:#9cc3ff;}
+.ar4 .w i{color:#5fe09b;}.ar4 .l i{color:#ff8a8a;}
+.ju4l{display:flex;flex-direction:column;margin-top:10px;}
+.ju4r{border-bottom:1px solid var(--line2);}
+.ju4r.on{background:rgba(148,163,196,.03);}
+.ju4h{width:100%;font:inherit;display:grid;grid-template-columns:minmax(0,1.3fr) 90px 90px 110px 80px;gap:8px;align-items:center;padding:10px 4px;background:none;border:0;color:var(--ink);cursor:pointer;text-align:left;font-size:13px;}
+.ju4h span{color:var(--ink2);}.ju4h em{font-style:normal;color:var(--ink3);font-size:12px;text-align:right;}
+.ju4p{color:#fbbf24!important;letter-spacing:1px;}.ju4p i{font-style:normal;color:var(--ink3);letter-spacing:0;font-size:12px;}
+.ju4d{padding:4px 4px 14px;}
+.ju4f{display:flex;flex-wrap:wrap;gap:6px;align-items:center;}
+.ju4f select,.ju4f input{width:auto!important;}
+.ju4f input[type=number]{width:90px!important;}
+.ju4f .w{width:100%;}
+.ju4pp button{font-size:18px;background:none;border:0;color:#fbbf24;cursor:pointer;padding:0 1px;}
+.ju4t{margin-top:10px;display:flex;flex-direction:column;gap:6px;}
+.ju4e{border-left:3px solid rgba(34,197,94,.45);padding:3px 0 3px 10px;font-size:12.5px;color:var(--ink2);}
+.ju4e b{color:var(--ink);margin-right:8px;}.ju4e p{margin:3px 0 0;color:var(--ink);}
+@media (max-width:760px){ .ju4h{grid-template-columns:1fr auto;} .ju4h .ju4s,.ju4h em{display:none;} }
+
+/* Eingabefelder in 4.0-Bausteinen wie im Rest der App */
+.ju4f input,.ju4f textarea,.r4sp textarea,.r4r input,.ey4-m input,.two4 input,#kd4Q{
+  background:rgba(148,163,196,.06)!important;border:1px solid var(--line)!important;border-radius:var(--r-md)!important;color:var(--ink)!important;
+  font-family:inherit!important;font-size:14px;padding:9px 11px;color-scheme:dark;transition:border-color .15s,box-shadow .15s;}
+.ju4f input:focus,.ju4f textarea:focus,.r4sp textarea:focus,.r4r input:focus,.ey4-m input:focus,.two4 input:focus,#kd4Q:focus{outline:none;border-color:rgba(91,155,255,.6)!important;box-shadow:0 0 0 4px rgba(47,107,255,.14);}
+.ju4f textarea,.r4sp textarea{width:100%;resize:vertical;min-height:64px;}
+.ju4f .r4sp{margin:4px 0;}
+.hint{display:flex;gap:8px;align-items:flex-start;font-size:13px;color:var(--ink2);margin:8px 0;}
+.hint svg{flex:0 0 auto;margin-top:1px;}
+/* Profil-Kopf am Handy: Name neben dem Bild, Aktionen über die volle Breite */
+.pf4-sc2 .sc2b{display:flex;flex-wrap:wrap;gap:6px;}
+@media (max-width:760px){
+  .pf4-head{display:grid;grid-template-columns:52px minmax(0,1fr);column-gap:12px;row-gap:0;align-items:center;}
+  .pf4-hm{display:contents;}
+  .pf4-ava{grid-row:1/3;align-self:start;}
+  .pf4-hm h2{grid-column:2;margin-bottom:4px;}
+  .pf4-l1{grid-column:2;}
+  .pf4-l2,.pf4-act,.pf4-sc2{grid-column:1/-1;}
+  .pf4-sc2 .sc2b button{padding:6px 9px;font-size:12.5px;}
+}
+
+.rd4p{display:flex;flex-wrap:wrap;gap:4px 10px;font-size:12px;color:var(--ink3);margin-top:4px;}
+.rd4p b{font-weight:750;}
+.rdit .sc2b{margin-top:6px;}
+.sc2b.sm button{white-space:nowrap;}
+.sc2b.sm{display:flex;flex-wrap:wrap;gap:5px;}
+.m4 .pf4-st td{font-size:13px;color:var(--ink2);}
+/* Rollen & Skills: das alte Kaderplan-Board ist im neuen Kaderplan aufgegangen */
+#panel-kaderplan #kaderplanWrap{display:none;}
+
+.pf4-l2 .svpos{margin:0!important;display:inline-flex;align-items:center;gap:8px;flex-wrap:wrap;}
+
 </style>
 <style id="v3gate">
 /* =====================================================================
@@ -1835,10 +2201,10 @@ body.gated{overflow:hidden;}
       <rect class="d3" x="2" y="110" width="104" height="220"/><rect class="d3" x="574" y="110" width="104" height="220"/>
       <rect class="d4" x="2" y="168" width="38" height="104"/><rect class="d4" x="640" y="168" width="38" height="104"/>
       <path class="d4" d="M106 182 A48 48 0 0 1 106 258"/><path class="d4" d="M574 182 A48 48 0 0 0 574 258"/></svg></div>
-    <div class="g-top"><img src="crest.svg" alt=""><div><b>SV/BSC Scout</b><span>SV/BSC Mörlenbach</span></div></div>
-    <div class="g-copy"><div class="eyebrow"><i></i>Kaderplanung 26/27</div>
-      <h1>Den Kader von morgen <span>heute planen.</span></h1>
-      <p>Scouting, Kandidaten und Kaderplan an einem Ort – datenbasiert, im Team, in Echtzeit.</p></div>
+    <div class="g-top"><img src="crest.svg" alt=""><div><b>SV/BSC Sportzentrale</b><span>SV/BSC Mörlenbach</span></div></div>
+    <div class="g-copy"><div class="eyebrow"><i></i>SV/BSC Mörlenbach</div>
+      <h1>Kader, Scouting, Mannschaft – <span>an einem Ort.</span></h1>
+      <p>Vom aktuellen Kader über den Bedarf bis zum passenden Spieler – dazu Training, Kabine und Kasse. Datenbasiert, im Team, in Echtzeit.</p></div>
     <div class="g-feats"><div class="g-feat"><b>2.900+</b><span>Spieler im Radar</span></div><div class="g-feat"><b>7</b><span>Ligen – GL bis KLD</span></div><div class="g-feat"><b>Live</b><span>Sync für alle Planer</span></div></div>
   </div>
   <div class="g-side"><div class="g-card" id="gcard" style="display:none"></div></div>
@@ -1847,8 +2213,8 @@ body.gated{overflow:hidden;}
 
 <div class="shell" id="shell">
   <aside class="side">
-    <div class="brand"><img src="crest.svg" alt=""><div><b>SV/BSC Scout</b><span>Kaderplanung 26/27</span></div></div>
-    <nav class="snav"><div class="sgrp">Übersicht</div><button data-tab="home" data-tip="Übersicht" class="active"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.5V21h14V9.5"/><path d="M10 21v-6h4v6"/></svg><span>Übersicht</span></button><div class="sgrp">Spieltag</div><button data-tab="kabine" data-tip="Kabine"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c.6-3.6 3.3-5.5 6.5-5.5s5.9 1.9 6.5 5.5"/><path d="M16 4.6a3.5 3.5 0 0 1 0 6.8M18.5 14.8c1.7.7 2.8 2.3 3.1 5.2"/></svg><span>Kabine</span></button><button data-tab="gegner" data-tip="Gegnercheck"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1.5"/></svg><span>Gegnercheck</span></button><button data-tab="totw" data-tip="Elf der Woche"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m12 3 2.8 5.7 6.2.9-4.5 4.4 1 6.2L12 17.3 6.5 20.2l1-6.2L3 9.6l6.2-.9z"/></svg><span>Elf der Woche</span></button><div class="sgrp">Scouting</div><button data-tab="scout" data-tip="Scouting"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg><span>Scouting</span></button><button data-tab="radar" data-tip="Radar"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><path d="m12 12 6.5-6.5"/><circle cx="12" cy="12" r="1.2"/></svg><span>Radar</span><span class="cnt" data-cnt="radar" style="display:none"></span></button><button data-tab="db" data-tip="Datenbank"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><ellipse cx="12" cy="5.5" rx="7.5" ry="2.5"/><path d="M4.5 5.5v13c0 1.4 3.4 2.5 7.5 2.5s7.5-1.1 7.5-2.5v-13"/><path d="M4.5 12c0 1.4 3.4 2.5 7.5 2.5s7.5-1.1 7.5-2.5"/></svg><span>Datenbank</span></button><button data-tab="gems" data-tip="Rohdiamanten"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 21 3 9l3-6h12l3 6z"/><path d="M3 9h18"/><path d="m9 3 3 6 3-6"/><path d="m12 9 0 12"/></svg><span>Rohdiamanten</span></button><button data-tab="jugend" data-tip="A-Jugend"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 21v-8"/><path d="M12 13c0-4 3-7 8-7 0 4-3 7-8 7z"/><path d="M12 11C12 8 10 5 4 5c0 3 2.5 6 8 6z"/></svg><span>A-Jugend</span></button><button data-tab="cmp" data-tip="Vergleich"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 20V11M11 20V5M17 20v-7M3 20h18"/></svg><span>Vergleich</span></button><div class="sgrp">Kaderplanung</div><button data-tab="training" data-tip="Training"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12h4l3 8 4-16 3 8h4"/></svg><span>Training</span><span class="cnt" data-cnt="training" style="display:none"></span></button><button data-tab="kandidaten" data-tip="Kandidaten"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 20v-1.5a3.5 3.5 0 0 0-3.5-3.5h-5A3.5 3.5 0 0 0 3 18.5V20"/><circle cx="9" cy="8" r="3.5"/><path d="M19 8v6M22 11h-6"/></svg><span>Kandidaten</span><span class="cnt" data-cnt="kandidaten" style="display:none"></span></button><button data-tab="kaderplan" data-tip="Kaderplan"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="4" width="14" height="17" rx="2"/><path d="M9 4V3h6v1"/><path d="M9 10h6M9 14h6M9 18h3"/></svg><span>Kaderplan</span></button><button data-tab="elf" data-tip="Aufstellung"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M12 4v16"/><circle cx="12" cy="12" r="3"/><path d="M3 9h3v6H3M21 9h-3v6h3"/></svg><span>Aufstellung</span></button><button data-tab="sxi" data-tip="Schattenelf"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m12 3 9 5-9 5-9-5 9-5z"/><path d="m3 13 9 5 9-5"/></svg><span>Schattenelf</span></button><div class="sgrp">Verein</div><button data-tab="verein" data-tip="Rankings & Verein"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 21h8M12 17v4"/><path d="M7 4h10v5a5 5 0 0 1-10 0V4z"/><path d="M17 5h3v2a3 3 0 0 1-3 3M7 5H4v2a3 3 0 0 0 3 3"/></svg><span>Rankings & Verein</span></button><div class="sgrp">Wissen</div><button data-tab="play" data-tip="Playbook"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 5a2 2 0 0 1 2-2h13v16H6a2 2 0 0 0-2 2V5z"/><path d="M4 19a2 2 0 0 1 2-2h13"/></svg><span>Playbook</span></button><button data-tab="model" data-tip="Modell"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 6h10M18 6h2M4 12h4M12 12h8M4 18h12"/><circle cx="16" cy="6" r="2"/><circle cx="10" cy="12" r="2"/><circle cx="18" cy="18" r="2"/></svg><span>Modell</span></button><div class="sgrp adm-only">Verwaltung</div><button data-tab="admin" data-tip="Nutzer & Rollen"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3 4 6v6c0 5 3.5 8 8 9 4.5-1 8-4 8-9V6l-8-3z"/><path d="m9 12 2 2 4-4"/></svg><span>Nutzer & Rollen</span></button></nav>
+    <div class="brand"><img src="crest.svg" alt=""><div><b>SV/BSC Sportzentrale</b><span>SV/BSC Mörlenbach</span></div></div>
+    <nav class="snav"><div class="sgrp">Übersicht</div><button data-tab="home" data-tip="Übersicht" class="active"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.5V21h14V9.5"/><path d="M10 21v-6h4v6"/></svg><span>Übersicht</span></button><div class="sgrp">Kader</div><button data-tab="kader" data-tip="Kader"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M12 4v16"/><circle cx="12" cy="12" r="3"/><path d="M3 9h3v6H3M21 9h-3v6h3"/></svg><span>Kader</span></button><div class="sgrp">Scouting</div><button data-tab="scout" data-tip="Scouting"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg><span>Scouting</span><span class="cnt" data-cnt="kandidaten" style="display:none"></span></button><div class="sgrp">Mannschaft</div><button data-tab="training" data-tip="Mannschaft"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12h4l3 8 4-16 3 8h4"/></svg><span>Mannschaft</span><span class="cnt" data-cnt="training" style="display:none"></span></button><button data-tab="gegner" data-tip="Spieltag"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1.5"/></svg><span>Spieltag</span></button><button data-tab="kasse" data-tip="Mannschaftskasse"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="6" width="18" height="14" rx="2.5"/><path d="M16 13.5h.01"/><path d="M3 10h18"/><path d="M7 6V4.8A1.8 1.8 0 0 1 8.8 3H17"/></svg><span>Mannschaftskasse</span></button><div class="sgrp">Nachwuchs</div><button data-tab="ejugend" data-tip="Eigene Jugend"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 21v-8"/><path d="M12 13c0-4 3-7 8-7 0 4-3 7-8 7z"/><path d="M12 11C12 8 10 5 4 5c0 3 2.5 6 8 6z"/></svg><span>Eigene Jugend</span></button><div class="sgrp">Verein</div><button data-tab="verein" data-tip="Rankings & Verein"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 21h8M12 17v4"/><path d="M7 4h10v5a5 5 0 0 1-10 0V4z"/><path d="M17 5h3v2a3 3 0 0 1-3 3M7 5H4v2a3 3 0 0 0 3 3"/></svg><span>Rankings & Verein</span></button><div class="sgrp">Wissen</div><button data-tab="play" data-tip="Playbook & Modell"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 5a2 2 0 0 1 2-2h13v16H6a2 2 0 0 0-2 2V5z"/><path d="M4 19a2 2 0 0 1 2-2h13"/></svg><span>Playbook & Modell</span></button><div class="sgrp adm-only">Verwaltung</div><button data-tab="admin" data-tip="Nutzer & Rollen"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3 4 6v6c0 5 3.5 8 8 9 4.5-1 8-4 8-9V6l-8-3z"/><path d="m9 12 2 2 4-4"/></svg><span>Nutzer & Rollen</span></button></nav>
     <div class="sfoot"><div class="online" id="svOnline"></div>
       <button class="mebtn" data-me><div class="uav" data-me-ini></div><div class="who"><b data-me-name></b><span data-me-role></span></div><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 6 6 6-6 6"/></svg></button></div>
   </aside>
@@ -1861,6 +2227,7 @@ body.gated{overflow:hidden;}
       <button class="tb-icon" id="tbSearch" aria-label="Suchen" style="display:none"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg></button>
       <button class="tb-me" data-me aria-label="Mein Konto"><div class="uav" data-me-ini></div></button>
     </header>
+    <nav class="hubbar" id="hubbar" hidden></nav>
 <main>
   <!-- HOME -->
   <section class="panel active" id="panel-home">
@@ -2295,6 +2662,10 @@ a.kbtn{text-decoration:none;display:inline-block}
       <p class="srcs">FUSSBALL.DE: Tabellen + Torjäger KOL/A/B/C/D1/D2 Bergstraße 25/26 &amp; 24/25, A-/B-Junioren, Kreispokal · Presse: WNOZ, Mannheimer Morgen (Teaser), kicker, Vereinsseiten · Stand 18.07.2026</p>
     </div>
   </section>
+  <section class="panel" id="panel-kader"></section>
+  <section class="panel" id="panel-gespr"></section>
+  <section class="panel" id="panel-bedarf"><div id="sc4Bed"></div><div id="sc2Box"></div><details class="card sc4prio"><summary>Positions-Prioritäten fürs Radar</summary><div id="sc2Plan"></div></details></section>
+  <section class="panel" id="panel-ejugend"></section>
   <section class="panel" id="panel-training"></section>
   <section class="panel" id="panel-kabine"></section>
   <section class="panel" id="panel-gegner"></section>
@@ -2315,16 +2686,16 @@ a.kbtn{text-decoration:none;display:inline-block}
   <button class="tmore" id="tMore"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="4" width="6" height="6" rx="1.5"/><rect x="14" y="4" width="6" height="6" rx="1.5"/><rect x="4" y="14" width="6" height="6" rx="1.5"/><rect x="14" y="14" width="6" height="6" rx="1.5"/></svg>Mehr</button>
 </div>
 <div class="sheet-bg" id="sheetBg"></div>
-<div class="sheet" id="moreSheet"><div class="grab"></div><h4>Übersicht</h4><div class="sgrid"><button data-sheet="home"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.5V21h14V9.5"/><path d="M10 21v-6h4v6"/></svg>Übersicht</button></div><h4>Spieltag</h4><div class="sgrid"><button data-sheet="kabine"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c.6-3.6 3.3-5.5 6.5-5.5s5.9 1.9 6.5 5.5"/><path d="M16 4.6a3.5 3.5 0 0 1 0 6.8M18.5 14.8c1.7.7 2.8 2.3 3.1 5.2"/></svg>Kabine</button><button data-sheet="gegner"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1.5"/></svg>Gegnercheck</button><button data-sheet="totw"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m12 3 2.8 5.7 6.2.9-4.5 4.4 1 6.2L12 17.3 6.5 20.2l1-6.2L3 9.6l6.2-.9z"/></svg>Elf der Woche</button></div><h4>Scouting</h4><div class="sgrid"><button data-sheet="scout"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>Scouting</button><button data-sheet="radar"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><path d="m12 12 6.5-6.5"/><circle cx="12" cy="12" r="1.2"/></svg>Radar</button><button data-sheet="db"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><ellipse cx="12" cy="5.5" rx="7.5" ry="2.5"/><path d="M4.5 5.5v13c0 1.4 3.4 2.5 7.5 2.5s7.5-1.1 7.5-2.5v-13"/><path d="M4.5 12c0 1.4 3.4 2.5 7.5 2.5s7.5-1.1 7.5-2.5"/></svg>Datenbank</button><button data-sheet="gems"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 21 3 9l3-6h12l3 6z"/><path d="M3 9h18"/><path d="m9 3 3 6 3-6"/><path d="m12 9 0 12"/></svg>Rohdiamanten</button><button data-sheet="jugend"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 21v-8"/><path d="M12 13c0-4 3-7 8-7 0 4-3 7-8 7z"/><path d="M12 11C12 8 10 5 4 5c0 3 2.5 6 8 6z"/></svg>A-Jugend</button><button data-sheet="cmp"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 20V11M11 20V5M17 20v-7M3 20h18"/></svg>Vergleich</button></div><h4>Kaderplanung</h4><div class="sgrid"><button data-sheet="training"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12h4l3 8 4-16 3 8h4"/></svg>Training</button><button data-sheet="kandidaten"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 20v-1.5a3.5 3.5 0 0 0-3.5-3.5h-5A3.5 3.5 0 0 0 3 18.5V20"/><circle cx="9" cy="8" r="3.5"/><path d="M19 8v6M22 11h-6"/></svg>Kandidaten</button><button data-sheet="kaderplan"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="4" width="14" height="17" rx="2"/><path d="M9 4V3h6v1"/><path d="M9 10h6M9 14h6M9 18h3"/></svg>Kaderplan</button><button data-sheet="elf"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M12 4v16"/><circle cx="12" cy="12" r="3"/><path d="M3 9h3v6H3M21 9h-3v6h3"/></svg>Aufstellung</button><button data-sheet="sxi"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m12 3 9 5-9 5-9-5 9-5z"/><path d="m3 13 9 5 9-5"/></svg>Schattenelf</button></div><h4>Verein</h4><div class="sgrid"><button data-sheet="verein"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 21h8M12 17v4"/><path d="M7 4h10v5a5 5 0 0 1-10 0V4z"/><path d="M17 5h3v2a3 3 0 0 1-3 3M7 5H4v2a3 3 0 0 0 3 3"/></svg>Verein</button></div><h4>Wissen</h4><div class="sgrid"><button data-sheet="play"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 5a2 2 0 0 1 2-2h13v16H6a2 2 0 0 0-2 2V5z"/><path d="M4 19a2 2 0 0 1 2-2h13"/></svg>Playbook</button><button data-sheet="model"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 6h10M18 6h2M4 12h4M12 12h8M4 18h12"/><circle cx="16" cy="6" r="2"/><circle cx="10" cy="12" r="2"/><circle cx="18" cy="18" r="2"/></svg>Modell</button></div><h4 class="adm-only">Verwaltung</h4><div class="sgrid adm-only"><button data-sheet="admin"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3 4 6v6c0 5 3.5 8 8 9 4.5-1 8-4 8-9V6l-8-3z"/><path d="m9 12 2 2 4-4"/></svg>Nutzer</button></div>
+<div class="sheet" id="moreSheet"><div class="grab"></div><h4>Übersicht</h4><div class="sgrid"><button data-sheet="home"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.5V21h14V9.5"/><path d="M10 21v-6h4v6"/></svg>Übersicht</button></div><h4>Kader</h4><div class="sgrid"><button data-sheet="kader"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M12 4v16"/><circle cx="12" cy="12" r="3"/><path d="M3 9h3v6H3M21 9h-3v6h3"/></svg>Kader</button></div><h4>Scouting</h4><div class="sgrid"><button data-sheet="scout"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>Scouting</button></div><h4>Mannschaft</h4><div class="sgrid"><button data-sheet="training"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12h4l3 8 4-16 3 8h4"/></svg>Mannschaft</button><button data-sheet="gegner"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1.5"/></svg>Spieltag</button><button data-sheet="kasse"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="6" width="18" height="14" rx="2.5"/><path d="M16 13.5h.01"/><path d="M3 10h18"/><path d="M7 6V4.8A1.8 1.8 0 0 1 8.8 3H17"/></svg>Kasse</button></div><h4>Nachwuchs</h4><div class="sgrid"><button data-sheet="ejugend"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 21v-8"/><path d="M12 13c0-4 3-7 8-7 0 4-3 7-8 7z"/><path d="M12 11C12 8 10 5 4 5c0 3 2.5 6 8 6z"/></svg>Jugend</button></div><h4>Verein</h4><div class="sgrid"><button data-sheet="verein"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 21h8M12 17v4"/><path d="M7 4h10v5a5 5 0 0 1-10 0V4z"/><path d="M17 5h3v2a3 3 0 0 1-3 3M7 5H4v2a3 3 0 0 0 3 3"/></svg>Verein</button></div><h4>Wissen</h4><div class="sgrid"><button data-sheet="play"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 5a2 2 0 0 1 2-2h13v16H6a2 2 0 0 0-2 2V5z"/><path d="M4 19a2 2 0 0 1 2-2h13"/></svg>Wissen</button></div><h4 class="adm-only">Verwaltung</h4><div class="sgrid adm-only"><button data-sheet="admin"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3 4 6v6c0 5 3.5 8 8 9 4.5-1 8-4 8-9V6l-8-3z"/><path d="m9 12 2 2 4-4"/></svg>Nutzer</button></div>
   <div class="meline" data-me><div class="uav" data-me-ini></div><div style="flex:1;min-width:0"><b data-me-name></b><span data-me-role></span></div><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 6 6 6-6 6"/></svg></div>
 </div>
 
 
 
 <div class="overlay" id="overlay"><div class="modal" id="modal"></div></div>
-<script>window.SVBC_CFG={"url": "https://lvaukuzgcwgqipxwzabo.supabase.co", "anon": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imx2YXVrdXpnY3dncWlweHd6YWJvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTAxNTYwMTcsImV4cCI6MjEwNTczMjAxN30.jYZF8q8-SyCaWykM0wwcK58EzfTbO2VASKz1NIv1xbo", "build": "r21-09241145", "dataBytes": 3053230};</script>
-<script src="vendor/supabase.js?v=r21-09241145"></script>
-<script src="icons.js?v=r21-09241145"></script>
-<script src="boot.js?v=r21-09241145"></script>
+<script>window.SVBC_CFG={"url": "https://lvaukuzgcwgqipxwzabo.supabase.co", "anon": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imx2YXVrdXpnY3dncWlweHd6YWJvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTAxNTYwMTcsImV4cCI6MjEwNTczMjAxN30.jYZF8q8-SyCaWykM0wwcK58EzfTbO2VASKz1NIv1xbo", "build": "4.0-202609241534", "dataBytes": 3053230};</script>
+<script src="vendor/supabase.js?v=4.0-202609241534"></script>
+<script src="icons.js?v=4.0-202609241534"></script>
+<script src="boot.js?v=4.0-202609241534"></script>
 </body>
 </html>
