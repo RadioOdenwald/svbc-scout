@@ -2100,7 +2100,7 @@ function openSlotPicker(i,depth){
 }
 
 /* ===== App-Modus: installierbar, offline-fest, aktualisiert sich selbst ===== */
-const APP_BUILD='r20-09241113', OUTBOX_KEY='svbcOutbox', APP_HIDE_KEY='svbcInstallHide';
+const APP_BUILD='r21-09241145', OUTBOX_KEY='svbcOutbox', APP_HIDE_KEY='svbcInstallHide';
 let _appPrompt=null, _appNew=null, _obT=null;
 function appStandalone(){ try{ return !!(window.matchMedia&&matchMedia('(display-mode: standalone)').matches)||navigator.standalone===true; }catch(e){ return false; } }
 function appPlatform(){
@@ -4293,19 +4293,24 @@ function trFab(){
 async function trAiCard(P){
   if(!P||!isAdmin())return;
   let s=null; try{ const {data}=await SVB.sb.rpc('ai_status'); s=data; }catch(e){}
+  const ready=!!(s&&s.ready), server=s&&s.quelle==='server', aus=s&&s.aus;
   const el=document.createElement('div'); el.className='card'; el.id='trAi';
-  el.innerHTML=`<div class="adm-head"><div><h3 style="margin:0;display:flex;gap:8px;align-items:center">${SVI('chat')} KI-Co-Trainer</h3>
-    <p style="margin:6px 0 0;font-size:13.5px">Ohne KI versteht der Co-Trainer einfache Sätze zu Anwesenheit, Gründen und Verletzungen. Mit einem Anthropic-API-Schlüssel versteht er freie Sätze, beantwortet Fragen zu Fitness, Verletzungen und Aufstellung und denkt aktiv mit. Kosten: je nach Nutzung wenige Euro im Monat, abgerechnet direkt über euer Anthropic-Konto.</p></div>
-    <span class="pill ${s&&s.ready?'on':'wait'}">${s&&s.ready?'aktiv · '+svEsc(s.model||''):'nicht eingerichtet'}</span></div>
-    <div class="invite" style="grid-template-columns:2fr 1fr auto"><div><label for="trAiKey">API-Schlüssel (beginnt mit sk-ant-)</label><input id="trAiKey" class="search" type="password" autocomplete="off" placeholder="${s&&s.ready?'•••••••• (hinterlegt – nur zum Ersetzen ausfüllen)':'sk-ant-…'}"></div>
-      <div><label for="trAiModel">Modell</label><select id="trAiModel">${[['claude-sonnet-5','Claude Sonnet 5 (empfohlen)'],['claude-haiku-4-5-20251001','Claude Haiku 4.5 (günstig)'],['claude-opus-5-5','Claude Opus 5.5 (stärkstes)']].map(([k,t])=>`<option value="${k}"${s&&s.model===k?' selected':''}>${t}</option>`).join('')}</select></div>
-      <button class="btn" id="trAiSave" style="height:46px">Speichern</button></div>
-    <p class="note">Den Schlüssel legst du selbst unter console.anthropic.com an (API Keys). Er liegt in einem geschützten Bereich der Datenbank, ist für niemanden in der App lesbar und wird nur vom Co-Trainer-Dienst verwendet. ${s&&s.ready?'<a href="#" id="trAiOff">KI wieder ausschalten</a>':''}</p>`;
+  el.innerHTML=`<div class="adm-head"><div><h3 style="margin:0;display:flex;gap:8px;align-items:center">${SVI('chat')} KI (Co-Trainer, KI-Scouts, Aufträge)</h3>
+    <p style="margin:6px 0 0;font-size:13.5px">Der KI-Schlüssel wird <b>nicht in der App</b> eingegeben. Er liegt nur auf dem Server – niemand in der App kann ihn sehen, und er wandert nie aufs Handy.</p></div>
+    <span class="pill ${ready?'on':'wait'}">${ready?'aktiv'+(server?' · Server':'')+' · '+svEsc(s.model||''):aus?'ausgeschaltet':'noch nicht hinterlegt'}</span></div>
+    ${!ready&&!aus?`<ol class="trai-steps"><li>Im Supabase-Dashboard: Projekt → <b>Edge Functions → Secrets</b> → „Add new secret“</li><li>Name <code>ANTHROPIC_API_KEY</code>, Wert: der Schlüssel (sk-ant-…) → Speichern</li><li>Hier auf <b>Prüfen</b> tippen – fertig.</li></ol>`:''}
+    <div class="invite" style="grid-template-columns:1fr auto auto"><div><label for="trAiModel">Modell</label><select id="trAiModel">${[['claude-sonnet-5','Claude Sonnet 5 (empfohlen)'],['claude-haiku-4-5-20251001','Claude Haiku 4.5 (günstig)'],['claude-opus-5-5','Claude Opus 5.5 (stärkstes)']].map(([k,t])=>`<option value="${k}"${s&&s.model===k?' selected':''}>${t}</option>`).join('')}</select></div>
+      <button class="btn ghost" id="trAiCheck" style="height:46px">${SVI('refresh')} Prüfen</button><button class="btn" id="trAiSave" style="height:46px">${aus?'KI einschalten':'Speichern'}</button></div>
+    <p class="note">Kosten laufen direkt über euer Anthropic-Konto; die KI-Scouts haben einen Monatsdeckel${s&&s.budget!=null?' ('+svEsc(s.budget)+' $)':''}. ${ready?'<a href="#" id="trAiOff">KI ausschalten</a>':''}</p>`;
   P.appendChild(el);
-  document.getElementById('trAiSave').onclick=async()=>{ const k=document.getElementById('trAiKey').value.trim(), m=document.getElementById('trAiModel').value;
-    try{ const {error}=await SVB.sb.rpc('ai_set',{p_key:k||null,p_model:m,p_clear:false}); if(error)throw error; document.getElementById('trAiKey').value=''; kToast('✓ KI-Co-Trainer gespeichert'); TR.ai=null; trLoad(true); svAdminRender(); }
-    catch(e){ kToast('⚠️ '+(e.message||e)); } };
-  const off=document.getElementById('trAiOff'); if(off)off.onclick=async e=>{ e.preventDefault(); try{ await SVB.sb.rpc('ai_set',{p_key:null,p_model:null,p_clear:true}); kToast('KI ausgeschaltet'); trLoad(true); svAdminRender(); }catch(x){ kToast('⚠️ '+x.message); } };
+  const reload=()=>{ TR.ai=null; trLoad(true); const c=document.getElementById('trAi'); if(c)c.remove(); trAiCard(P); };
+  document.getElementById('trAiSave').onclick=async()=>{ const m=document.getElementById('trAiModel').value;
+    try{ const {error}=await SVB.sb.rpc('ai_set',{p_key:null,p_model:m,p_clear:false}); if(error)throw error; kToast(aus?'✓ KI eingeschaltet':'✓ Gespeichert'); reload(); }catch(e){ kToast('⚠️ '+(e.message||e)); } };
+  document.getElementById('trAiCheck').onclick=async e=>{ const b=e.currentTarget; b.disabled=true;
+    try{ const {data,error}=await SVB.sb.functions.invoke('ki-check',{body:{}}); if(error)throw error;
+      kToast(data&&data.secret?(data.gueltig===false?'⚠️ Schlüssel gefunden, wird aber von Anthropic abgelehnt':'✓ Schlüssel auf dem Server gefunden – KI ist aktiv'):'Noch kein Schlüssel auf dem Server (ANTHROPIC_API_KEY)'); reload(); }
+    catch(x){ b.disabled=false; kToast('⚠️ '+(x.message||x)); } };
+  const off=document.getElementById('trAiOff'); if(off)off.onclick=async e=>{ e.preventDefault(); try{ await SVB.sb.rpc('ai_set',{p_key:null,p_model:null,p_clear:true}); kToast('KI ausgeschaltet'); reload(); }catch(x){ kToast('⚠️ '+x.message); } };
 }
 { const _ar1=svAdminRender; svAdminRender=async function(){ const r=await _ar1.apply(this,arguments); try{ const P=document.getElementById('panel-admin'); if(P&&!P.querySelector('#trAi'))await trAiCard(P); }catch(e){} return r; }; }
 
@@ -7082,6 +7087,7 @@ const SV_PATCHES=[
     {ic:'📄',t:'Berichte als PDF & Excel',d:'Scouting, Trainingsbeteiligung, Spiele, Kasse und Kaderplanung als PDF oder Excel – herunterladen, per WhatsApp teilen, in den Drive legen oder mailen.',r:'team',go:'training'},
     {ic:'🧠',t:'Co-Trainer denkt mit',d:'Nach jeder Antwort schlägt er die nächsten Schritte zum Antippen vor und weist auf blinde Flecken hin. Neu: Kontaktdaten per Satz eintragen („Die Nummer von … ist …“).',r:'team',go:'cotrainer'},
     {ic:'🔑',t:'Einladung & Passwort zuverlässiger',d:'Wer den Einladungslink zweimal öffnet oder dessen Browser die Anmeldung zwischendurch verliert, kann sein Passwort jetzt trotzdem festlegen. Wer noch kein eigenes Passwort hat, wird beim nächsten Öffnen direkt danach gefragt.'},
+    {ic:'🤖',t:'KI-Schlüssel nur noch auf dem Server',d:'Der KI-Schlüssel wird nicht mehr in der App eingegeben, sondern einmal sicher auf dem Server hinterlegt. Unter Nutzer & Rollen → KI siehst du den Status und prüfst ihn mit einem Tipp.',r:'admin',go:'admin'},
     {ic:'✨',t:'Was ist neu',d:'Dieses Fenster erscheint ab jetzt bei jedem Update. Die ganze Historie findest du jederzeit unter „Mehr“ bzw. in der Seitenleiste.'}]},
   {id:'3.4',datum:'2026-09-24',titel:'Kasse mit Kassenwart, Einladen & Einführung',kurz:'Zahlungen zählen erst nach Bestätigung, Einladen per Gruppenlink, persönliche Einführung.',
    punkte:[
