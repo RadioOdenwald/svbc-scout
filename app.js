@@ -2100,7 +2100,7 @@ function openSlotPicker(i,depth){
 }
 
 /* ===== App-Modus: installierbar, offline-fest, aktualisiert sich selbst ===== */
-const APP_BUILD='r15-202609240604', OUTBOX_KEY='svbcOutbox', APP_HIDE_KEY='svbcInstallHide';
+const APP_BUILD='r16-202609240653', OUTBOX_KEY='svbcOutbox', APP_HIDE_KEY='svbcInstallHide';
 let _appPrompt=null, _appNew=null, _obT=null;
 function appStandalone(){ try{ return !!(window.matchMedia&&matchMedia('(display-mode: standalone)').matches)||navigator.standalone===true; }catch(e){ return false; } }
 function appPlatform(){
@@ -6185,6 +6185,226 @@ async function kbSpielerLinks(){
 
 /* IBAN-Prüfsumme (Modulo 97) – fängt Tippfehler ab */
 function kbIbanOk(i){ if(!/^[A-Z]{2}[0-9]{2}[A-Z0-9]{11,30}$/.test(i))return false; const r=(i.slice(4)+i.slice(0,4)).replace(/[A-Z]/g,c=>String(c.charCodeAt(0)-55)); let m=0; for(const ch of r)m=(m*10+(+ch))%97; return m===1; }
+
+/* =====================================================================
+   SV/BSC Scout · Runde 16: Persönliche Einführung
+   - Beim ersten Öffnen: „Hi Julian, schön dass du dabei bist“ – zugeschnitten auf Rolle und Aufgaben (Training, Kasse, Scouting, Kader)
+   - Erst fragen, dann melden: Erlaubnis für Pop-ups je Bereich, Einverständnis für Daten & Uploads (Co-Trainer)
+   - Geführte Tour mit Maske und Pfeil: Co-Trainer, Kabine, Training, Scouting, Mein Konto
+   - Pop-ups (Einladen, Kasse, Radar) erscheinen erst nach der Einführung und nur, wenn erlaubt
+   ===================================================================== */
+let SV_PREFS=null;
+const SV_AUF={
+  training:{ic:'activity',t:'Training & Kabine',c:'#22c55e',d:['Vor jedem Training (Di & Do) erinnert dich die App: Abstimmungslink in die Gruppe – die Jungs sagen mit einem Klick zu oder ab.','Anwesenheit, Spiele und Saison-Statistik: Startelf, eingewechselt, Kader, zugeschaut, nicht da.'],
+    pop:'Vor jedem Training: „Spieler einladen“ – damit der Link rechtzeitig in der Gruppe ist.'},
+  kasse:{ic:'check',t:'Mannschaftskasse',c:'#0ea5e9',d:['Spieler melden „bezahlt“ – du schaust aufs Konto und hakst ab. Erst dann zählt es im Kassenstand.','Bank, PayPal und Bar getrennt – antippen, und die Karte dreht sich. Abgleich und Umbuchung mit einem Klick.'],
+    pop:'Neue gemeldete Zahlungen zum Abhaken – damit niemand zweimal zahlt oder vergessen wird.'},
+  scouting:{ic:'search',t:'Scouting',c:'#a78bfa',d:['Das Radar meldet neue Talente, Wechselkandidaten und Rohdiamanten aus der Region.','Datenbank, Vergleich und Dossiers – alles unter Scouting.'],
+    pop:'Neue Radar-Treffer seit deinem letzten Besuch – damit uns kein Talent durchrutscht.'},
+  kader:{ic:'plan',t:'Kaderplanung',c:'#fbbf24',d:['Kaderplan, Kandidaten und Schattenelf für die nächste Saison.','Wer bleibt, wer kommt, wo fehlt es – gemeinsam im Blick.'],pop:null}
+};
+function svAufgaben(){ return (SV_PREFS&&SV_PREFS.aufgaben)||[]; }
+function svPopOk(area){
+  if(!SV_PREFS||!(SV_PREFS.onboarding_at||SV_PREFS.skip))return false;
+  return !area||(SV_PREFS.popups||{})[area]!==false;
+}
+function svOnbSkipAuto(){ try{ return !!navigator.webdriver&&!localStorage.getItem('sv_onb_test'); }catch(e){ return false; } }
+async function svPrefsLoad(){
+  try{ const {data,error}=await SVB.sb.rpc('me_prefs'); if(error)throw error; SV_PREFS=data||{aufgaben:[],popups:{}}; }
+  catch(e){ console.warn('Einstellungen',e); SV_PREFS={aufgaben:[],popups:{},skip:true}; }
+  SV_PREFS.popups=SV_PREFS.popups||{};
+  if(!SV_PREFS.onboarding_at&&svOnbSkipAuto())SV_PREFS.skip=true;
+  if(!SV_PREFS.onboarding_at&&!SV_PREFS.skip)svOnbStart(); else svPopupsRun();
+}
+async function svPrefsSet(p){ const {data,error}=await SVB.sb.rpc('me_prefs_set',{p}); if(error)throw error; const skip=SV_PREFS&&SV_PREFS.skip; SV_PREFS=data; SV_PREFS.popups=SV_PREFS.popups||{}; if(skip)SV_PREFS.skip=true; return data; }
+function svPopupsRun(){ setTimeout(()=>{ try{ if(typeof kbAfter==='function'&&KB.loaded)kbAfter(); }catch(e){} try{ svScoutPopup(); }catch(e){ console.warn(e); } },400); }
+
+/* ---------- Einführung ---------- */
+const ONB={i:0,steps:[],pop:{}};
+function svOnbStart(force){
+  const g=document.getElementById('gate'); if(g&&!g.classList.contains('done')){ setTimeout(()=>svOnbStart(force),600); return; }
+  if(document.getElementById('onb'))return;
+  try{ closeOverlay(); }catch(e){}
+  const A=svAufgaben();
+  ONB.pop={}; ['training','kasse','scouting'].forEach(k=>{ if(A.includes(k)||(k==='kasse'&&SV_PREFS&&SV_PREFS.kassenwart))ONB.pop[k]=(SV_PREFS.popups||{})[k]!==false; });
+  ONB.steps=['hallo','revier','popups','daten','tour']; ONB.i=0; ONB.force=!!force;
+  const el=document.createElement('div'); el.id='onb'; el.className='onb'; document.body.appendChild(el); document.body.classList.add('onb-open');
+  svOnbDraw();
+}
+function svOnbDots(){ return `<div class="onb-dots">${ONB.steps.map((s,i)=>`<i class="${i===ONB.i?'on':i<ONB.i?'done':''}"></i>`).join('')}</div>`; }
+function svOnbDraw(){
+  const el=document.getElementById('onb'); if(!el)return; const st=ONB.steps[ONB.i], A=svAufgaben(), vn=svFirst(SVU.name)||'Coach', R=SVB.ROLE_T[svRole()]||'';
+  const auf=A.map(k=>SV_AUF[k]).filter(Boolean);
+  let h='';
+  if(st==='hallo')h=`<div class="onb-hero"><div class="onb-av r-${svEsc(svRole())}">${svEsc(svIni(SVU.name||SVU.email))}</div><div class="onb-wave">👋</div></div>
+    <h1>Hi ${svEsc(vn)}, schön, dass du dabei bist!</h1>
+    <p>Das ist die App der Ersten vom <b>SV/BSC Mörlenbach</b> – Kader, Training, Scouting und Kabine an einem Ort. In einer Minute zeig ich dir, was für dich wichtig ist.</p>
+    <div class="onb-chips"><span class="rolechip r-${svEsc(svRole())}"><i></i>${svEsc(R)}</span>${auf.map(a=>`<span class="onb-chip" style="--c:${a.c}">${SVI(a.ic)} ${svEsc(a.t)}</span>`).join('')}</div>
+    <div class="onb-btns"><button class="btn onb-go" data-next>Los geht's</button></div>`;
+  if(st==='revier')h=`<h2>Das ist dein Revier</h2><p class="onb-sub">Zugeschnitten auf deine Aufgaben${auf.length?'':' – der Admin kann dir jederzeit Bereiche zuteilen'}.</p>
+    <div class="onb-cards">${auf.map(a=>`<div class="onb-card" style="--c:${a.c}"><div class="onb-ic">${SVI(a.ic)}</div><div><b>${svEsc(a.t)}</b>${a.d.map(x=>`<span>${svEsc(x)}</span>`).join('')}</div></div>`).join('')}
+      ${canTraining()?`<div class="onb-card" style="--c:#5b9bff"><div class="onb-ic">${SVI('chat')}</div><div><b>Dein Co-Trainer</b><span>Frag die KI zu Aufstellung, Gegner, Training oder einem Spieler – auch mit Foto, Screenshot oder Sprache.</span></div></div>`:''}</div>
+    <div class="onb-btns"><button class="btn onb-go" data-next>Weiter</button></div>`;
+  if(st==='popups'){ const keys=Object.keys(ONB.pop);
+    h=`<div class="onb-big">🔔</div><h2>Darf ich dich anstupsen?</h2>
+    <p class="onb-sub">Damit nichts liegen bleibt, meldet sich die App mit kleinen Pop-ups – <b>nur wenn wirklich etwas zu tun ist</b>, nie Werbung. Ohne dein OK kommt keins. Ändern kannst du das jederzeit unter „Mein Konto“.</p>
+    ${keys.length?`<div class="onb-toggles">${keys.map(k=>`<button type="button" class="onb-tg${ONB.pop[k]?' on':''}" data-tg="${k}"><div class="onb-ic" style="--c:${SV_AUF[k].c}">${SVI(SV_AUF[k].ic)}</div><div><b>${svEsc(SV_AUF[k].t)}</b><span>${svEsc(SV_AUF[k].pop)}</span></div><i class="onb-sw"></i></button>`).join('')}</div>`:'<p class="onb-sub">Für deine Rolle gibt es gerade keine Pop-ups.</p>'}
+    <div class="onb-btns"><button class="btn onb-go" id="onbPopYes">${keys.length?'Ja, so passt es':'Weiter'}</button>${keys.length?'<button class="btn ghost" id="onbPopNo">Lieber keine Pop-ups</button>':''}</div>`; }
+  if(st==='daten')h=`<div class="onb-big">🔒</div><h2>Deine Daten & Uploads</h2>
+    <div class="onb-list"><div>📝 <span>Was du einträgst (Anwesenheit, Notizen, Strafen, Scouting) wird für das Trainerteam gespeichert.</span></div>
+      <div>📎 <span>Fotos, Screenshots oder Dateien, die du dem Co-Trainer gibst, werden hochgeladen und von der KI ausgewertet.</span></div>
+      <div>👀 <span>Nutzungszeit und Fragen an den Co-Trainer sieht ausschließlich der Admin.</span></div>
+      <div>🏟️ <span>Alles bleibt im Verein – keine Werbung, kein Weitergeben.</span></div></div>
+    <p class="onb-sub">Beim ersten Foto fragt dein Handy noch einmal nach Zugriff auf Kamera bzw. Fotos – einfach erlauben.</p>
+    <div class="onb-btns"><button class="btn onb-go" id="onbDatYes">Einverstanden</button><button class="btn ghost" id="onbDatNo">Ohne Uploads weiter</button></div>`;
+  if(st==='tour')h=`<div class="onb-big">🧭</div><h2>Kurzer Rundgang?</h2><p class="onb-sub">Ich zeig dir in ${svOnbTourSteps().length} Schritten, wo alles ist – mit Pfeil direkt in der App.</p>
+    <div class="onb-btns"><button class="btn onb-go" id="onbTour">Zeig's mir</button><button class="btn ghost" id="onbEnd">Überspringen</button></div>`;
+  el.innerHTML=`<div class="onb-box" data-step="${st}">${svOnbDots()}${h}</div>`;
+  el.querySelectorAll('.onb-chip svg,.onb-ic svg').forEach(s=>s.setAttribute('aria-hidden','true'));
+  const next=()=>{ ONB.i++; svOnbDraw(); };
+  el.querySelectorAll('[data-next]').forEach(b=>b.onclick=next);
+  el.querySelectorAll('[data-tg]').forEach(b=>b.onclick=()=>{ ONB.pop[b.dataset.tg]=!ONB.pop[b.dataset.tg]; b.classList.toggle('on'); });
+  const py=document.getElementById('onbPopYes'), pn=document.getElementById('onbPopNo');
+  if(py)py.onclick=async()=>{ try{ await svPrefsSet({popups:ONB.pop}); }catch(e){ kToast('⚠️ '+e.message); } next(); };
+  if(pn)pn.onclick=async()=>{ const off={}; Object.keys(ONB.pop).forEach(k=>off[k]=false); try{ await svPrefsSet({popups:off}); }catch(e){ kToast('⚠️ '+e.message); } next(); };
+  const dy=document.getElementById('onbDatYes'), dn=document.getElementById('onbDatNo');
+  if(dy)dy.onclick=async()=>{ try{ await svPrefsSet({daten_ok:true}); }catch(e){ kToast('⚠️ '+e.message); } next(); };
+  if(dn)dn.onclick=async()=>{ try{ await svPrefsSet({daten_ok:false}); }catch(e){} next(); };
+  const tt=document.getElementById('onbTour'), te=document.getElementById('onbEnd');
+  if(tt)tt.onclick=()=>{ document.getElementById('onb').remove(); svTour(); };
+  if(te)te.onclick=()=>svOnbDone();
+}
+async function svOnbDone(){
+  const el=document.getElementById('onb'); if(el)el.remove(); svTourEnd(); document.body.classList.remove('onb-open');
+  try{ await svPrefsSet({onboarding:true}); }catch(e){ console.warn(e); }
+  kToast(`✓ Alles klar, ${svFirst(SVU.name)||'Coach'} – viel Spaß!`); svPopupsRun();
+}
+
+/* ---------- Rundgang mit Maske und Pfeil ---------- */
+function svVis(sels){ for(const s of sels){ for(const el of document.querySelectorAll(s)){ const r=el.getBoundingClientRect(); if(r.width>4&&r.height>4&&r.bottom>0&&r.top<innerHeight&&getComputedStyle(el).visibility!=='hidden')return el; } } return null; }
+function svOnbTourSteps(){
+  const A=svAufgaben(), S=[];
+  if(canTraining())S.push({sel:['#trFab'],t:'Dein Co-Trainer',d:'Hier fragst du die KI – Aufstellung, Gegner, Trainingsplan. Tipp auf 📎 für Fotos oder Screenshots, auf 🎙️ zum Sprechen.'});
+  if(A.includes('training')||A.includes('kasse'))S.push({sel:['.tabbar .ti[data-tab="kabine"]','.snav [data-tab="kabine"]','#tMore'],t:'Kabine',d:A.includes('kasse')&&!A.includes('training')?'Hier ist die Mannschaftskasse: gemeldete Zahlungen abhaken, Kontostand Bank/PayPal, Strafen.':'Abstimmungen fürs Training und die Mannschaftskasse. Das Einladen-Pop-up kommt vor jedem Training von selbst.'});
+  if(A.includes('training'))S.push({sel:['.tabbar .ti[data-tab="training"]','.snav [data-tab="training"]'],t:'Training',d:'Anwesenheit, Spiele und die Saison-Statistik – vieles kommt automatisch aus den Spielberichten.'});
+  if(A.includes('scouting'))S.push({sel:['.tabbar .ti[data-tab="scout"]','.snav [data-tab="scout"]','#tMore'],t:'Scouting',d:'Radar, Datenbank und Rohdiamanten. Neue Treffer melden sich per Pop-up, wenn du es erlaubt hast.'});
+  if(A.includes('kader'))S.push({sel:['.tabbar .ti[data-tab="kaderplan"]','.tabbar .ti[data-tab="kandidaten"]','.snav [data-tab="kaderplan"]','#tMore'],t:'Kaderplanung',d:'Kaderplan, Kandidaten und Schattenelf für die nächste Saison.'});
+  S.push({sel:['#tMore','.snav [data-me]','[data-me]'],t:'Alles Weitere & Mein Konto',d:'Unter „Mehr“ findest du alle Bereiche und dein Konto – dort kannst du Pop-ups jederzeit an- oder ausschalten und diese Einführung nochmal ansehen.'});
+  return S;
+}
+const TOUR={i:0,S:[]};
+function svTour(){
+  try{ goTab('home'); }catch(e){}
+  TOUR.S=svOnbTourSteps(); TOUR.i=0;
+  const m=document.createElement('div'); m.id='onbTourL'; m.innerHTML='<div id="onbSpot"></div><svg id="onbArrow" viewBox="0 0 120 120" aria-hidden="true"><path d="M10 10 C 70 10, 100 40, 100 100" fill="none" stroke="#fff" stroke-width="5" stroke-linecap="round" stroke-dasharray="1 11"/><path d="M84 88 L100 108 L112 86" fill="none" stroke="#fff" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/></svg><div id="onbTip"></div>';
+  document.body.appendChild(m); document.body.classList.add('onb-open');
+  addEventListener('resize',svTourPlace); setTimeout(svTourShow,350);
+}
+function svTourShow(){
+  const L=document.getElementById('onbTourL'); if(!L)return; const s=TOUR.S[TOUR.i]; if(!s)return svOnbDone();
+  const el=svVis(s.sel); if(!el){ TOUR.i++; return svTourShow(); }
+  TOUR.el=el; const last=TOUR.i===TOUR.S.length-1;
+  document.getElementById('onbTip').innerHTML=`<small>${TOUR.i+1} / ${TOUR.S.length}</small><b>${svEsc(s.t)}</b><p>${svEsc(s.d)}</p><div class="onb-tipb"><button class="btn sm" id="onbTN">${last?'Fertig':'Weiter'}</button>${last?'':'<button class="btn ghost sm" id="onbTS">Überspringen</button>'}</div>`;
+  document.getElementById('onbTN').onclick=()=>{ TOUR.i++; svTourShow(); };
+  const sk=document.getElementById('onbTS'); if(sk)sk.onclick=()=>svOnbDone();
+  svTourPlace();
+}
+function svTourPlace(){
+  const el=TOUR.el, sp=document.getElementById('onbSpot'), tip=document.getElementById('onbTip'), ar=document.getElementById('onbArrow'); if(!el||!sp)return;
+  const r=el.getBoundingClientRect(), pad=8, W=innerWidth, H=innerHeight;
+  Object.assign(sp.style,{left:(r.left-pad)+'px',top:(r.top-pad)+'px',width:(r.width+2*pad)+'px',height:(r.height+2*pad)+'px'});
+  const below=r.top<H*0.45, tw=Math.min(320,W-32), tx=Math.max(16,Math.min(W-tw-16,r.left+r.width/2-tw/2));
+  tip.style.width=tw+'px'; tip.style.left=tx+'px';
+  if(below){ tip.style.top=(r.bottom+pad+84)+'px'; tip.style.bottom='auto'; } else { tip.style.bottom=(H-r.top+pad+84)+'px'; tip.style.top='auto'; }
+  // Pfeil von der Sprechblase zum markierten Element
+  const cx=r.left+r.width/2, left=cx>W/2;
+  ar.style.left=(left?cx-104:cx-16)+'px';
+  ar.style.top=(below?r.bottom+pad-4:r.top-pad-80)+'px';
+  ar.style.transform=`scaleX(${left?1:-1}) scaleY(${below?-1:1})`;
+}
+function svTourEnd(){ const L=document.getElementById('onbTourL'); if(L)L.remove(); removeEventListener('resize',svTourPlace); TOUR.el=null; }
+
+/* ---------- Radar-Pop-up (Scouting) ---------- */
+function svScoutPopup(){
+  if(!svPopOk('scouting')||!svAufgaben().includes('scouting')||!canScout()||!VR.radarLoaded)return;
+  if(SV_PREFS.skip){ let t=''; try{ t=localStorage.getItem('sv_spop_test')||''; }catch(e){} if(!t)return; }   // automatisierte Browser: nur auf Wunsch
+  if(document.querySelector('#overlay.open')||document.getElementById('onb')||document.getElementById('onbTourL'))return;
+  const seen=rdSeen(), N=VR.radar.filter(r=>r.created_at>seen&&r.lvl!=='info'); if(!N.length)return;
+  const last=N.map(r=>r.created_at).sort().pop(); let shown=''; try{ shown=localStorage.getItem('sv_spop')||''; }catch(e){}
+  if(shown>=last||window.__svSPop===last)return; window.__svSPop=last;
+  svModal(`<div class="kbpop"><div class="kbpop-ic scout">${SVI('radar')}</div><span class="trpill">Scouting</span><h2>${N.length} neue Radar-Meldung${N.length>1?'en':''}</h2>
+    <p class="note">${seen?'Seit deinem letzten Besuch':'Aktuell'} hat das Radar das hier gefunden:</p><div class="onb-rd">${N.slice(0,3).map(rdItem).join('')}</div>
+    <button class="btn kbpop-go" id="svSpGo">${SVI('radar')} Zum Radar</button><div class="btnrow"><button class="btn ghost sm" id="svSpL">Später</button></div></div>`);
+  const later=()=>{ try{ localStorage.setItem('sv_spop',last); }catch(e){} };
+  document.getElementById('svSpGo').onclick=()=>{ later(); closeOverlay(); VR.rf='alle'; goTab('radar'); };
+  document.getElementById('svSpL').onclick=()=>{ later(); closeOverlay(); };
+}
+
+/* ---------- Mein Konto: Pop-ups & Einführung ---------- */
+{ const _acc3=svAccount; svAccount=function(){ const r=_acc3.apply(this,arguments); try{ svAccountPrefs(); }catch(e){ console.warn(e); } return r; }; }
+function svAccountPrefs(){
+  const M=document.getElementById('modal'); if(!M||!SV_PREFS)return; const A=svAufgaben();
+  const keys=['training','kasse','scouting'].filter(k=>A.includes(k)||(k==='kasse'&&SV_PREFS.kassenwart));
+  const sec=document.createElement('div'); sec.className='editsec'; sec.id='svPrefSec';
+  sec.innerHTML=`<h4>Pop-ups & Einführung</h4>${keys.length?`<div class="onb-toggles sm">${keys.map(k=>`<button type="button" class="onb-tg${(SV_PREFS.popups||{})[k]!==false?' on':''}" data-ptg="${k}"><div class="onb-ic" style="--c:${SV_AUF[k].c}">${SVI(SV_AUF[k].ic)}</div><div><b>${svEsc(SV_AUF[k].t)}</b><span>${svEsc(SV_AUF[k].pop)}</span></div><i class="onb-sw"></i></button>`).join('')}</div>`:'<p class="note">Für deine Aufgaben gibt es keine Pop-ups.</p>'}
+    <p class="note">Daten & Uploads: ${SV_PREFS.daten_ok_at?'✓ einverstanden':'noch nicht zugestimmt – der Co-Trainer fragt beim ersten Upload.'}</p>
+    <div class="btnrow"><button class="btn ghost sm" id="svOnbAgain">${SVI('refresh')} Einführung nochmal ansehen</button></div>`;
+  const first=M.querySelector('.editsec'); if(first)first.before(sec); else M.appendChild(sec);
+  sec.querySelectorAll('[data-ptg]').forEach(b=>b.onclick=async()=>{ const k=b.dataset.ptg, on=!b.classList.contains('on');
+    try{ await svPrefsSet({popups:{[k]:on}}); if(k==='training'&&typeof KB!=='undefined')KB.popup=on; b.classList.toggle('on',on); kToast(on?'✓ Pop-ups für '+SV_AUF[k].t+' an':'Pop-ups für '+SV_AUF[k].t+' aus'); }catch(e){ kToast('⚠️ '+e.message); } });
+  document.getElementById('svOnbAgain').onclick=()=>{ closeOverlay(); SV_PREFS.skip=false; svOnbStart(true); };
+}
+
+/* ---------- Uploads erst nach Einverständnis ---------- */
+{ const _tas=trAttSetup; trAttSetup=function(){ const r=_tas.apply(this,arguments);
+  const b=document.getElementById('trcClip'), inp=document.getElementById('trcFile'); if(b&&inp){ const orig=b.onclick;
+    b.onclick=e=>{ if(!SV_PREFS||SV_PREFS.daten_ok_at||SV_PREFS.skip)return orig&&orig.call(b,e); svDatenAsk(()=>inp.click()); }; }
+  return r; }; }
+function svDatenAsk(then){
+  const box=document.createElement('div'); box.className='onb-ask'; box.innerHTML=`<div class="onb-askc"><b>📎 Upload erlauben?</b><p>Fotos, Screenshots und Dateien, die du dem Co-Trainer gibst, werden hochgeladen und von der KI ausgewertet. Sie bleiben im Verein.</p>
+    <div class="btnrow"><button class="btn sm" id="svDaY">Einverstanden</button><button class="btn ghost sm" id="svDaN">Nein, danke</button></div></div>`;
+  document.body.appendChild(box);
+  document.getElementById('svDaY').onclick=()=>{ box.remove(); then(); svPrefsSet({daten_ok:true}).catch(()=>{}); };
+  document.getElementById('svDaN').onclick=()=>box.remove();
+}
+
+/* ---------- Pop-ups erst nach der Einführung ---------- */
+{ const _kp=kbPopup; kbPopup=function(){ if(!svPopOk('training'))return; return _kp.apply(this,arguments); }; }
+{ const _kk=kbKassePopup; kbKassePopup=function(){ if(!svPopOk('kasse'))return; return _kk.apply(this,arguments); }; }
+{ const _va=vrAfter; vrAfter=function(){ const r=_va.apply(this,arguments); setTimeout(()=>{ try{ svScoutPopup(); }catch(e){} },900); return r; }; }
+{ const _si8=svInit; svInit=function(){ const r=_si8.apply(this,arguments); setTimeout(svPrefsLoad,700); return r; }; }
+
+/* ---------- Admin: Aufgaben je Person (Einladen & Team-Liste) ---------- */
+let SV_AUFMAP={}, SV_INV_AUF=null;
+const SV_AUF_STD={admin:['training','kasse','scouting','kader'],vorstand:['scouting','kader'],planer:['scouting','kader'],trainer:['training','scouting'],viewer:[]};
+{ const _adm=SVB.admin; SVB.admin=async function(action,payload){ const r=await _adm.apply(this,arguments);
+  if(action==='invite'&&r&&r.user_id&&SV_INV_AUF){ try{ await SVB.sb.rpc('admin_aufgaben_set',{p_user:r.user_id,p_aufgaben:SV_INV_AUF}); }catch(e){ console.warn(e); } SV_INV_AUF=null; }
+  return r; }; }
+{ const _ar=svAdminRender; svAdminRender=async function(){ const r=await _ar.apply(this,arguments); try{ await svAdminAuf(); }catch(e){ console.warn(e); } return r; }; }
+function svAufChips(sel,attr){ return Object.entries(SV_AUF).map(([k,a])=>`<button type="button" class="pchip auf${sel.includes(k)?' on':''}" ${attr}="${k}" style="--c:${a.c}">${svEsc(a.t)}</button>`).join(''); }
+async function svAdminAuf(){
+  const P=document.getElementById('panel-admin'); if(!P||!canManage())return;
+  const {data}=await SVB.sb.rpc('admin_aufgaben'); SV_AUFMAP=data||{};
+  const f=P.querySelector('#svInv'); if(f&&!f.querySelector('.invauf')){
+    const rs=f.querySelector('#svInvRole'); let touched=false; SV_INV_AUF=(SV_AUF_STD[rs.value]||[]).slice();
+    const d=document.createElement('div'); d.className='invauf'; f.querySelector('#svInvGo').before(d);
+    const draw=()=>{ d.innerHTML=`<label>Aufgaben <small>(bestimmen Einführung & Pop-ups)</small></label><div class="chips">${svAufChips(SV_INV_AUF,'data-ia')}</div>`;
+      d.querySelectorAll('[data-ia]').forEach(b=>b.onclick=()=>{ touched=true; const k=b.dataset.ia; SV_INV_AUF=SV_INV_AUF.includes(k)?SV_INV_AUF.filter(x=>x!==k):SV_INV_AUF.concat(k); draw(); }); };
+    rs.addEventListener('change',()=>{ if(!touched){ SV_INV_AUF=(SV_AUF_STD[rs.value]||[]).slice(); draw(); } }); draw();
+  }
+  P.querySelectorAll('.urow[data-u]').forEach(row=>{ const id=row.dataset.u, a=SV_AUFMAP[id]; if(!a||row.querySelector('.uauf'))return;
+    const s=document.createElement('button'); s.type='button'; s.className='uauf'; s.dataset.auf=id;
+    s.innerHTML=`${(a.aufgaben||[]).map(k=>`<i style="--c:${SV_AUF[k].c}">${svEsc(SV_AUF[k].t)}</i>`).join('')||'<i>keine Aufgaben</i>'}${a.onboarding?' <em>✓ Einführung</em>':''}`;
+    const nm=row.querySelector('.nm'); if(nm)nm.appendChild(s); s.onclick=()=>svAufEdit(id); });
+}
+function svAufEdit(id){
+  const u=(SV_USERS||[]).find(x=>x.id===id)||{}, a=(SV_AUFMAP[id]||{}).aufgaben||[]; let sel=a.slice();
+  svModal(`<div class="mhead"><div class="uav r-${svEsc(u.role||'')}" style="width:46px;height:46px;border-radius:14px">${svEsc(svIni(u.name||u.email||''))}</div><div><h2 style="margin:0">Aufgaben von ${svEsc(svFirst(u.name)||u.email||'')}</h2><div class="msub">Bestimmen die persönliche Einführung und welche Pop-ups angeboten werden. „Mannschaftskasse“ macht die Person zum Kassenwart.</div></div></div>
+    <div class="chips" id="svAufE"></div><div class="btnrow sbact"><button class="btn" id="svAufS">Speichern</button><button class="btn ghost" id="svAufC">Abbrechen</button></div>`);
+  const E=document.getElementById('svAufE'), draw=()=>{ E.innerHTML=svAufChips(sel,'data-ae'); E.querySelectorAll('[data-ae]').forEach(b=>b.onclick=()=>{ const k=b.dataset.ae; sel=sel.includes(k)?sel.filter(x=>x!==k):sel.concat(k); draw(); }); }; draw();
+  document.getElementById('svAufC').onclick=()=>closeOverlay();
+  document.getElementById('svAufS').onclick=async()=>{ const {error}=await SVB.sb.rpc('admin_aufgaben_set',{p_user:id,p_aufgaben:sel}); if(error)return kToast('⚠️ '+error.message); closeOverlay(); kToast('✓ Aufgaben gespeichert'); svAdminRender(true); };
+}
 
 /* ================= INIT ================= */
 renderWeights();
