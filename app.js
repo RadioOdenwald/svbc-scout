@@ -2100,7 +2100,7 @@ function openSlotPicker(i,depth){
 }
 
 /* ===== App-Modus: installierbar, offline-fest, aktualisiert sich selbst ===== */
-const APP_BUILD='4.0-202609241534', OUTBOX_KEY='svbcOutbox', APP_HIDE_KEY='svbcInstallHide';
+const APP_BUILD='4.1-202609241624', OUTBOX_KEY='svbcOutbox', APP_HIDE_KEY='svbcInstallHide';
 let _appPrompt=null, _appNew=null, _obT=null;
 function appStandalone(){ try{ return !!(window.matchMedia&&matchMedia('(display-mode: standalone)').matches)||navigator.standalone===true; }catch(e){ return false; } }
 function appPlatform(){
@@ -8243,17 +8243,25 @@ async function tm4ArchLoad(){ if(TM4.arch||TM4.archBusy)return; TM4.archBusy=tru
   TM4.archBusy=false; if(!SV4.statLoaded)await sv4Load(true); }
 { const _vg4=trViewGames; trViewGames=function(B){
   const now=sv4S(), s=TM4.gs||now;
-  const arch=[...new Set(SV4.stat.map(r=>r.saison))].sort().reverse();
+  const arch=tm4Seasons();
   const chips=[[now,sv4SL(now)]].concat(arch.map(y=>[y,y.slice(2,4)+'/'+y.slice(5)]));
   if(s===now){ _vg4.call(this,B); B.insertAdjacentHTML('afterbegin',tm4Chips(chips,s,'data-tgs')+(arch.length?'':'<p class="note small">Frühere Saisons laden …</p>')); }
   else tm4ArchView(B,s);
   B.querySelectorAll('[data-tgs]').forEach(x=>x.onclick=()=>{ TM4.gs=x.dataset.tgs; trViewGames(B); });
   if(!arch.length&&!SV4.statLoaded)sv4Load(true).then(()=>{ if(TR.view==='games')trViewGames(B); });
 }; }
+function tm4Seasons(){ const now=sv4S(), nl='20'+now.slice(0,2)+'/'+now.slice(2,4);
+  return [...new Set(SV4.stat.map(r=>r.saison).concat(typeof SV41!=='undefined'?SV41.bet.map(r=>r.saison):[]))].filter(y=>y!==nl).sort().reverse(); }
 function tm4ArchView(B,s){
   if(!TM4.arch){ B.innerHTML='<div class="card"><div class="empty">Lade Archiv …</div></div>'; tm4ArchLoad().then(()=>{ if(TR.view==='games')trViewGames(B); }); return; }
-  const now=sv4S(), arch=[...new Set(SV4.stat.map(r=>r.saison))].sort().reverse();
+  const now=sv4S(), arch=tm4Seasons();
   const G=TM4.arch.filter(g=>g.saison===s), st=SV4.stat.filter(r=>r.saison===s);
+  if(!G.length&&!st.length){ const bet=typeof SV41!=='undefined'?SV41.bet.filter(r=>r.saison===s):[];
+    B.innerHTML=tm4Chips([[now,sv4SL(now)]].concat(arch.map(y=>[y,y.slice(2,4)+'/'+y.slice(5)])),s,'data-tgs')+`<div class="card"><div class="vrat-h"><h3 class="trh" style="margin:0">${SVI('ball')} Saison ${sv4Esc(s)} – 1. Mannschaft</h3></div>
+      <p class="note">Für diese Saison liegen keine Einzelspiele im Archiv.${bet.length?` Aus Julians Liste: <b>${bet[0].spiele_max}</b> Spiele (Pflicht + Test) und <b>${bet[0].training_max}</b> Trainings – wer wie oft dabei war, steht unter <a href="#" data-tm4bet>Beteiligung</a>.`:''}</p></div>`;
+    B.querySelectorAll('[data-tgs]').forEach(x=>x.onclick=()=>{ TM4.gs=x.dataset.tgs; trViewGames(B); });
+    const a=B.querySelector('[data-tm4bet]'); if(a)a.onclick=e=>{ e.preventDefault(); SV41.bs=s; sv4Go('training:bet'); };
+    return; }
   const by={}; st.forEach(r=>{ const o=by[r.name]||(by[r.name]={n:r.name,sp:0,t:0,v:0,pk:0,st:null}); o.sp+=r.spiele||0; o.t+=r.tore||0; o.v+=r.vorlagen||0; if(r.wettbewerb==='pokal')o.pk+=r.spiele||0; if(r.startelf!=null)o.st=(o.st||0)+r.startelf; });
   const rows=Object.values(by).sort((a,b)=>b.sp-a.sp||b.t-a.t);
   const w=G.filter(g=>g.tore>g.gegentore).length, d=G.filter(g=>g.tore===g.gegentore).length, l=G.filter(g=>g.tore<g.gegentore).length;
@@ -8433,6 +8441,243 @@ SV_ACTIONS.viewer.splice(0,SV_ACTIONS.viewer.length,['search','Spielermarkt',()=
 { const _ho4=svHomeOrder; svHomeOrder=function(){ const r=_ho4.apply(this,arguments); try{ const el=document.getElementById('spHome'), P=document.getElementById('panel-home'); if(el&&P&&el.parentNode===P&&el!==P.lastElementChild)P.appendChild(el); }catch(e){} return r; }; }
 
 /* =====================================================================
+   SV/BSC Sportzentrale 4.1
+   - Trainings- & Spielbeteiligung je Saison (Julians Listen 21/22–26/27): Mannschaft → Beteiligung, Profil, Kaderplan
+   - Spielerfotos auf einen Schlag (Verwaltung): Dateiname → Spieler, vor dem Speichern prüfbar
+   - Saison-Album: Spieltagsbilder je Saison (Mannschaft → Spiele)
+   - n8n-Verbindung in der Verwaltung (nur Admin): Adressen eintragen, Schlüssel bleibt auf dem Server
+   ===================================================================== */
+const SV41={bet:[],betLoaded:false,betBusy:false,_idx:null,album:new Map(),albumBusy:new Set(),bs:null,relay:null};
+const sv41N=s=>(typeof TRC!=='undefined'&&TRC.N?TRC.N(String(s||'')):String(s||'').toLowerCase()).replace(/[^a-z]/g,'');
+const sv41Key=y=>String(y).length===7?y.slice(2,4)+y.slice(5,7):String(y);                 // '2023/24' → '2324'
+const sv41Lbl=y=>String(y).length===7?y.slice(2,4)+'/'+y.slice(5,7):sv4SL(y);             // '2023/24' → '23/24'
+const sv41Long=k=>'20'+String(k).slice(0,2)+'/'+String(k).slice(2,4);                    // '2627' → '2026/27'
+const sv41Pct=(a,b)=>b?Math.round(a/b*100):null;
+
+/* ---------- Beteiligung laden ---------- */
+async function sv41LoadBet(force){
+  if(typeof canTraining!=='function'||!canTraining()||SV41.betBusy||(SV41.betLoaded&&!force)||!SVB||!SVB.sb)return;
+  SV41.betBusy=true;
+  try{ const {data,error}=await SVB.sb.from('spieler_beteiligung').select('*').order('saison',{ascending:false}).limit(3000); if(error)throw error;
+    SV41.bet=data||[]; SV41.betLoaded=true; SV41._idx=null; try{ sv4Bump(); }catch(e){} }
+  catch(e){ console.warn('Beteiligung',e.message||e); SV41.betLoaded=true; }
+  finally{ SV41.betBusy=false; }
+  try{ const cur=typeof svCurTab==='function'?svCurTab():''; if(cur==='training'&&(TR.view==='bet'||TR.view==='games'))trRender(); if(cur==='kader'&&typeof kd4Render==='function')kd4Render(); }catch(e){}
+}
+{ const _ra41=renderAll; renderAll=function(){ SV41._idx=null; return _ra41.apply(this,arguments); }; }
+{ const _l41=sv4Load; sv4Load=async function(){ const r=await _l41.apply(this,arguments); sv41LoadBet(); return r; }; }
+function sv41Idx(){
+  if(SV41._idx)return SV41._idx; const byN=new Map();
+  SV41.bet.forEach(r=>{ const k=sv41N(r.name); if(!byN.has(k))byN.set(k,[]); byN.get(k).push(r); });
+  const pid=new Map(); (typeof players!=='undefined'?players:[]).forEach(p=>{ if(p.isJugend)return; const k=sv41N(p.name); if(byN.has(k)&&(!pid.has(k)||p.own))pid.set(k,p.id); });
+  SV41._idx={byN,pid}; return SV41._idx;
+}
+function sv41Bet(p){ if(!p||!SV41.bet.length||p.isJugend)return []; return (sv41Idx().byN.get(sv41N(p.name))||[]).slice().sort((a,b)=>b.saison.localeCompare(a.saison)); }
+function sv41Seasons(){ return [...new Set(SV41.bet.map(r=>r.saison))].sort().reverse(); }
+function sv41Bar(v){ const c=v==null?'var(--ink3)':v>=75?'var(--ok,#22c55e)':v>=55?'#eab308':'#ef4444'; return `<i class="b41"><u style="width:${v||0}%;background:${c}"></u></i>`; }
+
+/* ---------- Mannschaft → Beteiligung ---------- */
+SV4_HUB.mannschaft.tabs.splice(SV4_HUB.mannschaft.tabs.findIndex(([k])=>k==='training:players')+1,0,['training:bet','Beteiligung']);
+{ const _tr41=trRender; trRender=function(){
+  if(typeof TR==='undefined'||TR.view!=='bet')return _tr41.apply(this,arguments);
+  const h=trViewHome; trViewHome=tm41Bet; TR.view='home';
+  try{ return _tr41.apply(this,arguments); }finally{ trViewHome=h; TR.view='bet'; }
+}; }
+function tm41Bet(B){
+  if(!SV41.betLoaded){ B.innerHTML='<div class="card"><div class="empty">Lade Beteiligung …</div></div>'; sv41LoadBet(); return; }
+  const ys=sv41Seasons();
+  if(!ys.length){ B.innerHTML='<div class="card"><div class="empty">Noch keine Beteiligungslisten vorhanden.</div></div>'; return; }
+  const s=SV41.bs&&ys.includes(SV41.bs)?SV41.bs:ys[0], L=SV41.bet.filter(r=>r.saison===s), f=L[0]||{};
+  const rows=L.map(r=>({r,t:sv41Pct(r.training,r.training_max),g:sv41Pct(r.training+r.spiele+r.zuschauer+(r.events||0),(r.training_max||0)+(r.spiele_max||0)+Math.max(0,...L.map(x=>x.events||0)))}))
+    .sort((a,b)=>(b.g||0)-(a.g||0)||(b.t||0)-(a.t||0));
+  const I=sv41Idx(), mon=String(f.monat_lbl||'').split(' ');
+  const mmax=mon.map((_,i)=>Math.max(1,...L.map(r=>(r.monate||[])[i]||0)));
+  const avgT=rows.length?Math.round(rows.reduce((a,x)=>a+(x.t||0),0)/rows.length):null;
+  B.innerHTML=tm4Chips(ys.map(y=>[y,sv41Lbl(y)]),s,'data-bs')+`<div class="card">
+    <div class="vrat-h"><h3 class="trh" style="margin:0">${SVI('activity')} Trainings- & Spielbeteiligung ${sv41Lbl(s)} <small>${f.stand?'Stand '+sv4D(f.stand):'ganze Saison'}</small></h3></div>
+    <div class="kd4-sum"><span><b>${f.training_max||'–'}</b> Trainings</span><span><b>${f.spiele_max||'–'}</b> Spiele (Pflicht + Test)</span><span><b>${L.length}</b> Spieler</span><span class="${avgT>=70?'ok':avgT<55?'bad':''}">Ø Training <b>${avgT!=null?avgT+' %':'–'}</b></span></div>
+    <div class="trtw"><table class="trtab b41t"><thead><tr><th>Spieler</th><th>Training</th><th>Spiele</th><th title="Beim Spiel dabei, ohne zu spielen">Zusch.</th><th>Gesamt</th><th class="b41m">Monate (${sv4Esc(mon[0]||'')}–${sv4Esc(mon[mon.length-1]||'')})</th></tr></thead><tbody>
+    ${rows.map(({r,t,g})=>{ const pid=I.pid.get(sv41N(r.name));
+      return `<tr${pid?` data-svp="${sv4Esc(pid)}"`:''}><td><b>${sv4Esc(r.name)}</b></td>
+        <td><span class="b41c">${sv41Bar(t)}<em><span class="b41n">${r.training}<small>/${r.training_max}</small> · </span>${t!=null?t+' %':'–'}</em></span></td>
+        <td>${r.spiele}<small>/${r.spiele_max}</small></td><td>${r.zuschauer||'–'}</td><td><b>${g!=null?g+' %':'–'}</b></td>
+        <td class="b41m"><span class="b41mo">${(r.monate||[]).map((v,i)=>`<i title="${sv4Esc(mon[i]||'')}: ${v}" style="opacity:${v?0.25+0.75*v/mmax[i]:0.08}"></i>`).join('')}</span></td></tr>`; }).join('')}</tbody></table></div>
+    <p class="note small">Quelle: Beteiligungslisten von Julian (je Saison). Spiele = Pflicht- und Testspiele, in denen der Spieler gespielt hat · Zuschauer = beim Spiel dabei, ohne zu spielen · Gesamt = Training + Spiele + Zuschauer${L.some(x=>x.events)?' + Events':''} geteilt durch alle Termine.
+    ${s===sv41Long(sv4S())?' Neue Einheiten am besten direkt hier in der App erfassen („Training erfassen“) – dann rechnet der Co-Trainer mit.':''}</p></div>`;
+  B.querySelectorAll('[data-bs]').forEach(x=>x.onclick=()=>{ SV41.bs=x.dataset.bs; tm41Bet(B); });
+  B.querySelectorAll('tr[data-svp]').forEach(r=>r.onclick=()=>openModal(r.dataset.svp));
+}
+
+/* ---------- Profil: Beteiligung je Saison ---------- */
+function pf41BetHtml(p){
+  const L=sv41Bet(p); if(!L.length)return '';
+  return `<h5 class="pf41h">Trainings- & Spielbeteiligung ${sv4I('Beteiligung',{art:'Datenbestand',quelle:'Beteiligungslisten von Julian (PDF je Saison)',txt:'Training = besuchte Einheiten. Spiele = Pflicht- und Testspiele, in denen er gespielt hat. Zuschauer = beim Spiel dabei, ohne zu spielen.'})}</h5>
+    <table class="pf4-st pf41"><thead><tr><th>Saison</th><th>Training</th><th>Spiele</th><th>Zusch.</th></tr></thead><tbody>
+    ${L.map(r=>{ const t=sv41Pct(r.training,r.training_max); return `<tr><th>${sv41Lbl(r.saison)}${r.stand?`<small>Stand ${sv4D(r.stand)}</small>`:''}</th><td><span class="b41c">${sv41Bar(t)}<em>${r.training}/${r.training_max} · ${t!=null?t+' %':'–'}</em></span></td><td><b>${r.spiele}</b><small>/${r.spiele_max}</small></td><td>${r.zuschauer||'–'}</td></tr>`; }).join('')}</tbody></table>`;
+}
+{ const _ps41=pf4SeasonsHtml; pf4SeasonsHtml=function(p){
+  let h=_ps41.apply(this,arguments);
+  const L=sv41Bet(p);
+  h=h.replace(' 23/24 fehlt noch (FuPa-Daten folgen).',L.some(r=>r.saison==='2023/24')?' 23/24: Spiele und Training aus Julians Liste (Tore liegen für die Saison nicht vor).':'');
+  return h+pf41BetHtml(p);
+}; }
+
+/* ---------- Kaderplan: Trainingsquote der laufenden Saison ---------- */
+{ const _kr41=kd4Row; kd4Row=function(p){
+  const h=_kr41.apply(this,arguments); const r=sv41Bet(p).find(x=>x.saison===sv41Long(sv4S())); if(!r)return h;
+  const t=sv41Pct(r.training,r.training_max);
+  return h.replace('<span class="kr4-o"',`<span class="kr4-t ${t>=75?'ok':t<55?'bad':''}" title="Training ${sv41Lbl(r.saison)}: ${r.training} von ${r.training_max}${r.stand?' (Stand '+sv4D(r.stand)+')':''}">🏃 ${t} %</span><span class="kr4-o"`);
+}; }
+
+/* ---------- Bilder verkleinern ---------- */
+function sv41Img(file,edge,maxLen){ return new Promise((res,rej)=>{ const u=URL.createObjectURL(file), img=new Image();
+  img.onerror=()=>{ URL.revokeObjectURL(u); rej(new Error('Kein gültiges Bild: '+file.name)); };
+  img.onload=()=>{ const k=Math.min(1,edge/Math.max(img.width,img.height)), c=document.createElement('canvas');
+    c.width=Math.max(1,Math.round(img.width*k)); c.height=Math.max(1,Math.round(img.height*k)); c.getContext('2d').drawImage(img,0,0,c.width,c.height);
+    URL.revokeObjectURL(u); let q=0.82, d=c.toDataURL('image/jpeg',q);
+    while(d.length>maxLen&&q>0.35){ q-=0.1; d=c.toDataURL('image/jpeg',q); }
+    if(d.length>maxLen){ const c2=document.createElement('canvas'); c2.width=Math.round(c.width*0.7); c2.height=Math.round(c.height*0.7); c2.getContext('2d').drawImage(c,0,0,c2.width,c2.height); d=c2.toDataURL('image/jpeg',0.6); }
+    d.length>maxLen?rej(new Error('Bild zu groß: '+file.name)):res(d); };
+  img.src=u; }); }
+
+/* ---------- Spielerfotos auf einen Schlag ---------- */
+function sv41FotoPool(){ const I=sv41Idx();
+  return players.filter(p=>!p.isJugend&&(p.own||p.exSvbc||I.byN.has(sv41N(p.name))||(typeof sv4Archiv==='function'&&sv4Archiv(p).length)))
+    .sort((a,b)=>(b.own?1:0)-(a.own?1:0)||a.name.localeCompare(b.name,'de')); }
+function sv41Guess(fname,pool){
+  const b=sv41N(String(fname).replace(/\.[a-z0-9]{2,5}$/i,'').replace(/\(\d+\)/g,'')); if(b.length<3)return null;
+  const C=pool.map(p=>{ const parts=String(p.name).split(/\s+/).map(sv41N).filter(Boolean); return {p,f:parts[0]||'',l:parts[parts.length-1]||'',full:parts.join('')}; });
+  const one=a=>a.length===1?a[0].p:null;
+  const run=X=>one(X.filter(c=>c.full===b))||one(X.filter(c=>c.f+c.l===b))||one(X.filter(c=>c.l===b))||one(X.filter(c=>c.f===b))
+    ||(b.length>=4?one(X.filter(c=>c.l.startsWith(b)))||one(X.filter(c=>c.f.startsWith(b))):null);
+  return run(C.filter(c=>c.p.own))||run(C);
+}
+function sv41FotoTool(files){
+  const pool=sv41FotoPool(), F=[...files].filter(f=>/^image\//.test(f.type)||/\.(jpe?g|png|webp|heic)$/i.test(f.name)).slice(0,120);
+  if(!F.length){ kToast('Keine Bilder ausgewählt'); return; }
+  const G=F.map(f=>({f,u:URL.createObjectURL(f),p:sv41Guess(f.name,pool)}));
+  const opts=sel=>`<option value="">– überspringen –</option>`+pool.map(p=>`<option value="${sv4Esc(p.id)}"${sel===p.id?' selected':''}>${sv4Esc(p.name)}${p.own?'':' (ehem.)'}${p.photo?' · hat Foto':''}</option>`).join('');
+  const M=svModal(`<div class="mhead"><div class="rm-ic" style="width:46px;height:46px">${SVI('user')}</div><div><h2 style="margin:0">Spielerfotos zuordnen</h2><div class="msub">${G.filter(x=>x.p).length} von ${G.length} automatisch erkannt – bitte kurz prüfen</div></div></div>
+    <div class="f41g">${G.map((x,i)=>`<label class="f41"><img src="${x.u}" alt=""><span>${sv4Esc(x.f.name)}</span><select data-f41="${i}">${opts(x.p&&x.p.id)}</select></label>`).join('')}</div>
+    <label class="f41x"><input type="checkbox" id="f41ow"> Vorhandene Fotos ersetzen</label>
+    <div class="btnrow" style="margin-top:12px"><button class="btn" id="f41go">${SVI('check')} Fotos speichern</button><button class="btn ghost" id="f41no">Abbrechen</button></div>
+    <p class="note small">Fotos werden quadratisch zugeschnitten (320 px) und sind nur fürs Team sichtbar. Nur Senioren – keine Fotos von Jugendspielern.</p>`);
+  const done=()=>G.forEach(x=>URL.revokeObjectURL(x.u));
+  M.querySelector('#f41no').onclick=()=>{ done(); closeOverlay(); };
+  M.querySelector('#f41go').onclick=async()=>{
+    const b=M.querySelector('#f41go'), ow=M.querySelector('#f41ow').checked; b.disabled=true; let n=0, skip=0, bad=[];
+    const seen=new Set();
+    for(let i=0;i<G.length;i++){
+      const id=M.querySelector(`[data-f41="${i}"]`).value; if(!id||seen.has(id)){ continue; } seen.add(id);
+      const p=players.find(x=>x.id===id); if(!p||p.isJugend)continue;
+      if(p.photo&&!ow){ skip++; continue; }
+      b.textContent=`Speichere ${n+1} …`;
+      try{ const data=await scSquare(G[i].f,320); const {error}=await SVB.sb.from('player_photos').upsert({player_id:id,data},{onConflict:'player_id'}); if(error)throw error; p.photo=data; SVC.photos.set(id,data); n++; }
+      catch(e){ bad.push(G[i].f.name); }
+    }
+    done(); closeOverlay(); try{ renderAll(); }catch(e){}
+    kToast(`📷 ${n} Foto${n===1?'':'s'} gespeichert${skip?` · ${skip} übersprungen (hatten schon eins)`:''}${bad.length?` · ${bad.length} fehlgeschlagen`:''}`);
+    try{ svAdminRender(); }catch(e){}
+  };
+}
+
+/* ---------- Saison-Album ---------- */
+const sv41CanAlbum=()=>['admin','vorstand','planer'].includes(svRole());
+async function sv41AlbumLoad(y,force){
+  if((SV41.album.has(y)&&!force)||SV41.albumBusy.has(y))return; SV41.albumBusy.add(y);
+  try{ const {data,error}=await SVB.sb.from('saison_bilder').select('id,saison,titel,datum,thumb,created_by').eq('saison',y).order('datum',{ascending:true,nullsFirst:false}).order('id').limit(300); if(error)throw error; SV41.album.set(y,data||[]); }
+  catch(e){ console.warn('Album',e.message||e); SV41.album.set(y,[]); }
+  finally{ SV41.albumBusy.delete(y); }
+}
+function sv41AlbumHtml(y){ return `<details class="pf4-sec a41" data-a41="${sv4Esc(y)}"><summary><span>📸 Saison-Album ${sv41Lbl(y)}</span><em data-a41n>${SV41.album.has(y)?SV41.album.get(y).length:''}</em></summary><div class="pf4-b" data-a41b><div class="empty">Lade Bilder …</div></div></details>`; }
+function sv41AlbumWire(root){
+  root.querySelectorAll('[data-a41]').forEach(d=>{ const y=d.dataset.a41;
+    const draw=()=>{ const L=SV41.album.get(y)||[], B=d.querySelector('[data-a41b]'); d.querySelector('[data-a41n]').textContent=L.length||'';
+      B.innerHTML=`${L.length?`<div class="a41g">${L.map(x=>`<button type="button" class="a41i" data-a41o="${x.id}" title="${sv4Esc(x.titel||'')}"><img src="${x.thumb}" alt="" loading="lazy"><span>${sv4Esc(x.titel||'')}${x.datum?` · ${sv4D(x.datum)}`:''}</span></button>`).join('')}</div>`:'<div class="empty">Noch keine Bilder für diese Saison.</div>'}
+        ${sv41CanAlbum()?`<div class="btnrow" style="margin-top:10px"><label class="btn sm ghost">${SVI('plus')} Bilder hinzufügen<input type="file" accept="image/*" multiple hidden data-a41up></label><span class="note small" data-a41st></span></div>`:''}`;
+      B.querySelectorAll('[data-a41o]').forEach(b=>b.onclick=()=>sv41AlbumShow(y,+b.dataset.a41o,()=>draw()));
+      const up=B.querySelector('[data-a41up]'); if(up)up.onchange=()=>sv41AlbumUpload(y,up.files,B.querySelector('[data-a41st]'),draw); };
+    const go=()=>{ if(SV41.album.has(y))draw(); else sv41AlbumLoad(y).then(draw); };
+    d.addEventListener('toggle',()=>{ if(d.open)go(); });
+    if(d.open)go(); });
+}
+function sv41TitelDatum(name,y){
+  let t=String(name).replace(/\.[a-z0-9]{2,5}$/i,'').replace(/\s*\(\d+\)\s*$/,'').replace(/_\d{2,4}$/,'').replace(/[_]+/g,' ').replace(/\s{2,}/g,' ').trim();
+  const y1=+String(y).slice(0,4), y2=y1+1; let d=null, m;
+  if((m=t.match(/(20\d{2})[ ._-](\d{2})[ ._-](\d{2})/)))d=`${m[1]}-${m[2]}-${m[3]}`;
+  else if((m=t.match(/(?:^|\D)(\d{1,2})\.(\d{1,2})\.?(\d{2,4})?(?!\d)/))){ const mo=+m[2], da=+m[1]; if(mo>=1&&mo<=12&&da>=1&&da<=31){ const yy=m[3]?(m[3].length===2?2000+ +m[3]:+m[3]):(mo>=7?y1:y2); d=`${yy}-${String(mo).padStart(2,'0')}-${String(da).padStart(2,'0')}`; } }
+  t=t.replace(/(20\d{2})[ ._-](\d{2})[ ._-](\d{2})/,'');
+  if(d&&m&&m[0]&&!/^20\d{2}/.test(m[0].trim()))t=t.replace(m[0].replace(/^\D/,''),'');
+  t=t.replace(/\s+(am|vom)\s*$/i,'').replace(/\s{2,}/g,' ').trim();
+  return {titel:t.slice(0,120)||null,datum:d};
+}
+async function sv41AlbumUpload(y,files,st,draw){
+  const F=[...files].slice(0,60); let n=0, bad=0;
+  for(const f of F){
+    if(st)st.textContent=`Lade ${n+bad+1} von ${F.length} hoch …`;
+    try{ const [bild,thumb]=[await sv41Img(f,1600,500000),await sv41Img(f,420,58000)]; const {titel,datum}=sv41TitelDatum(f.name,y);
+      const {error}=await SVB.sb.from('saison_bilder').insert({saison:y,titel,datum,thumb,bild}); if(error)throw error; n++; }
+    catch(e){ bad++; console.warn(e); }
+  }
+  await sv41AlbumLoad(y,true); draw(); kToast(`📸 ${n} Bild${n===1?'':'er'} hinzugefügt${bad?` · ${bad} fehlgeschlagen`:''}`);
+}
+async function sv41AlbumShow(y,id,after){
+  const L=SV41.album.get(y)||[], i=L.findIndex(x=>x.id===id), x=L[i]; if(!x)return;
+  const me=SVB.user&&SVB.user.id, del=['admin','vorstand'].includes(svRole())||x.created_by===me;
+  const M=svModal(`<div class="a41v"><img src="${x.thumb}" alt="" id="a41img"><div class="a41vh"><b>${sv4Esc(x.titel||'Bild')}</b><span>${x.datum?sv4D(x.datum)+' · ':''}${sv41Lbl(y)} · ${i+1}/${L.length}</span></div>
+    <div class="btnrow">${i>0?`<button class="btn sm ghost" data-a41n="-1">‹ Zurück</button>`:''}${i<L.length-1?`<button class="btn sm ghost" data-a41n="1">Weiter ›</button>`:''}${del?`<button class="btn sm ghost" data-a41d>${SVI('trash')} Löschen</button>`:''}</div></div>`);
+  M.querySelectorAll('[data-a41n]').forEach(b=>b.onclick=()=>sv41AlbumShow(y,L[i+ +b.dataset.a41n].id,after));
+  const d=M.querySelector('[data-a41d]'); if(d)d.onclick=async()=>{ if(d.dataset.sure!=='1'){ d.dataset.sure='1'; d.textContent='Wirklich löschen?'; return; }
+    const {error}=await SVB.sb.from('saison_bilder').delete().eq('id',x.id); if(error){ kToast('⚠️ '+error.message); return; }
+    SV41.album.set(y,L.filter(z=>z.id!==x.id)); closeOverlay(); kToast('Bild gelöscht'); if(after)after(); };
+  try{ const {data}=await SVB.sb.from('saison_bilder').select('bild').eq('id',id).single(); const im=M.querySelector('#a41img'); if(data&&im&&M.contains(im))im.src=data.bild; }catch(e){}
+}
+
+/* ---------- Verwaltung: Spielerfotos & n8n-Verbindung ---------- */
+{ const _ad41=svAdminRender; svAdminRender=async function(){
+  const r=await _ad41.apply(this,arguments); const P=document.getElementById('panel-admin'); if(!P||!canManage())return r;
+  P.querySelectorAll('.adm41').forEach(x=>x.remove());
+  const pool=sv41FotoPool(), mit=pool.filter(p=>p.photo).length;
+  const c=document.createElement('div'); c.className='card adm41';
+  c.innerHTML=`<div class="adm-head"><div><h3 style="margin:0">📷 Spielerfotos auf einen Schlag</h3><p style="margin:6px 0 0;font-size:13.5px">Mehrere Porträts auswählen (z. B. alle aus dem Drive-Ordner „Spielerbilder“) – die App erkennt am Dateinamen, wer drauf ist. Vor dem Speichern prüfst du die Zuordnung.</p></div>
+    <div class="adm-stats"><div class="adm-stat"><b>${mit}</b><span>mit Foto</span></div><div class="adm-stat"><b>${pool.filter(p=>p.own&&!p.photo).length}</b><span>eigene ohne Foto</span></div></div></div>
+    <label class="btn" style="margin-top:10px">${SVI('plus')} Fotos auswählen<input type="file" accept="image/*" multiple hidden id="f41in"></label>`;
+  P.appendChild(c); c.querySelector('#f41in').onchange=e=>sv41FotoTool(e.target.files);
+  if(isAdmin())await sv41RelayCard(P);
+  return r;
+}; }
+async function sv41RelayCard(P){
+  let R=null; try{ const {data,error}=await SVB.sb.rpc('admin_relay_get'); if(error)throw error; R=data; }catch(e){ return; }
+  const row=(k,t,d,o)=>{ const x=R[k]||{}; return `<div class="r41"><div class="r41h"><b>${t}</b>${x.url&&x.key?'<span class="pill on">verbunden</span>':'<span class="pill wait">nicht eingerichtet</span>'}</div><p class="note small">${d}</p>
+    <div class="r41f"><input class="search" data-r41="${k}" placeholder="https://dein-n8n.de/webhook/…" value="${sv4Esc(x.url||'')}">${o||''}<button class="btn sm" data-r41s="${k}">Speichern</button></div></div>`; };
+  const c=document.createElement('div'); c.className='card adm41';
+  c.innerHTML=`<div class="adm-head"><div><h3 style="margin:0">🔌 n8n-Verbindung</h3><p style="margin:6px 0 0;font-size:13.5px">WhatsApp (Superchat), Google Drive und E-Mail laufen über euren n8n-Server – die Zugänge liegen dort, nicht in der App.</p></div></div>
+    <ol class="r41s"><li>In n8n die beiden Workflows importieren (Dokumente → svbc-scout → n8n).</li><li>In jedem Workflow die Zugänge auswählen: Superchat · Google Drive · SMTP.</li><li>Workflow aktivieren und im Webhook-Knoten die <b>Production URL</b> kopieren.</li><li>Hier einfügen und speichern – fertig.</li></ol>
+    ${row('kabine','WhatsApp-Versand (Kabine)','Einladungen und Erinnerungen an die Spieler, nur freigegebene Vorlagen.')}
+    ${row('berichte','Berichte in den Drive / per Mail','Excel/PDF-Berichte landen im Drive-Ordner oder im Postfach.',`<input class="search" data-r41o placeholder="Drive-Ordner" value="${sv4Esc((R.berichte||{}).ordner||'')}" style="max-width:190px">`)}
+    <div data-r41k></div>`;
+  P.appendChild(c);
+  c.querySelectorAll('[data-r41s]').forEach(b=>b.onclick=async()=>{
+    const k=b.dataset.r41s, url=c.querySelector(`[data-r41="${k}"]`).value.trim(), o=k==='berichte'?c.querySelector('[data-r41o]').value.trim():null;
+    if(url&&!/\/webhook\//.test(url)){ kToast('Bitte die komplette Production-URL aus dem Webhook-Knoten einfügen (…/webhook/…)'); return; }
+    b.disabled=true;
+    try{ const {data,error}=await SVB.sb.rpc('admin_relay_set',{p_art:k,p_url:url||null,p_ordner:o||null}); if(error)throw error;
+      if(data&&data.schluessel_neu){ c.querySelector('[data-r41k]').innerHTML=`<div class="r41n"><b>Neuer Schlüssel – einmalig angezeigt</b><p class="note small">In n8n im Knoten „Prüfen“ den Schlüssel durch diesen ersetzen:</p><code>${sv4Esc(data.schluessel_neu)}</code></div>`; }
+      kToast(url?'✓ n8n-Verbindung gespeichert':'Verbindung entfernt'); b.disabled=false;
+      const st=b.closest('.r41').querySelector('.pill'); if(st){ st.className='pill '+(url?'on':'wait'); st.textContent=url?'verbunden':'nicht eingerichtet'; } }
+    catch(e){ b.disabled=false; kToast('⚠️ '+String(e.message||e)); }
+  });
+}
+
+/* ---------- Mannschaft → Spiele: Album für jede Saison ---------- */
+{ const _vg41=trViewGames; trViewGames=function(B){
+  const r=_vg41.apply(this,arguments);
+  try{ const now=sv4S(), s=TM4.gs||now, y=s.length===4?sv41Long(s):s;
+    if(!B.querySelector('.a41')){ B.insertAdjacentHTML('beforeend',sv41AlbumHtml(y)); sv41AlbumWire(B); } }catch(e){ console.warn(e); }
+  return r;
+}; }
+
+/* =====================================================================
    SV/BSC Scout · Runde 20: „Was ist neu“ – Update-Fenster & Patch-Historie
    - Nach jedem Update ein Pop-up: das Wichtigste in Kürze → „OK“ oder „Mehr erfahren“ (ganze Historie)
    - Jederzeit erreichbar: Seitenleiste / „Mehr“ / Mein Konto → „Was ist neu“
@@ -8441,6 +8686,12 @@ SV_ACTIONS.viewer.splice(0,SV_ACTIONS.viewer.length,['search','Spielermarkt',()=
    Sichtbarkeit je Punkt: r:'team' (ohne Gäste) · r:'scout' · r:'admin' · ohne r = alle
    ===================================================================== */
 const SV_PATCHES=[
+  {id:'4.1',datum:'2026-09-24',titel:'Beteiligung, Fotos & Saison-Album',kurz:'Wer war wie oft im Training und im Spiel – von 21/22 bis heute. Dazu Spielerfotos auf einen Schlag und ein Album je Saison.',
+   punkte:[
+    {ic:'🏃',t:'Trainings- & Spielbeteiligung',d:'Julians Listen sind drin: 21/22 bis 26/27, je Spieler Training, Spiele und Zuschauer – unter Mannschaft → Beteiligung, im Spielerprofil und als Quote im Kaderplan. Damit ist auch 23/24 nicht mehr leer.',r:'team',go:'training'},
+    {ic:'📷',t:'Spielerfotos auf einen Schlag',d:'Verwaltung → Fotos auswählen: die App erkennt am Dateinamen, wer drauf ist. Kurz prüfen, speichern – die Fotos erscheinen auf Karten, im Profil und in der Aufstellung.',r:'team'},
+    {ic:'📸',t:'Saison-Album',d:'Unter Mannschaft → Spiele gibt es je Saison ein Album mit den Spieltagsbildern. Vorstand und Kaderplanung laden hoch, alle sehen es.',r:'team',go:'training'},
+    {ic:'🔌',t:'n8n-Verbindung in der Verwaltung',d:'WhatsApp-Versand und Berichte in den Drive/per Mail lassen sich jetzt selbst verbinden: Production-URL aus n8n einfügen, speichern.',r:'admin'}]},
   {id:'4.0',datum:'2026-09-24',titel:'SV/BSC Sportzentrale',kurz:'Neuer Name, neue Ordnung: Kader, Scouting und Mannschaft so, wie ihr arbeitet – vom aktuellen Kader über den Bedarf zum passenden Spieler.',
    punkte:[
     {ic:'🏟',t:'Aus „Scout“ wird Sportzentrale',d:'Die App kann längst mehr als Scouting: Kader, Mannschaft, Spieltag, eigene Jugend und Kasse. Der neue Name zeigt das.'},
