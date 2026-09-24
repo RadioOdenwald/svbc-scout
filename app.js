@@ -2100,7 +2100,7 @@ function openSlotPicker(i,depth){
 }
 
 /* ===== App-Modus: installierbar, offline-fest, aktualisiert sich selbst ===== */
-const APP_BUILD='4.1-202609241624', OUTBOX_KEY='svbcOutbox', APP_HIDE_KEY='svbcInstallHide';
+const APP_BUILD='4.2-202609241703', OUTBOX_KEY='svbcOutbox', APP_HIDE_KEY='svbcInstallHide';
 let _appPrompt=null, _appNew=null, _obT=null;
 function appStandalone(){ try{ return !!(window.matchMedia&&matchMedia('(display-mode: standalone)').matches)||navigator.standalone===true; }catch(e){ return false; } }
 function appPlatform(){
@@ -6139,7 +6139,7 @@ function kbBotCard(){
     <div class="sbsec"><h4>WhatsApp an die Trainer <small>über Superchat${ready?' · eingerichtet ✓':''}</small></h4>
       ${emp.map((e,i)=>`<div class="kbemp"><input data-en="${i}" placeholder="Name, z.B. Nico" value="${svEsc(e.name||'')}" maxlength="40"><input data-et="${i}" placeholder="Handy, z.B. 0171 1234567" value="${svEsc(e.tel||'')}" inputmode="tel" maxlength="20"></div>`).join('')}
       <div class="kbform"><div class="field"><label>Superchat Kanal-ID</label><input id="kbA_ch" value="${svEsc(c.sc_channel||'')}" placeholder="mc_…" maxlength="60"></div><div class="field"><label>Vorlagen-ID (WhatsApp-Vorlage mit 1 Text-Variable)</label><input id="kbA_tp" value="${svEsc(c.sc_template||'')}" placeholder="tn_…" maxlength="60"></div>
-        <div class="field kbwide"><div class="note" style="margin:0">${c.versand==='n8n'?'✓ Versand läuft über euren n8n-Server – der Superchat-Zugang liegt dort, nicht in der App.':c.versand==='direkt'?'Versand direkt über Superchat.':'Versand noch nicht verbunden – wird über euren n8n-Server eingerichtet (wie die Geburtstagsgrüße).'}</div></div></div>
+        <div class="field kbwide"><div class="note" style="margin:0">${c.versand==='server'?'✓ Versand über Superchat – der Zugang liegt sicher auf dem Server, nicht in der App.':c.versand==='n8n'?'✓ Versand läuft über euren n8n-Server – der Superchat-Zugang liegt dort, nicht in der App.':c.versand==='direkt'?'Versand direkt über Superchat.':'WhatsApp-Versand noch nicht verbunden – der Admin hinterlegt den Superchat-Zugang einmal auf dem Server (Verwaltung → Versand & Zugänge).'}</div></div></div>
       <div class="note">Nachrichten außerhalb eines offenen Chats brauchen bei WhatsApp eine genehmigte Vorlage, z.B. „SV/BSC Kabine: {{1}}“ (Kategorie „Utility“). Die App setzt den Text mit Link in die Variable ein.</div></div>
     <div class="sbsec"><h4>Spieler einzeln per WhatsApp <small>${c.nummern||0} Nummern hinterlegt · diesen Monat ${c.monat||0} von max. ${c.max_monat||400} Nachrichten</small></h4>
       <label class="kbchk"><input type="checkbox" id="kbA_ee"${c.einzeln_erinnern?' checked':''}> Am Trainingstag nur die, die noch nicht geantwortet haben, persönlich erinnern <small>(günstig: meist 3–8 Nachrichten)</small></label>
@@ -6842,7 +6842,7 @@ function sxLinkBase(){ const L=window.KB&&KB.bot&&KB.bot.link_url; return L&&!/g
 /* ---------- Dialog: Format & Weg, Mehrfachauswahl, Absenden ---------- */
 async function sxExport(kind,o){
   const K=SX_KIND[kind]; if(!K)return;
-  let ok={n8n:false}; try{ const r=await SVB.sb.rpc('bericht_versand_ok'); if(r.data)ok=r.data; }catch(e){}
+  let ok={n8n:false,drive:false,mail:false}; try{ const r=await SVB.sb.rpc('bericht_versand_ok'); if(r.data)ok=r.data; }catch(e){}
   const mail=(typeof SVU!=='undefined'&&SVU.email)||'';
   const st={fmt:new Set(['pdf']),weg:new Set(['down'])};
   svModal(`<div class="mhead"><div class="rm-ic" style="width:46px;height:46px">${SVI('file')}</div><div><h2 style="margin:0">${svEsc(kind==='job'&&o&&o.job?o.job.titel:K[0])}</h2><div class="msub">Format und Weg wählen – beides mit Mehrfachauswahl</div></div></div>
@@ -6850,12 +6850,12 @@ async function sxExport(kind,o){
     <h4 class="sx-h">Wohin?</h4><div class="sx-grid" id="sxW">
       <button type="button" class="sx-t on" data-w="down"><b>⬇️ Herunterladen</b><span>auf dieses Gerät</span></button>
       <button type="button" class="sx-t" data-w="wa"><b>💬 WhatsApp</b><span>Datei oder Link teilen</span></button>
-      <button type="button" class="sx-t${ok.n8n?'':' off'}" data-w="drive"><b>📁 Drive</b><span>${ok.n8n?'Ordner „'+svEsc(K[1])+'“':'wird noch eingerichtet'}</span></button>
-      <button type="button" class="sx-t${ok.n8n?'':' off'}" data-w="mail"><b>✉️ E-Mail an mich</b><span>${ok.n8n?svEsc(mail):'wird noch eingerichtet'}</span></button></div>
+      ${ok.drive?`<button type="button" class="sx-t" data-w="drive"><b>📁 Drive</b><span>Ordner „${svEsc(K[1])}“</span></button>`:''}
+      <button type="button" class="sx-t${ok.mail?'':' off'}" data-w="mail"><b>✉️ E-Mail an mich</b><span>${ok.mail?svEsc(mail):'wird noch eingerichtet'}</span></button></div>
     <div id="sxStat"></div><div class="btnrow sbact"><button class="btn" id="sxGo">${SVI('send')} Absenden</button><button class="btn ghost" id="sxCl">Abbrechen</button></div>`);
   const tg=(set,v,b)=>{ if(set.has(v)){ if(set.size>1){ set.delete(v); b.classList.remove('on'); } } else { set.add(v); b.classList.add('on'); } };
   document.querySelectorAll('#sxF [data-f]').forEach(b=>b.onclick=()=>tg(st.fmt,b.dataset.f,b));
-  document.querySelectorAll('#sxW [data-w]').forEach(b=>b.onclick=()=>{ if(b.classList.contains('off'))return kToast('Drive & E-Mail laufen über euren n8n-Server – das richtet der Admin einmal ein.'); tg(st.weg,b.dataset.w,b); });
+  document.querySelectorAll('#sxW [data-w]').forEach(b=>b.onclick=()=>{ if(b.classList.contains('off'))return kToast('Der Mail-Versand wird vom Admin einmal eingerichtet (Verwaltung → Versand & Zugänge).'); tg(st.weg,b.dataset.w,b); });
   document.getElementById('sxCl').onclick=()=>closeOverlay();
   document.getElementById('sxGo').onclick=async()=>{ const go=document.getElementById('sxGo'), S=document.getElementById('sxStat'); go.disabled=true; go.textContent='Erstelle …';
     const log=(t,cls)=>{ S.insertAdjacentHTML('beforeend',`<div class="sx-l ${cls||''}">${t}</div>`); };
@@ -8650,13 +8650,25 @@ async function sv41RelayCard(P){
   let R=null; try{ const {data,error}=await SVB.sb.rpc('admin_relay_get'); if(error)throw error; R=data; }catch(e){ return; }
   const row=(k,t,d,o)=>{ const x=R[k]||{}; return `<div class="r41"><div class="r41h"><b>${t}</b>${x.url&&x.key?'<span class="pill on">verbunden</span>':'<span class="pill wait">nicht eingerichtet</span>'}</div><p class="note small">${d}</p>
     <div class="r41f"><input class="search" data-r41="${k}" placeholder="https://dein-n8n.de/webhook/…" value="${sv4Esc(x.url||'')}">${o||''}<button class="btn sm" data-r41s="${k}">Speichern</button></div></div>`; };
+  const S=R.server||{}, st=(ok,t1,t2)=>ok?`<span class="pill on">${t1}</span>`:`<span class="pill wait">${t2}</span>`;
   const c=document.createElement('div'); c.className='card adm41';
-  c.innerHTML=`<div class="adm-head"><div><h3 style="margin:0">🔌 n8n-Verbindung</h3><p style="margin:6px 0 0;font-size:13.5px">WhatsApp (Superchat), Google Drive und E-Mail laufen über euren n8n-Server – die Zugänge liegen dort, nicht in der App.</p></div></div>
-    <ol class="r41s"><li>In n8n die beiden Workflows importieren (Dokumente → svbc-scout → n8n).</li><li>In jedem Workflow die Zugänge auswählen: Superchat · Google Drive · SMTP.</li><li>Workflow aktivieren und im Webhook-Knoten die <b>Production URL</b> kopieren.</li><li>Hier einfügen und speichern – fertig.</li></ol>
-    ${row('kabine','WhatsApp-Versand (Kabine)','Einladungen und Erinnerungen an die Spieler, nur freigegebene Vorlagen.')}
-    ${row('berichte','Berichte in den Drive / per Mail','Excel/PDF-Berichte landen im Drive-Ordner oder im Postfach.',`<input class="search" data-r41o placeholder="Drive-Ordner" value="${sv4Esc((R.berichte||{}).ordner||'')}" style="max-width:190px">`)}
-    <div data-r41k></div>`;
+  c.innerHTML=`<div class="adm-head"><div><h3 style="margin:0">🔌 Versand & Zugänge</h3><p style="margin:6px 0 0;font-size:13.5px">WhatsApp (Superchat) und Mail laufen direkt über den Server der App. Die Schlüssel liegen nur als Supabase-Secret – nie in der App.</p></div>
+      <button class="btn sm ghost" data-r41chk>${SVI('check')} Jetzt prüfen</button></div>
+    <div class="r41 r41z"><div class="r41h"><b>💬 WhatsApp-Versand (Kabine)</b>${st(S.superchat,'aktiv','Schlüssel fehlt')}</div><p class="note small">Supabase → Edge Functions → Secrets: <code>SUPERCHAT_API_KEY</code> mit dem API-Schlüssel aus Superchat (Einstellungen → Entwickler). Danach unter Mannschaft → Automatik die WhatsApp-Vorlagen und Empfänger eintragen.</p></div>
+    <div class="r41 r41z"><div class="r41h"><b>✉️ Berichte per Mail</b>${st(S.mail,'aktiv','Schlüssel fehlt')}</div><p class="note small">Supabase → Edge Functions → Secrets: <code>RESEND_API_KEY</code> (Resend → API Keys, „Sending access“ reicht). Absender: ${sv4Esc(S.absender||'')}</p></div>
+    <div class="r41 r41z"><div class="r41h"><b>🤖 KI (Claude)</b>${st(S.ki,'aktiv','Schlüssel fehlt')}</div></div>
+    <p class="note small" data-r41msg>Nach dem Anlegen eines Secrets einmal „Jetzt prüfen“ tippen – sonst prüft die App es automatisch in der Nacht.</p>
+    <details class="r41alt"><summary>Alternativ: eigener n8n-Server (dann auch Drive-Ablage)</summary>
+    ${row('kabine','WhatsApp-Versand über n8n','Nur nötig, wenn der Superchat-Zugang in n8n statt auf dem Server liegen soll.')}
+    ${row('berichte','Berichte in den Drive / per Mail über n8n','Excel/PDF-Berichte landen im Drive-Ordner oder im Postfach.',`<input class="search" data-r41o placeholder="Drive-Ordner" value="${sv4Esc((R.berichte||{}).ordner||'')}" style="max-width:190px">`)}
+    <div data-r41k></div></details>`;
   P.appendChild(c);
+  c.querySelector('[data-r41chk]').onclick=async e=>{ const b=e.currentTarget; b.disabled=true; b.textContent='Prüfe …';
+    try{ const {data,error}=await SVB.sb.functions.invoke('ki-check',{body:{}}); if(error)throw error;
+      const t=(x,n)=>x?(x.gueltig===false?`${n}: Schlüssel „${x.name}“ wird abgelehnt`:`${n}: ✓ (${x.name})`):`${n}: kein Schlüssel gefunden`;
+      c.querySelector('[data-r41msg]').textContent=[t(data.superchat,'WhatsApp'),t(data.resend,'Mail'),data.secret?'KI: ✓':'KI: kein Schlüssel'].join(' · ');
+      c.remove(); await sv41RelayCard(P); const m=P.querySelector('.adm41:last-child [data-r41msg]'); if(m)m.textContent=[t(data.superchat,'WhatsApp'),t(data.resend,'Mail'),(data.secret||(data.andere||[]).some(a=>a.gueltig))?'KI: ✓':'KI: kein Schlüssel'].join(' · '); }
+    catch(err){ b.disabled=false; b.innerHTML=SVI('check')+' Jetzt prüfen'; kToast('⚠️ Prüfung fehlgeschlagen: '+String(err.message||err)); } };
   c.querySelectorAll('[data-r41s]').forEach(b=>b.onclick=async()=>{
     const k=b.dataset.r41s, url=c.querySelector(`[data-r41="${k}"]`).value.trim(), o=k==='berichte'?c.querySelector('[data-r41o]').value.trim():null;
     if(url&&!/\/webhook\//.test(url)){ kToast('Bitte die komplette Production-URL aus dem Webhook-Knoten einfügen (…/webhook/…)'); return; }
@@ -8686,6 +8698,11 @@ async function sv41RelayCard(P){
    Sichtbarkeit je Punkt: r:'team' (ohne Gäste) · r:'scout' · r:'admin' · ohne r = alle
    ===================================================================== */
 const SV_PATCHES=[
+  {id:'4.2',datum:'2026-09-24',titel:'WhatsApp & Mail ohne Umweg',kurz:'Einladungen per WhatsApp und Berichte per Mail laufen jetzt direkt über den Server der App – ohne extra n8n-Server.',
+   punkte:[
+    {ic:'💬',t:'WhatsApp direkt über Superchat',d:'Die Kabine verschickt Abstimmungen und Erinnerungen direkt – der Superchat-Zugang liegt sicher auf dem Server, nicht in der App.',r:'team',go:'kabine'},
+    {ic:'✉️',t:'Berichte per Mail',d:'Beim Export „E-Mail an mich“ wählen – der Bericht kommt als Anhang ins Postfach.',r:'team',go:'training'},
+    {ic:'🔌',t:'Versand & Zugänge in der Verwaltung',d:'Auf einen Blick: WhatsApp, Mail und KI aktiv? Mit „Jetzt prüfen“ nach dem Hinterlegen eines Schlüssels.',r:'admin'}]},
   {id:'4.1',datum:'2026-09-24',titel:'Beteiligung, Fotos & Saison-Album',kurz:'Wer war wie oft im Training und im Spiel – von 21/22 bis heute. Dazu Spielerfotos auf einen Schlag und ein Album je Saison.',
    punkte:[
     {ic:'🏃',t:'Trainings- & Spielbeteiligung',d:'Julians Listen sind drin: 21/22 bis 26/27, je Spieler Training, Spiele und Zuschauer – unter Mannschaft → Beteiligung, im Spielerprofil und als Quote im Kaderplan. Damit ist auch 23/24 nicht mehr leer.',r:'team',go:'training'},
