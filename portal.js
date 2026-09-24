@@ -15,7 +15,7 @@
   const ART={training:'Training',spiel:'Spiel',event:'Event',sonstiges:'Termin'};
   const eur=v=>(Math.round((+v||0)*100)/100).toLocaleString('de-DE',{style:'currency',currency:'EUR'});
   const wd=d=>{ try{ return new Date(d+'T12:00:00').toLocaleDateString('de-DE',{weekday:'long',day:'2-digit',month:'2-digit'}); }catch(e){ return d; } };
-  const toast=t=>{ const e=document.createElement('div'); e.className='toast'; e.textContent=t; document.body.appendChild(e); setTimeout(()=>e.remove(),2600); };
+  const toast=t=>{ document.querySelectorAll('.toast').forEach(x=>x.remove()); const e=document.createElement('div'); e.className='toast'; e.textContent=t; document.body.appendChild(e); setTimeout(()=>e.remove(),2600); };
   async function rpc(fn,body){
     const r=await fetch(C.url+'/rest/v1/rpc/'+fn,{method:'POST',headers:{'Content-Type':'application/json',apikey:C.anon,Authorization:'Bearer '+C.anon},body:JSON.stringify(body)});
     const j=await r.json().catch(()=>null); if(!r.ok)throw new Error((j&&j.message)||('Fehler '+r.status)); return j;
@@ -37,9 +37,13 @@
     const R=roster();
     if(ME&&!R.some(x=>x.id===ME.id)&&R.length){ /* nicht mehr auf der Liste – trotzdem anzeigen */ }
     if(!ME){
-      app.innerHTML=`<div class="card"><h2>Wer bist du?</h2><p class="note">Einmal antippen – das Handy merkt es sich. Danach reicht ein Klick zum Zu- oder Absagen.</p>
-        <input class="search" id="q" type="search" placeholder="Name suchen …" autocomplete="off"><div class="pick" id="pk"></div>
-        <p class="note">Du fehlst? Kurz beim Trainer melden – er setzt dich auf die Liste.</p></div>`;
+      const tgt=target();
+      app.innerHTML=`<div class="card"><h2>Wer bist du?</h2><p class="note">Tippe auf deinen <b>Vor- und Nachnamen</b> – das Handy merkt es sich. Danach reicht ein Klick: dabei oder nicht dabei.</p>
+        <input class="search" id="q" type="search" placeholder="Name suchen …" autocomplete="off"><div class="pick" id="pk"></div></div>
+        ${tgt?`<div class="card neu"><h2>Nicht in der Liste?</h2><p class="note">Dann trag dich mit Vor- und Nachnamen ein – beides ist Pflicht.</p>
+          <div class="nm"><input class="txt" id="gV" placeholder="Vorname" autocomplete="given-name" maxlength="30"><input class="txt" id="gN" placeholder="Nachname" autocomplete="family-name" maxlength="40"></div>
+          <button class="btn2 full" id="gGo">Eintragen</button></div>`:'<p class="note" style="text-align:center">Du fehlst? Kurz beim Trainer melden – er setzt dich auf die Liste.</p>'}`;
+      const gg=$('#gGo'); if(gg)gg.onclick=()=>gast(tgt.id,$('#gV').value,$('#gN').value);
       const draw=q=>{ const n=(q||'').toLowerCase(); $('#pk').innerHTML=R.filter(x=>!n||x.name.toLowerCase().includes(n)).map(x=>`<button data-id="${esc(x.id)}">${esc(x.name)}</button>`).join('')||'<p class="note">Kein Treffer.</p>';
         document.querySelectorAll('#pk [data-id]').forEach(b=>b.onclick=()=>{ ME={id:b.dataset.id,name:R.find(x=>x.id===b.dataset.id).name}; ls.set('kab_me',JSON.stringify(ME)); render(); }); };
       draw(''); $('#q').oninput=e=>draw(e.target.value); return;
@@ -47,6 +51,18 @@
     app.innerHTML=`<div class="tabs"><button data-v="abst" class="${view==='abst'?'on':''}">Abstimmungen</button><button data-v="kasse" class="${view==='kasse'?'on':''}">Mannschaftskasse</button></div><div id="body"></div>`;
     document.querySelectorAll('[data-v]').forEach(b=>b.onclick=()=>{ view=b.dataset.v; ls.set('kab_view',view); render(); });
     (view==='kasse'?kasse:polls)($('#body'));
+  }
+  // Abstimmung, in die man sich selbst einträgt: die aus dem Link, sonst die nächste offene
+  function target(){ if(S.ich)return null; const open=(S.polls||[]).filter(p=>p.datum>=S.heute&&!p.geschlossen).sort((a,b)=>a.datum<b.datum?-1:1);
+    return open.find(p=>p.id===FOCUS)||open[0]||null; }
+  async function gast(poll,v,n){
+    v=String(v||'').trim(); n=String(n||'').trim();
+    if(v.length<2||n.length<2){ toast('Bitte Vor- und Nachname eintragen'); return; }
+    if(busy)return; busy=true;
+    try{ const r=await rpc('portal_gast',{p_key:KEY,p_poll:poll,p_vorname:v,p_nachname:n}); ME={id:r.id,name:r.name}; ls.set('kab_me',JSON.stringify(ME));
+      toast(r.neu?'✓ Eingetragen – jetzt zu- oder absagen':'✓ Gefunden: '+r.name); busy=false; await load(); return; }
+    catch(e){ toast('⚠️ '+e.message); }
+    busy=false;
   }
   function polls(B){
     const P=(S.polls||[]).filter(p=>p.datum>=S.heute).sort((a,b)=>(a.id===FOCUS?-1:b.id===FOCUS?1:0)||(a.datum<b.datum?-1:a.datum>b.datum?1:0));
@@ -58,14 +74,15 @@
       return `<div class="card" id="p-${esc(p.id)}">${mine?'<span class="done">✓ abgestimmt</span>':''}<span class="pill ${p.art==='spiel'?'spiel':''}">${esc(ART[p.art]||'Termin')}</span>
         <h2>${esc(p.titel)}</h2><div class="meta">${esc(wd(p.datum))}${p.zeit?' · '+esc(p.zeit)+' Uhr':''}${p.ort?' · '+esc(p.ort):''}</div>
         ${p.notiz?`<p class="note">${esc(p.notiz)}</p>`:''}${p.frist?`<p class="note">Bitte bis ${esc(new Date(p.frist).toLocaleString('de-DE',{weekday:'short',day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}))} Uhr antworten.</p>`:''}
-        ${closed?'<p class="note"><b>Abstimmung geschlossen.</b></p>':inL?`<div class="ans">${[['zu','👍','Bin dabei'],['vllt','🤔','Vielleicht'],['ab','✋','Kann nicht']].map(([a,i,t])=>`<button class="${a}${mine&&mine.a===a?' on':''}" data-poll="${esc(p.id)}" data-a="${a}"><span>${i}</span>${t}</button>`).join('')}</div>
-          ${mine&&mine.a==='ab'?`<div class="why">${Object.entries(REASONS).map(([k,t])=>`<button class="${mine.g===k?'on':''}" data-poll="${esc(p.id)}" data-g="${k}">${t}</button>`).join('')}</div><input class="txt" data-poll="${esc(p.id)}" data-n maxlength="200" placeholder="Kurzer Hinweis (optional)" value="${esc(mine.n||'')}">`:''}`:'<p class="note">Du stehst bei diesem Termin nicht auf der Liste.</p>'}
+        ${closed?'<p class="note"><b>Abstimmung geschlossen.</b></p>':inL?`<div class="ans">${[['zu','👍','Bin dabei'],['ab','✋','Nicht dabei']].map(([a,i,t])=>`<button class="${a}${mine&&mine.a===a?' on':''}" data-poll="${esc(p.id)}" data-a="${a}"><span>${i}</span>${t}</button>`).join('')}</div>
+          ${mine&&mine.a==='ab'?`<div class="why">${Object.entries(REASONS).map(([k,t])=>`<button class="${mine.g===k?'on':''}" data-poll="${esc(p.id)}" data-g="${k}">${t}</button>`).join('')}</div><input class="txt" data-poll="${esc(p.id)}" data-n maxlength="200" placeholder="Kurzer Hinweis (optional)" value="${esc(mine.n||'')}">`:''}`:S.ich?'<p class="note">Du stehst bei diesem Termin nicht auf der Liste.</p>':`<p class="note">Du stehst bei diesem Termin noch nicht auf der Liste.</p><button class="btn2" data-self="${esc(p.id)}">Mich eintragen</button>`}
         ${inL&&!closed?'<p class="note">Du kannst deine Antwort bis zum Training jederzeit ändern.</p>':''}
         <div class="bar"><i class="ok" style="width:${pc(g.zu.length)}%"></i><i class="mid" style="width:${pc(g.vllt.length)}%"></i><i class="bad" style="width:${pc(g.ab.length)}%"></i></div>
-        <div class="cnt"><span><b>${g.zu.length}</b> dabei</span><span><b>${g.vllt.length}</b> vielleicht</span><span><b>${g.ab.length}</b> nicht</span><span><b>${g.offen.length}</b> offen</span></div>
-        <details><summary>Wer hat was gesagt?</summary>${[['zu','ok','Dabei'],['vllt','mid','Vielleicht'],['ab','bad','Können nicht'],['offen','','Noch keine Antwort']].map(([k,c,t])=>g[k].length?`<h3>${t}</h3><div class="who">${g[k].map(x=>`<span class="${c}">${esc(x)}</span>`).join('')}</div>`:'').join('')}</details></div>`; }).join('');
+        <div class="cnt"><span><b>${g.zu.length}</b> dabei</span>${g.vllt.length?`<span><b>${g.vllt.length}</b> vielleicht</span>`:''}<span><b>${g.ab.length}</b> nicht</span><span><b>${g.offen.length}</b> offen</span></div>
+        <details><summary>Wer hat was gesagt?</summary>${[['zu','ok','Dabei'],['vllt','mid','Vielleicht'],['ab','bad','Nicht dabei'],['offen','','Noch keine Antwort']].map(([k,c,t])=>g[k].length?`<h3>${t}</h3><div class="who">${g[k].map(x=>`<span class="${c}">${esc(x)}</span>`).join('')}</div>`:'').join('')}</details></div>`; }).join('');
     B.insertAdjacentHTML('beforeend',wa); waWire();
     B.querySelectorAll('[data-a]').forEach(b=>b.onclick=()=>vote(b.dataset.poll,b.dataset.a));
+    B.querySelectorAll('[data-self]').forEach(b=>b.onclick=()=>{ const w=ME.name.trim().split(/\s+/); gast(b.dataset.self,w[0],w.slice(1).join(' ')); });
     B.querySelectorAll('[data-g]').forEach(b=>b.onclick=()=>{ const p=S.polls.find(x=>x.id===b.dataset.poll), v=(p.votes||[]).find(x=>x.p===ME.id); vote(p.id,'ab',b.dataset.g,v&&v.n); });
     B.querySelectorAll('[data-n]').forEach(i=>{ let t=null; i.oninput=()=>{ clearTimeout(t); t=setTimeout(()=>{ const p=S.polls.find(x=>x.id===i.dataset.poll), v=(p.votes||[]).find(x=>x.p===ME.id); vote(p.id,'ab',v&&v.g,i.value,true); },900); }; });
     if(FOCUS){ const el=document.getElementById('p-'+FOCUS); if(el&&!window.__kabScrolled){ window.__kabScrolled=1; el.scrollIntoView({block:'start'}); } }
@@ -75,7 +92,7 @@
     if(busy)return; busy=true;
     try{ await rpc('portal_vote',{p_key:KEY,p_poll:poll,p_player:ME.id,p_antwort:a,p_grund:g||null,p_notiz:n||null});
       const p=S.polls.find(x=>x.id===poll); p.votes=(p.votes||[]).filter(v=>v.p!==ME.id).concat([{p:ME.id,a,g:a==='ab'?(g||null):null,n:n||null,at:new Date().toISOString()}]);
-      if(!quiet){ toast(a==='zu'?'👍 Zugesagt – danke!':a==='ab'?(g?'✓ Gespeichert':'✓ Abgesagt – magst du kurz den Grund antippen?'):'✓ Gespeichert'); render(); }
+      if(!quiet){ toast(a==='zu'?'👍 Du bist dabei – danke!':a==='ab'?(g?'✓ Gespeichert':'✓ Nicht dabei – tipp bitte kurz den Grund an'):'✓ Gespeichert'); render(); }
     }catch(e){ toast('⚠️ '+e.message); }
     busy=false;
   }
