@@ -4,6 +4,18 @@
   const C=window.KAB_CFG||{}, $=s=>document.querySelector(s), app=$('#app');
   const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   const ls={get(k){ try{ return localStorage.getItem(k); }catch(e){ return null; } },set(k,v){ try{ localStorage.setItem(k,v); }catch(e){} },del(k){ try{ localStorage.removeItem(k); }catch(e){} }};
+  // Geteilter Bericht: …/b-<code> (PDF/Excel aus der App, ohne Anmeldung)
+  const bm=location.pathname.match(/\/b-([A-Za-z0-9]{10,16})\/?$/);
+  if(bm){ bericht(bm[1]); return; }
+  async function bericht(tok){
+    app.innerHTML='<div class="card empty"><h2>Lade Bericht …</h2></div>';
+    try{ const r=await fetch(C.url+'/rest/v1/rpc/bericht_get',{method:'POST',headers:{'Content-Type':'application/json',apikey:C.anon,Authorization:'Bearer '+C.anon},body:JSON.stringify({p_token:tok})});
+      const b=await r.json(); if(!r.ok||!b||!b.data)throw new Error('Der Link ist abgelaufen oder ungültig.');
+      const s2=atob(b.data), u=new Uint8Array(s2.length); for(let i=0;i<s2.length;i++)u[i]=s2.charCodeAt(i); const url=URL.createObjectURL(new Blob([u],{type:b.mime})), pdf=/pdf/.test(b.mime);
+      app.innerHTML=`<div class="card hero"><span class="pill">${pdf?'📄 PDF':'📊 Excel'}</span><h2 style="margin:12px 0 4px">${esc(b.name.replace(/\.(pdf|xlsx)$/,''))}</h2><small>SV/BSC Mörlenbach · erstellt ${esc(new Date(b.created_at).toLocaleDateString('de-DE'))}</small></div>
+        <a class="pay" href="${url}" download="${esc(b.name)}">Herunterladen</a>${pdf?`<a class="btn2" style="display:block;text-align:center;text-decoration:none;color:inherit" href="${url}" target="_blank" rel="noopener">Im Browser öffnen</a>`:''}`;
+    }catch(e){ app.innerHTML=`<div class="card err empty"><h2>Bericht nicht verfügbar</h2><p class="note">${esc(e.message)}</p></div>`; }
+  }
   const hp=new URLSearchParams(location.hash.slice(1));
   // Link-Formen: …/team.html#k=<code>  oder kurz …/<code> (persönlicher Link)
   const seg=(location.pathname.split('/').pop()||''), pathKey=/^[A-Za-z0-9]{8,40}$/.test(seg)&&!/\.html?$/.test(seg)?seg:'';
