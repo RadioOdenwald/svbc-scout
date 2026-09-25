@@ -2100,7 +2100,7 @@ function openSlotPicker(i,depth){
 }
 
 /* ===== App-Modus: installierbar, offline-fest, aktualisiert sich selbst ===== */
-const APP_BUILD='4.4-202609250545', OUTBOX_KEY='svbcOutbox', APP_HIDE_KEY='svbcInstallHide';
+const APP_BUILD='4.5-202609250635', OUTBOX_KEY='svbcOutbox', APP_HIDE_KEY='svbcInstallHide';
 let _appPrompt=null, _appNew=null, _obT=null;
 function appStandalone(){ try{ return !!(window.matchMedia&&matchMedia('(display-mode: standalone)').matches)||navigator.standalone===true; }catch(e){ return false; } }
 function appPlatform(){
@@ -8840,9 +8840,10 @@ function svSound(kind){
 function sv44Refresh(){
   try{ renderAll(); }catch(e){}
   try{ if(typeof sc2After==='function')sc2After(); }catch(e){}
+  try{ if(svCurTab()==='bedarf'&&typeof sc4Bedarf==='function')sc4Bedarf(); }catch(e){}
 }
 function sv44Undo(pid,name){
-  kToast('🚫 '+name+' ist raus. Kommt nicht mehr in Radar und Vorschlägen.','Rückgängig',()=>{
+  kToast('🚫 '+name+' ist raus','Rückgängig',()=>{
     try{ crmSet(pid,{s:undefined,u:undefined}); try{crmApply();}catch(x){} sv44Refresh(); svSound('pop'); kToast('↩️ '+name+' ist wieder dabei'); }catch(x){} });
 }
 document.addEventListener('click',e=>{
@@ -8885,6 +8886,183 @@ document.addEventListener('click',e=>{
   return r; }; }
 
 /* =====================================================================
+   Sportzentrale 4.5 · Wischen wie auf dem Sperrbildschirm
+   - Spieler in Listen (Scouting, Radar, Bedarf, KI-Aufträge):
+       nach rechts wischen = Kein Interesse (fliegt raus, die anderen rücken nach, Rückgängig möglich)
+       nach links wischen  = Merkliste an/aus (Eintrag federt zurück)
+   - Meldungen: nach rechts wischen = erledigt (gelesen bzw. ausgeblendet)
+       „Neu für dich“ → gelesen · Radar ohne Spieler → ausgeblendet · Cockpit-Hinweis → für heute weg
+   - Beobachtet: nach rechts = nicht mehr beobachten
+   - Erkennt waagerecht vs. senkrecht (Scrollen bleibt ungestört), Tippen bleibt Tippen
+   - Beim ersten Mal zeigt ein Eintrag kurz, was geht (einmal pro Gerät)
+   ===================================================================== */
+const SW45={on:null,hintShown:false,justSwiped:0};
+const SW45_SEL='.sw45no[data-id],#list .row[data-id],#gemlist .row[data-id],.rdit,.sc2k,.sc2f[data-sc2open],.bk4r,.sc2m[data-m],.svc-i[data-ins],[data-sc2h]';
+const sw45Today=()=>new Date().toLocaleDateString('sv-SE');
+function sw45Get(k,d){ try{ return JSON.parse(localStorage.getItem(k)||'null')||d; }catch(e){ return d; } }
+function sw45Set(k,v){ try{ localStorage.setItem(k,JSON.stringify(v)); }catch(e){} }
+
+// Radar-Einträge bekommen ihre Kennung, ausgeblendete Meldungen bleiben weg
+{ const _ri45=rdItem; rdItem=function(r){ const h=_ri45.apply(this,arguments); return r&&r.id!=null?h.replace(/^<div /,`<div data-rid="${svEsc(String(r.id))}" `):h; }; }
+{ const _rr45=rdRender; rdRender=function(){ const hide=new Set(sw45Get('svRdHide',[]).map(String)); if(!hide.size)return _rr45.apply(this,arguments);
+  const all=VR.radar; VR.radar=all.filter(r=>!hide.has(String(r.id))); try{ return _rr45.apply(this,arguments); } finally{ VR.radar=all; } }; }
+// Cockpit-Hinweise: „für heute erledigt“
+const sw45InsKey=x=>sw45Today()+'|'+String(x&&x.t||'');
+{ const _si45=svInsights; svInsights=function(){ const L=_si45.apply(this,arguments); const H=new Set(sw45Get('svInsHide',[])); return H.size?L.filter(x=>!H.has(sw45InsKey(x))):L; }; }
+
+// Was bedeutet Wischen bei diesem Eintrag?
+function sw45What(el){
+  let pid=null;
+  if(el.matches('.sw45no[data-id]')){ const q=trP(el.dataset.id); return q?{kind:'nolist',pid:q.id,p:q}:null; }
+  if(el.matches('.row[data-id]'))pid=el.dataset.id;
+  else if(el.matches('.sc2f'))return {kind:'follow',pid:el.dataset.sc2open};
+  else if(el.matches('.sc2m'))return {kind:'meld',id:+el.dataset.m};
+  else if(el.matches('.svc-i'))return {kind:'ins',idx:+el.dataset.ins};
+  else if(el.matches('[data-sc2h]'))return {kind:'meldall'};
+  else { const h=el.querySelector('[data-sc2p]')||el.querySelector('[data-svp]'); pid=h?(h.dataset.sc2p||h.dataset.svp):null;
+    if(!pid&&el.matches('.rdit'))return el.dataset.rid?{kind:'radar',rid:el.dataset.rid}:null; }
+  const p=pid&&typeof trP==='function'?trP(pid):null;
+  if(!p||p.own)return null;
+  if(!canScout())return null;
+  return {kind:'player',pid:p.id,p};
+}
+const SW45_LAB={player:{r:['🚫','Kein Interesse','no'],l:['⭐','Merkliste','fav']},nolist:{r:['↩️','Zurückholen','back'],l:['⭐','Zurück auf die Merkliste','fav']},follow:{r:['🔕','Nicht mehr beobachten','no']},meld:{r:['✓','Gelesen','ok']},meldall:{r:['✓','Alle gelesen','ok']},radar:{r:['✓','Ausblenden','ok']},ins:{r:['✓','Für heute erledigt','ok']}};
+
+function sw45Bg(el,w){
+  const par=el.parentElement; if(!par)return null;
+  if(getComputedStyle(par).position==='static')par.style.position='relative';
+  const bg=document.createElement('div'); bg.className='sw45bg';
+  bg.style.cssText=`top:${el.offsetTop}px;left:${el.offsetLeft}px;width:${el.offsetWidth}px;height:${el.offsetHeight}px;border-radius:${getComputedStyle(el).borderRadius}`;
+  const L=SW45_LAB[w.kind]||{};
+  bg.innerHTML=`${L.r?`<span class="sw45r t-${L.r[2]}"><b>${L.r[0]}</b>${L.r[1]}</span>`:''}${L.l?`<span class="sw45l t-${L.l[2]}">${L.l[1]}<b>${L.l[0]}</b></span>`:''}`;
+  par.insertBefore(bg,el); return bg;
+}
+
+document.addEventListener('pointerdown',e=>{
+  if(e.button>0||SW45.on)return;
+  const el=e.target.closest&&e.target.closest(SW45_SEL); if(!el)return;
+  if(e.target.closest('input,select,textarea,[contenteditable],.noswipe,.chips4'))return;
+  if(el.closest('.overlay:not(.open)'))return;
+  SW45.on={el,x:e.clientX,y:e.clientY,t:performance.now(),dx:0,axis:null,id:e.pointerId,bg:null,w:null,passed:false,type:e.pointerType};
+},true);
+document.addEventListener('pointermove',e=>{
+  const S=SW45.on; if(!S||e.pointerId!==S.id)return;
+  const dx=e.clientX-S.x, dy=e.clientY-S.y;
+  if(!S.axis){ if(Math.abs(dx)<9&&Math.abs(dy)<9)return;
+    if(Math.abs(dx)>Math.abs(dy)*1.25){ S.w=sw45What(S.el); if(!S.w){ SW45.on=null; return; } S.axis='x'; S.bg=sw45Bg(S.el,S.w); S.el.classList.add('sw45drag'); document.body.classList.add('sw45nosel'); try{ S.el.setPointerCapture(e.pointerId); }catch(x){} }
+    else { SW45.on=null; return; } }
+  e.preventDefault();
+  const W=S.el.offsetWidth||300, L=SW45_LAB[S.w.kind]||{};
+  let d=dx; if(d<0&&!L.l)d=d*0.25; if(d>0&&!L.r)d=d*0.25;           // Richtung ohne Aktion: nur leicht nachgeben
+  S.dx=d; S.el.style.transform=`translate3d(${d}px,0,0)`;
+  const pass=Math.abs(d)>W*0.33; if(S.bg){ S.bg.classList.toggle('go-r',d>0); S.bg.classList.toggle('go-l',d<0); S.bg.classList.toggle('pass',pass); }
+  if(pass!==S.passed){ S.passed=pass; if(pass)try{ svHaptic('light'); }catch(x){} }
+},{passive:false,capture:true});
+function sw45End(e,cancel){
+  const S=SW45.on; if(!S||(e&&e.pointerId!==S.id))return; SW45.on=null;
+  if(S.axis!=='x')return;
+  document.body.classList.remove('sw45nosel'); SW45.justSwiped=Date.now();
+  const el=S.el, W=el.offsetWidth||300, v=Math.abs(S.dx)/Math.max(1,performance.now()-S.t), L=SW45_LAB[S.w.kind]||{};
+  const dir=S.dx>0?'r':'l', ok=!cancel&&L[dir]&&(Math.abs(S.dx)>W*0.33||(v>0.65&&Math.abs(S.dx)>48));
+  el.classList.remove('sw45drag');
+  if(!ok){ el.classList.add('sw45back'); el.style.transform=''; setTimeout(()=>{ el.classList.remove('sw45back'); if(S.bg)S.bg.remove(); },300); return; }
+  if(dir==='l'&&S.w.kind==='nolist'){ try{ svSound('swoosh'); }catch(x){} el.style.height=el.offsetHeight+'px'; el.classList.add('sw45out'); el.style.transform=`translate3d(${-W*1.15}px,0,0)`; if(S.bg)S.bg.classList.add('fade'); setTimeout(()=>{ el.classList.add('sw45zu'); if(S.bg)S.bg.remove(); },200); setTimeout(()=>sw45Do(S.w,'l'),460); return; }
+  if(dir==='l'){ // Merken: zurückfedern
+    el.classList.add('sw45back'); el.style.transform=''; setTimeout(()=>{ el.classList.remove('sw45back'); if(S.bg)S.bg.remove(); sw45Do(S.w,'l'); },280); return; }
+  // rechts: rausfliegen, dann Lücke schließen und handeln
+  try{ svSound('swoosh'); }catch(x){}
+  el.style.height=el.offsetHeight+'px'; el.classList.add('sw45out'); el.style.transform=`translate3d(${W*1.15}px,0,0)`;
+  if(S.bg)S.bg.classList.add('fade');
+  setTimeout(()=>{ el.classList.add('sw45zu'); if(S.bg)S.bg.remove(); },200);
+  setTimeout(()=>sw45Do(S.w,'r'),460);
+}
+document.addEventListener('pointerup',e=>sw45End(e,false),true);
+document.addEventListener('pointercancel',e=>sw45End(e,true),true);
+// Nach dem Wischen kein versehentliches Antippen
+window.addEventListener('click',e=>{ if(Date.now()-SW45.justSwiped<400&&e.target.closest&&e.target.closest(SW45_SEL)){ e.stopPropagation(); e.preventDefault(); } },true);
+
+async function sw45Do(w,dir){
+  try{
+    if(w.kind==='player'&&dir==='r'){
+      const p=w.p; crmSet(p.id,{s:'no'}); try{ crmApply(); }catch(x){}
+      if(SC2.follow.has(p.id)){ SC2.follow.delete(p.id); SVB.sb.from('scout_follow').delete().eq('player_id',p.id).then(()=>{},()=>{}); }
+      sv44Refresh(); sv44Undo(p.id,p.name); return; }
+    if(w.kind==='player'&&dir==='l'){
+      const p=w.p, on=!p.star; crmSet(p.id,{f:on?1:undefined}); try{ crmApply(); }catch(x){}
+      sv44Refresh(); kToast(on?'⭐ '+p.name+' auf der Merkliste':'Von der Merkliste genommen'); try{ svSound(on?'success':'pop'); }catch(x){} return; }
+    if(w.kind==='nolist'){
+      const p=w.p; crmSet(p.id,{s:undefined,u:undefined,...(dir==='l'?{f:1}:{})}); try{ crmApply(); }catch(x){}
+      sv44Refresh(); sw45NoList(true);
+      kToast(dir==='l'?'⭐ '+p.name+' ist zurück und auf der Merkliste':'↩️ '+p.name+' ist wieder dabei'); try{ svSound('success'); }catch(x){} return; }
+    if(w.kind==='follow'){
+      const p=trP(w.pid); SC2.follow.delete(w.pid); const {error}=await SVB.sb.from('scout_follow').delete().eq('player_id',w.pid); if(error)throw error;
+      sv44Refresh(); kToast('🔕 '+(p?p.name:'Spieler')+' wird nicht mehr beobachtet','Rückgängig',async()=>{ await SVB.sb.from('scout_follow').insert({player_id:w.pid}); SC2.follow.add(w.pid); sv44Refresh(); }); return; }
+    if(w.kind==='meld'){
+      const m=SC2.meld.find(x=>x.id===w.id); if(m)m.gelesen_at=new Date().toISOString();
+      SVB.sb.rpc('meldungen_gelesen',{p_ids:[w.id]}).then(()=>{},()=>{});
+      sv44Refresh(); try{ sc2HomeCard(); }catch(x){} kToast('✓ Gelesen'); return; }
+    if(w.kind==='meldall'){
+      const now=new Date().toISOString(); SC2.meld.forEach(m=>{ if(!m.gelesen_at)m.gelesen_at=now; });
+      SVB.sb.rpc('meldungen_gelesen',{p_ids:null}).then(()=>{},()=>{});
+      try{ sc2HomeCard(); }catch(x){} sv44Refresh(); kToast('✓ Alle Scouting-Meldungen gelesen'); return; }
+    if(w.kind==='radar'){
+      const H=sw45Get('svRdHide',[]); H.push(String(w.rid)); sw45Set('svRdHide',H.slice(-400));
+      try{ rdRender(); }catch(x){}
+      kToast('Meldung ausgeblendet','Rückgängig',()=>{ sw45Set('svRdHide',sw45Get('svRdHide',[]).filter(x=>x!==String(w.rid))); try{ rdRender(); }catch(x){} }); return; }
+    if(w.kind==='ins'){
+      const L=svInsights(), x=L[w.idx]; if(x){ const H=sw45Get('svInsHide',[]).filter(k=>k.startsWith(sw45Today())); H.push(sw45InsKey(x)); sw45Set('svInsHide',H); }
+      svCockpit(); kToast('✓ Für heute erledigt'); return; }
+  }catch(e){ kToast('⚠️ '+(e.message||e)); try{ sv44Refresh(); }catch(x){} }
+}
+
+// Einmaliger Hinweis: ein Eintrag zeigt kurz, was Wischen kann
+function sw45Hint(){
+  if(SW45.hintShown||!matchMedia('(pointer: coarse)').matches||sv43Reduced())return;
+  if(sw45Get('svWischTipp',0))return;
+  const el=[...document.querySelectorAll('main .panel.active '+SW45_SEL.split(',').join(',main .panel.active '))].find(x=>{ const r=x.getBoundingClientRect(); return r.top>60&&r.bottom<innerHeight-90&&sw45What(x); });
+  if(!el)return; SW45.hintShown=true; sw45Set('svWischTipp',1);
+  const w=sw45What(el), bg=sw45Bg(el,w); if(bg)bg.classList.add('go-r');
+  el.classList.add('sw45peek');
+  setTimeout(()=>{ el.classList.remove('sw45peek'); if(bg)bg.remove();
+    kToast(w.kind==='player'?'Tipp: Nach rechts wischen = Kein Interesse, nach links = Merkliste':'Tipp: Nach rechts wischen = erledigt'); },1500);
+}
+{ const _gt45b=goTab; goTab=function(){ const r=_gt45b.apply(this,arguments); setTimeout(()=>{ try{ sw45Hint(); }catch(e){} },900); return r; }; }
+
+// Spielermarkt: Spieler mit „Kein Interesse“ verschwinden aus der Liste (auf Wunsch wieder einblenden)
+{ const _rl45=renderList; renderList=function(){
+  if(SW45.showNo)return _rl45.apply(this,arguments);
+  const _v=visible; let hid=0;
+  visible=function(){ const A=_v.apply(this,arguments), B=A.filter(p=>crmOf(p).s!=='no'); hid=A.length-B.length; return B; };
+  try{ _rl45.apply(this,arguments); } finally{ visible=_v; }
+  try{ const h=document.getElementById('filterHint'); if(h&&hid){ const t=h.textContent; h.innerHTML=`<span>${svEsc(t)} · ${hid} ausgeblendet <button type="button" class="sw45show">Liste ansehen</button></span>`; h.querySelector('.sw45show').onclick=()=>sw45NoList(); } }catch(e){}
+}; }
+// auch direkt nach dem Start (ohne Bereichswechsel)
+{ const t0=Date.now(), iv=setInterval(()=>{ if(typeof _remoteDone!=='undefined'&&_remoteDone&&document.getElementById('gate')&&document.getElementById('gate').classList.contains('done')){ clearInterval(iv); setTimeout(()=>{ try{ if(!document.querySelector('#overlay.open'))sw45Hint(); }catch(e){} },1800); } else if(Date.now()-t0>120000)clearInterval(iv); },500); }
+// … und beim Scrollen, sobald zum ersten Mal ein wischbarer Eintrag im Blick ist
+{ let last=0; const onS=()=>{ if(SW45.hintShown){ window.removeEventListener('scroll',onS,true); return; } const n=Date.now(); if(n-last<700)return; last=n; try{ sw45Hint(); }catch(e){} }; window.addEventListener('scroll',onS,{passive:true,capture:true}); }
+
+/* ---------- Liste „Kein Interesse“: wischen holt zurück ---------- */
+function sw45NoList(refresh){
+  const M=document.getElementById('modal');
+  if(refresh&&!(M&&M.querySelector('.sw45nol')))return;
+  const L=players.filter(p=>!p.own&&crmOf(p).s==='no').sort((a,b)=>String(a.name).localeCompare(String(b.name),'de'));
+  const row=p=>{ const c=(p.cur&&p.cur.club)||p.club||''; return `<div class="sw45no" data-id="${svEsc(p.id)}"><span class="tra-av">${avaHtml(p)}</span><div class="sw45no-b"><b>${svEsc(p.name)}</b><span>${svEsc(c)}${p.pos?' · '+svEsc(p.pos):''}${p.alter!=null?' · '+p.alter+' J.':''}</span></div><button type="button" class="btn ghost sm" data-back45="${svEsc(p.id)}">↩️ Zurück</button></div>`; };
+  const html=`<div class="sw45nol"><div class="mhead"><div><h2>🚫 Kein Interesse</h2><div class="note">${L.length?`${L.length} Spieler. Nach rechts wischen holt einen Spieler zurück, nach links kommt er direkt auf die Merkliste.`:'Niemand auf dieser Liste. Wer hier landet, taucht in Radar und Vorschlägen nicht mehr auf.'}</div></div></div>
+    <div class="sw45no-l">${L.map(row).join('')}</div></div>`;
+  const box=refresh&&M.querySelector('.sw45nol');
+  if(box){ const d=document.createElement('div'); d.innerHTML=html; box.replaceWith(d.firstElementChild); } else svModal(html);
+  document.querySelectorAll('#modal [data-back45]').forEach(b=>b.onclick=e=>{ e.stopPropagation(); const p=trP(b.dataset.back45); if(!p)return; const r=b.closest('.sw45no');
+    r.style.height=r.offsetHeight+'px'; r.classList.add('sw45out'); r.style.transform='translate3d(115%,0,0)'; try{ svSound('swoosh'); }catch(x){}
+    setTimeout(()=>r.classList.add('sw45zu'),200); setTimeout(()=>sw45Do({kind:'nolist',pid:p.id,p},'r'),460); });
+  document.querySelectorAll('#modal .sw45no .tra-av,#modal .sw45no-b').forEach(x=>x.onclick=()=>{ const id=x.closest('.sw45no').dataset.id; if(Date.now()-SW45.justSwiped>400)openModal(id); });
+}
+// Radar-Hinweis „… ausgeblendet (Kein Interesse)“ wird zum Link auf die Liste
+{ const _rr45b=rdRender; rdRender=function(){ const r=_rr45b.apply(this,arguments);
+  try{ const P=document.getElementById('panel-radar'); const n=P&&[...P.querySelectorAll('.note')].find(x=>/ausgeblendet \(Kein Interesse\)/.test(x.textContent)&&!x.querySelector('.sw45show'));
+    if(n){ n.insertAdjacentHTML('beforeend',' <button type="button" class="sw45show">Liste ansehen</button>'); n.querySelector('.sw45show').onclick=()=>sw45NoList(); } }catch(e){}
+  return r; }; }
+
+/* =====================================================================
    SV/BSC Scout · Runde 20: „Was ist neu“: Update-Fenster & Patch-Historie
    - Nach jedem Update ein Pop-up: das Wichtigste in Kürze → „OK“ oder „Mehr erfahren“ (ganze Historie)
    - Jederzeit erreichbar: Seitenleiste / „Mehr“ / Mein Konto → „Was ist neu“
@@ -8893,6 +9071,12 @@ document.addEventListener('click',e=>{
    Sichtbarkeit je Punkt: r:'team' (ohne Gäste) · r:'scout' · r:'admin' · ohne r = alle
    ===================================================================== */
 const SV_PATCHES=[
+  {id:'4.5',datum:'2026-09-25',titel:'Einfach wegwischen',kurz:'Spieler und Meldungen wischst du jetzt wie auf dem Sperrbildschirm weg. Die anderen rücken nach, und aussortierte Spieler holst du genauso leicht zurück.',
+   punkte:[
+    {ic:'👉',t:'Nach rechts: weg damit',d:'Spieler in Scouting, Radar und Bedarf nach rechts wischen heißt Kein Interesse. Meldungen und Hinweise nach rechts heißt erledigt. Kurz danach kannst du es rückgängig machen.',go:'radar'},
+    {ic:'👈',t:'Nach links: Merkliste',d:'Einen Spieler nach links wischen setzt ihn auf die Merkliste (grün) oder nimmt ihn wieder runter.',go:'scout'},
+    {ic:'↩️',t:'Liste „Kein Interesse“',d:'Alle aussortierten Spieler auf einen Blick. Nach rechts wischen holt einen Spieler zurück, nach links kommt er gleich auf die Merkliste. Zu finden im Spielermarkt und im Radar über „Liste ansehen“.',go:'scout'},
+    {ic:'🤏',t:'Scrollen bleibt Scrollen',d:'Die App erkennt, ob du wischst oder scrollst. Beim ersten Mal zeigt dir ein Eintrag kurz, wie es geht.'}]},
   {id:'4.4',datum:'2026-09-25',titel:'Mit Schwung & Klang',kurz:'Wer kein Interesse hat, fliegt jetzt sichtbar raus. Dazu leise Töne und ein Lagebild, das zuverlässig kommt.',
    punkte:[
     {ic:'💨',t:'Kein Interesse? Weg damit',d:'Tippst du bei einem Spieler auf „Kein Interesse“, fliegt er mit einem Swoosh aus der Liste oder das Profil schließt sich. Kurz danach kannst du es noch rückgängig machen.',go:'radar'},

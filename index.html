@@ -13,7 +13,7 @@
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <link rel="icon" type="image/png" href="favicon-64.png">
-<meta name="app-build" content="4.4-202609250545">
+<meta name="app-build" content="4.5-202609250635">
 <title>SV/BSC Sportzentrale</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js" async></script>
 <style>
@@ -2256,6 +2256,43 @@ p,.note,li{hyphens:auto;-webkit-hyphens:auto;hyphenate-limit-chars:8 4 4;overflo
 .svc-bt{white-space:normal;text-wrap:pretty;}
 @media (prefers-reduced-motion: reduce){ .sw44,.sw44.go,.sw44.zu,.svc-brief.in44,.svc-brief.load44::after{transition:none!important;animation:none!important;} }
 
+/* ===== Sportzentrale 4.5 · Wischen ===== */
+  .sw45no[data-id],#list .row[data-id],#gemlist .row[data-id],.rdit,.sc2k,.sc2f[data-sc2open],.bk4r,.sc2m[data-m],.svc-i[data-ins],[data-sc2h]{touch-action:pan-y;}
+.sw45drag{transition:none!important;position:relative;z-index:2;will-change:transform;cursor:grabbing;}
+.sw45back{transition:transform .32s cubic-bezier(.2,1.3,.4,1)!important;position:relative;z-index:2;}
+.sw45out{position:relative;z-index:2;overflow:hidden;transition:transform .24s cubic-bezier(.4,0,.9,.4),opacity .24s ease!important;opacity:.2;}
+.sw45zu{transition:height .24s ease,margin .24s ease,padding .24s ease,opacity .2s!important;height:0!important;margin-top:0!important;margin-bottom:0!important;padding-top:0!important;padding-bottom:0!important;border-width:0!important;opacity:0!important;}
+.sw45bg{position:absolute;z-index:1;pointer-events:none;overflow:hidden;display:flex;align-items:center;justify-content:space-between;padding:0 18px;
+  background:rgba(148,163,184,.10);font-size:13px;font-weight:700;color:var(--ink2,#cbd5e1);transition:background .18s ease,opacity .2s ease;}
+.sw45bg span{display:flex;align-items:center;gap:8px;opacity:0;transform:scale(.9);transition:opacity .15s ease,transform .2s cubic-bezier(.2,1.4,.4,1);}
+.sw45bg span b{font-size:18px;line-height:1;}
+.sw45bg .sw45l{margin-left:auto;}
+.sw45bg.go-r .sw45r,.sw45bg.go-l .sw45l{opacity:.75;transform:none;}
+.sw45bg.go-r.pass .sw45r,.sw45bg.go-l.pass .sw45l{opacity:1;transform:scale(1.06);}
+.sw45bg.go-r.pass:has(.t-no){background:rgba(239,68,68,.30);color:#fecaca;}
+.sw45bg.go-r.pass:has(.t-ok){background:rgba(34,197,94,.26);color:#bbf7d0;}
+.sw45bg.go-l.pass{background:rgba(34,197,94,.30);color:#bbf7d0;}
+.sw45bg.go-r:has(.t-no){background:rgba(239,68,68,.13);}
+.sw45bg.go-r:has(.t-ok){background:rgba(34,197,94,.12);}
+.sw45bg.go-l{background:rgba(34,197,94,.12);}
+.sw45bg.go-r.pass:has(.t-back){background:rgba(34,197,94,.30);color:#bbf7d0;}
+.sw45bg.go-r:has(.t-back){background:rgba(34,197,94,.12);}
+.sw45bg.fade{opacity:0;}
+body.sw45nosel,body.sw45nosel *{user-select:none!important;-webkit-user-select:none!important;}
+/* Einmaliger Hinweis: Eintrag zeigt kurz die Wisch-Aktion */
+.sw45peek{position:relative;z-index:2;animation:sw45peek 1.4s cubic-bezier(.3,.8,.3,1) both!important;}
+@keyframes sw45peek{0%{transform:none;}30%{transform:translate3d(96px,0,0);}55%{transform:translate3d(96px,0,0);}100%{transform:none;}}
+@media (prefers-reduced-motion: reduce){ .sw45back,.sw45out,.sw45zu{transition:none!important;} .sw45peek{animation:none!important;} }
+.sw45show{background:none;border:0;padding:0;color:var(--accent,#60a5fa);font:inherit;cursor:pointer;text-decoration:underline;text-underline-offset:2px;}
+
+/* Liste „Kein Interesse“ */
+.sw45no-l{display:flex;flex-direction:column;gap:8px;margin-top:14px;}
+.sw45no{display:flex;align-items:center;gap:12px;padding:10px 12px;border-radius:14px;border:1px solid var(--line,rgba(255,255,255,.08));background:rgba(255,255,255,.03);touch-action:pan-y;}
+.sw45no .tra-av{cursor:pointer;}
+.sw45no-b{flex:1;min-width:0;cursor:pointer;display:flex;flex-direction:column;}
+.sw45no-b b{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.sw45no-b span{font-size:12.5px;color:var(--ink3,#94a3b8);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+
 </style>
 <style id="v3gate">
 /* =====================================================================
@@ -2896,9 +2933,9 @@ a.kbtn{text-decoration:none;display:inline-block}
 
 
 <div class="overlay" id="overlay"><div class="modal" id="modal"></div></div>
-<script>window.SVBC_CFG={"url": "https://lvaukuzgcwgqipxwzabo.supabase.co", "anon": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imx2YXVrdXpnY3dncWlweHd6YWJvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTAxNTYwMTcsImV4cCI6MjEwNTczMjAxN30.jYZF8q8-SyCaWykM0wwcK58EzfTbO2VASKz1NIv1xbo", "build": "4.4-202609250545", "dataBytes": 3053230};</script>
-<script src="vendor/supabase.js?v=4.4-202609250545"></script>
-<script src="icons.js?v=4.4-202609250545"></script>
-<script src="boot.js?v=4.4-202609250545"></script>
+<script>window.SVBC_CFG={"url": "https://lvaukuzgcwgqipxwzabo.supabase.co", "anon": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imx2YXVrdXpnY3dncWlweHd6YWJvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTAxNTYwMTcsImV4cCI6MjEwNTczMjAxN30.jYZF8q8-SyCaWykM0wwcK58EzfTbO2VASKz1NIv1xbo", "build": "4.5-202609250635", "dataBytes": 3053230};</script>
+<script src="vendor/supabase.js?v=4.5-202609250635"></script>
+<script src="icons.js?v=4.5-202609250635"></script>
+<script src="boot.js?v=4.5-202609250635"></script>
 </body>
 </html>
