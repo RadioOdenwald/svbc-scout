@@ -76,10 +76,40 @@
     catch(e){ toast('⚠️ '+e.message); }
     busy=false;
   }
+  // ---------- Materialdienst und Urlaub ----------
+  let ABW=null, abwOpen=false;
+  const tm=d=>{ const x=String(d).split('-'); return (+x[2])+'.'+(+x[1])+'.'; };
+  function mdHtml(){
+    const L=(S.material||[]); if(!L.length)return '';
+    const cur=L.find(m=>m.von<=S.heute&&S.heute<=m.bis), mine=L.find(m=>(m.spieler||[]).some(x=>x.id===ME.id));
+    const nm=m=>(m.spieler||[]).map(x=>String(x.name||'').split(' ')[0]).join(' und ');
+    if(mine&&mine===cur)return `<div class="card md du"><span class="pill">🧺 Materialdienst</span><b class="big2">Du bist dran</b><p class="note">Bis ${tm(cur.bis)}${(cur.spieler||[]).length>1?' zusammen mit '+esc((cur.spieler||[]).filter(x=>x.id!==ME.id).map(x=>x.name).join(', ')):''}: Bälle, Leibchen und Hütchen mitbringen und nach dem Training wieder einräumen.${cur.notiz?' '+esc(cur.notiz):''}</p></div>`;
+    return `<div class="card md"><span class="pill">🧺 Materialdienst</span>${cur?`<b class="big2">${esc(nm(cur))}</b><p class="note">bis ${tm(cur.bis)}</p>`:''}${mine?`<p class="note"><b>Du bist ab ${tm(mine.von)} dran</b> (bis ${tm(mine.bis)}).</p>`:''}</div>`;
+  }
+  function urHtml(){
+    const L=ABW||[], G={urlaub:'Urlaub',arbeit:'Arbeit',uni:'Schule/Uni',familie:'Familie',privat:'Privat'};
+    const heute=S.heute, in7=new Date(new Date(heute+'T12:00:00').getTime()+7*864e5).toISOString().slice(0,10);
+    return `<div class="card ur"><h2>🌴 Urlaub eintragen</h2><p class="note">Trag frühzeitig ein, wann du nicht kannst. Für alle Trainings in dem Zeitraum bist du dann automatisch abgemeldet und bekommst keine Erinnerungen.</p>
+      ${L.map(a=>`<div class="row2"><div><b>${esc(G[a.grund]||a.grund)}</b><small>${esc(wd(a.von))} bis ${esc(wd(a.bis))}${a.notiz?' · '+esc(a.notiz):''}</small></div><button class="x" data-urx="${esc(a.id)}">Löschen</button></div>`).join('')}
+      ${abwOpen?`<div class="two"><label>Von<input class="txt" type="date" id="urV" value="${heute}" min="${heute}"></label><label>Bis<input class="txt" type="date" id="urB" value="${in7}" min="${heute}"></label></div>
+        <label>Grund<select class="txt" id="urG">${Object.entries(G).map(([k,v])=>`<option value="${k}">${v}</option>`).join('')}</select></label>
+        <input class="txt" id="urN" maxlength="200" placeholder="Notiz für den Trainer (optional)">
+        <button class="btn2 full" id="urS" style="margin-top:10px">Eintragen</button>`:`<button class="btn2 full" id="urO" style="margin-top:10px">+ Zeitraum eintragen</button>`}</div>`;
+  }
+  async function abwLoad(){ try{ ABW=await rpc('portal_abwesend',{p_key:KEY,p_player:ME.id}); }catch(e){ ABW=[]; } }
+  function urWire(){
+    const o=$('#urO'); if(o)o.onclick=()=>{ abwOpen=true; render(); };
+    const s=$('#urS'); if(s)s.onclick=async()=>{ if(busy)return; const v=$('#urV').value, b=$('#urB').value; if(!v||!b||b<v){ toast('Bitte einen gültigen Zeitraum wählen'); return; }
+      busy=true; try{ const r=await rpc('portal_abwesend_set',{p_key:KEY,p_player:ME.id,p_von:v,p_bis:b,p_grund:$('#urG').value,p_notiz:$('#urN').value||null});
+        abwOpen=false; busy=false; toast('✓ Eingetragen'+(r&&r.abgesagt?': für '+r.abgesagt+' Termin'+(r.abgesagt>1?'e':'')+' abgemeldet':'')); await abwLoad(); await load(); }catch(e){ busy=false; toast('⚠️ '+e.message); } };
+    document.querySelectorAll('[data-urx]').forEach(b=>b.onclick=async()=>{ if(busy)return; busy=true;
+      try{ await rpc('portal_abwesend_del',{p_key:KEY,p_player:ME.id,p_id:b.dataset.urx}); busy=false; toast('✓ Gelöscht'); await abwLoad(); await load(); }catch(e){ busy=false; toast('⚠️ '+e.message); } });
+  }
   function polls(B){
+    if(ABW===null){ ABW=[]; abwLoad().then(()=>{ if(view==='abst')render(); }); }
     const P=(S.polls||[]).filter(p=>p.datum>=S.heute).sort((a,b)=>(a.id===FOCUS?-1:b.id===FOCUS?1:0)||(a.datum<b.datum?-1:a.datum>b.datum?1:0));
     const wa=S.ich&&S.ich.whatsapp?`<div class="card wa"><b>WhatsApp-Erinnerungen</b><span>${S.ich.optout?'Aus: du bekommst keine Nachrichten.':'An: du bekommst den Link zum Training und ggf. eine Erinnerung.'}</span><button class="btn2" id="waT">${S.ich.optout?'Wieder einschalten':'Ausschalten'}</button></div>`:'';
-    if(!P.length){ B.innerHTML='<div class="card empty"><h2>Gerade nichts offen</h2><p class="note">Sobald der Trainer eine Abstimmung anlegt, steht sie hier.</p></div>'+wa; waWire(); return; }
+    if(!P.length){ B.innerHTML=mdHtml()+'<div class="card empty"><h2>Gerade nichts offen</h2><p class="note">Sobald der Trainer eine Abstimmung anlegt, steht sie hier.</p></div>'+urHtml()+wa; waWire(); urWire(); return; }
     B.innerHTML=P.map(p=>{ const T=p.teilnehmer||[], V=new Map((p.votes||[]).map(v=>[v.p,v])), mine=V.get(ME.id), inL=T.some(t=>t.id===ME.id);
       const g={zu:[],vllt:[],ab:[],offen:[]}; T.forEach(t=>{ const v=V.get(t.id); (v?g[v.a]:g.offen).push(t.name); }); const n=T.length||1, pc=x=>Math.round(x/n*100);
       const closed=p.geschlossen;
@@ -87,12 +117,13 @@
         <h2>${esc(p.titel)}</h2><div class="meta">${esc(wd(p.datum))}${p.zeit?' · '+esc(p.zeit)+' Uhr':''}${p.ort?' · '+esc(p.ort):''}</div>
         ${p.notiz?`<p class="note">${esc(p.notiz)}</p>`:''}${p.frist?`<p class="note">Bitte bis ${esc(new Date(p.frist).toLocaleString('de-DE',{weekday:'short',day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}))} Uhr antworten.</p>`:''}
         ${closed?'<p class="note"><b>Abstimmung geschlossen.</b></p>':inL?`<div class="ans">${[['zu','👍','Bin dabei'],['ab','✋','Nicht dabei']].map(([a,i,t])=>`<button class="${a}${mine&&mine.a===a?' on':''}" data-poll="${esc(p.id)}" data-a="${a}"><span>${i}</span>${t}</button>`).join('')}</div>
-          ${mine&&mine.a==='ab'?`<div class="why">${Object.entries(REASONS).map(([k,t])=>`<button class="${mine.g===k?'on':''}" data-poll="${esc(p.id)}" data-g="${k}">${t}</button>`).join('')}</div><input class="txt" data-poll="${esc(p.id)}" data-n maxlength="200" placeholder="Kurzer Hinweis (optional)" value="${esc(mine.n||'')}">`:''}`:S.ich?'<p class="note">Du stehst bei diesem Termin nicht auf der Liste.</p>':`<p class="note">Du stehst bei diesem Termin noch nicht auf der Liste.</p><button class="btn2" data-self="${esc(p.id)}">Mich eintragen</button>`}
+          ${mine&&mine.a==='ab'&&!/vorab eingetragen/.test(mine.n||'')?`<div class="why">${Object.entries(REASONS).map(([k,t])=>`<button class="${mine.g===k?'on':''}" data-poll="${esc(p.id)}" data-g="${k}">${t}</button>`).join('')}</div><input class="txt" data-poll="${esc(p.id)}" data-n maxlength="200" placeholder="Kurzer Hinweis (optional)" value="${esc(mine.n||'')}">`:''}`:S.ich?'<p class="note">Du stehst bei diesem Termin nicht auf der Liste.</p>':`<p class="note">Du stehst bei diesem Termin noch nicht auf der Liste.</p><button class="btn2" data-self="${esc(p.id)}">Mich eintragen</button>`}
+        ${mine&&mine.a==='ab'&&/vorab eingetragen/.test(mine.n||'')?'<span class="vorab">🌴 Automatisch abgemeldet, weil du Urlaub eingetragen hast</span>':''}
         ${inL&&!closed?'<p class="note">Du kannst deine Antwort bis zum Training jederzeit ändern.</p>':''}
         <div class="bar"><i class="ok" style="width:${pc(g.zu.length)}%"></i><i class="mid" style="width:${pc(g.vllt.length)}%"></i><i class="bad" style="width:${pc(g.ab.length)}%"></i></div>
         <div class="cnt"><span><b>${g.zu.length}</b> dabei</span>${g.vllt.length?`<span><b>${g.vllt.length}</b> vielleicht</span>`:''}<span><b>${g.ab.length}</b> nicht</span><span><b>${g.offen.length}</b> offen</span></div>
         <details><summary>Wer hat was gesagt?</summary>${[['zu','ok','Dabei'],['vllt','mid','Vielleicht'],['ab','bad','Nicht dabei'],['offen','','Noch keine Antwort']].map(([k,c,t])=>g[k].length?`<h3>${t}</h3><div class="who">${g[k].map(x=>`<span class="${c}">${esc(x)}</span>`).join('')}</div>`:'').join('')}</details></div>`; }).join('');
-    B.insertAdjacentHTML('beforeend',wa); waWire();
+    B.insertAdjacentHTML('afterbegin',mdHtml()); B.insertAdjacentHTML('beforeend',urHtml()+wa); waWire(); urWire();
     B.querySelectorAll('[data-a]').forEach(b=>b.onclick=()=>vote(b.dataset.poll,b.dataset.a));
     B.querySelectorAll('[data-self]').forEach(b=>b.onclick=()=>{ const w=ME.name.trim().split(/\s+/); gast(b.dataset.self,w[0],w.slice(1).join(' ')); });
     B.querySelectorAll('[data-g]').forEach(b=>b.onclick=()=>{ const p=S.polls.find(x=>x.id===b.dataset.poll), v=(p.votes||[]).find(x=>x.p===ME.id); vote(p.id,'ab',b.dataset.g,v&&v.n); });
