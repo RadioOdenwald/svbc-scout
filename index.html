@@ -13,7 +13,7 @@
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <link rel="icon" type="image/png" href="favicon-64.png">
-<meta name="app-build" content="4.3-202609241852">
+<meta name="app-build" content="4.4-202609250545">
 <title>SV/BSC Sportzentrale</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js" async></script>
 <style>
@@ -2239,6 +2239,23 @@ p,.note,li{hyphens:auto;-webkit-hyphens:auto;hyphenate-limit-chars:8 4 4;overflo
 #svHello p{display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px;}
 .hello-d{white-space:normal;}
 
+/* ===== Sportzentrale 4.4 · Swoosh bei „Kein Interesse“, Lagebild ===== */
+.sw44{overflow:hidden;transition:transform .42s cubic-bezier(.55,-0.05,.7,.2),opacity .36s ease,filter .36s ease;will-change:transform,opacity;}
+.sw44.go{transform:translate3d(115%,-6px,0) rotate(4deg);opacity:0;filter:blur(1.5px);}
+.sw44.zu{transition:height .26s ease,margin .26s ease,padding .26s ease,transform .42s cubic-bezier(.55,-0.05,.7,.2),opacity .36s ease;height:0!important;margin-top:0!important;margin-bottom:0!important;padding-top:0!important;padding-bottom:0!important;border-width:0!important;}
+.overlay.open .modal.sw44m{animation:sw44m .43s cubic-bezier(.55,-0.05,.75,.25) forwards!important;}
+@keyframes sw44m{0%{transform:none;opacity:1;}18%{transform:translate3d(-14px,0,0) rotate(-1deg);opacity:1;}100%{transform:translate3d(120vw,-40px,0) rotate(9deg);opacity:0;}}
+.overlay.open.sw44o{transition:background-color .4s ease,backdrop-filter .4s ease;background:rgba(3,5,10,0)!important;backdrop-filter:blur(0)!important;-webkit-backdrop-filter:blur(0)!important;}
+/* Lagebild: lädt sichtbar, erscheint weich */
+.svc-brief.load44 .svc-bt{color:var(--ink3);position:relative;}
+.svc-brief.load44{position:relative;overflow:hidden;}
+.svc-brief.load44::after{content:"";position:absolute;inset:0;background:linear-gradient(100deg,transparent 30%,rgba(255,255,255,.07) 50%,transparent 70%);background-size:220% 100%;animation:ld44 1.3s linear infinite;pointer-events:none;}
+@keyframes ld44{from{background-position:120% 0;}to{background-position:-120% 0;}}
+.svc-brief.in44{animation:in44 .5s cubic-bezier(.2,.8,.2,1) both;}
+@keyframes in44{from{opacity:0;transform:translate3d(0,10px,0) scale(.985);}to{opacity:1;transform:none;}}
+.svc-bt{white-space:normal;text-wrap:pretty;}
+@media (prefers-reduced-motion: reduce){ .sw44,.sw44.go,.sw44.zu,.svc-brief.in44,.svc-brief.load44::after{transition:none!important;animation:none!important;} }
+
 </style>
 <style id="v3gate">
 /* =====================================================================
@@ -2879,9 +2896,9 @@ a.kbtn{text-decoration:none;display:inline-block}
 
 
 <div class="overlay" id="overlay"><div class="modal" id="modal"></div></div>
-<script>window.SVBC_CFG={"url": "https://lvaukuzgcwgqipxwzabo.supabase.co", "anon": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imx2YXVrdXpnY3dncWlweHd6YWJvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTAxNTYwMTcsImV4cCI6MjEwNTczMjAxN30.jYZF8q8-SyCaWykM0wwcK58EzfTbO2VASKz1NIv1xbo", "build": "4.3-202609241852", "dataBytes": 3053230};</script>
-<script src="vendor/supabase.js?v=4.3-202609241852"></script>
-<script src="icons.js?v=4.3-202609241852"></script>
-<script src="boot.js?v=4.3-202609241852"></script>
+<script>window.SVBC_CFG={"url": "https://lvaukuzgcwgqipxwzabo.supabase.co", "anon": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imx2YXVrdXpnY3dncWlweHd6YWJvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTAxNTYwMTcsImV4cCI6MjEwNTczMjAxN30.jYZF8q8-SyCaWykM0wwcK58EzfTbO2VASKz1NIv1xbo", "build": "4.4-202609250545", "dataBytes": 3053230};</script>
+<script src="vendor/supabase.js?v=4.4-202609250545"></script>
+<script src="icons.js?v=4.4-202609250545"></script>
+<script src="boot.js?v=4.4-202609250545"></script>
 </body>
 </html>

@@ -2100,7 +2100,7 @@ function openSlotPicker(i,depth){
 }
 
 /* ===== App-Modus: installierbar, offline-fest, aktualisiert sich selbst ===== */
-const APP_BUILD='4.3-202609241852', OUTBOX_KEY='svbcOutbox', APP_HIDE_KEY='svbcInstallHide';
+const APP_BUILD='4.4-202609250545', OUTBOX_KEY='svbcOutbox', APP_HIDE_KEY='svbcInstallHide';
 let _appPrompt=null, _appNew=null, _obT=null;
 function appStandalone(){ try{ return !!(window.matchMedia&&matchMedia('(display-mode: standalone)').matches)||navigator.standalone===true; }catch(e){ return false; } }
 function appPlatform(){
@@ -4964,7 +4964,7 @@ function svCockpit(){
   const ai=canTraining()&&TR.ai&&TR.ai.ready;
   el.innerHTML=`<div class="card svcock"><div class="svc-h"><h3>${svEsc(SV_ROLE_HEAD[r]||'Cockpit')}</h3>${ai?`<button class="btn ghost sm" id="svBriefBtn">${SVI('chat')} KI-Lagebild</button>`:''}</div>
     <div class="svc-acts">${acts.map((a,i)=>`<button class="svc-a" data-act="${i}">${SVI(a[0])}<span>${svEsc(a[1])}</span></button>`).join('')}</div>
-    ${SVA.brief?`<div class="svc-brief"><b>${SVI('chat')} Lagebild des Co-Trainers</b><div>${svEsc(SVA.brief.text).replace(/\n/g,'<br>')}</div><small>${svEsc(SVA.brief.when||'')}</small></div>`:''}
+    ${SVA.brief?`<div class="svc-brief"><b>${SVI('chat')} Lagebild des Co-Trainers</b><div class="svc-bt">${svEsc(SVA.brief.text).replace(/\n+/g,'<br>')}</div><small>${svEsc(SVA.brief.when||'')}</small></div>`:''}
     <div class="svc-ins">${ins.length?ins.map((x,i)=>`<button class="svc-i l-${x.lvl}" data-ins="${i}"><b>${svEsc(x.t)}</b><span>${svEsc(x.d)}</span></button>`).join(''):'<div class="note">Alles ruhig, keine dringenden Punkte.</div>'}</div>
     ${top.length?`<div class="svc-top"><span>Oft genutzt:</span>${top.map(t=>`<button data-top="${t}">${SVI(SV_TBL[t][0])}${svEsc(SV_TBL[t][1])}</button>`).join('')}</div>`:''}</div>`;
   el.querySelectorAll('[data-act]').forEach(b=>b.onclick=()=>acts[+b.dataset.act][2]());
@@ -4975,11 +4975,15 @@ function svCockpit(){
 }
 async function svBrief(){
   if(SVA.briefBusy)return; SVA.briefBusy=true; const b=document.getElementById('svBriefBtn'); if(b){ b.disabled=true; b.textContent='Denkt nach …'; }
+  { const ex=document.querySelector('#svCockpit .svc-brief'), ac=document.querySelector('#svCockpit .svc-acts'); const ld='<div class="svc-brief load44"><b>'+SVI('chat')+' Lagebild des Co-Trainers</b><div class="svc-bt">Der Co-Trainer schaut sich gerade Kader, Training und Radar an. Das dauert ein paar Sekunden.</div></div>'; if(ex)ex.outerHTML=ld; else if(ac)ac.insertAdjacentHTML('afterend',ld); }
   try{ const {data,error}=await SVB.sb.functions.invoke('coach',{body:{mode:'lagebild'}}); if(error)throw error;
     if(!data||!data.ok)throw new Error(data&&data.error==='kein-schluessel'?'KI ist nicht eingerichtet':(data&&data.error)||'keine Antwort');
-    SVA.brief={text:data.text,when:(data.cached?'von heute ':'')+new Date().toLocaleTimeString('de-DE',{hour:'2-digit',minute:'2-digit'})+' Uhr'}; }
+    if(!String(data.text||'').trim())throw new Error('Der Co-Trainer hat gerade nichts geliefert. Bitte gleich nochmal tippen.');
+    SVA.brief={text:data.text,when:(data.cached?'von heute ':'')+new Date().toLocaleTimeString('de-DE',{hour:'2-digit',minute:'2-digit'})+' Uhr',neu:true}; }
   catch(e){ kToast('⚠️ '+(e.message||e)); }
   SVA.briefBusy=false; svCockpit();
+  // frisch geladenes Lagebild sichtbar machen
+  if(SVA.brief&&SVA.brief.neu){ SVA.brief.neu=false; const bx=document.querySelector('#svCockpit .svc-brief'); if(bx){ bx.classList.add('in44'); try{ bx.scrollIntoView({behavior:'smooth',block:'nearest'}); }catch(x){} try{ svSound('success'); }catch(x){} } }
 }
 function svHomeOrder(){
   const host=document.getElementById('svHello'); if(!host)return;
@@ -6151,7 +6155,7 @@ function kbBotCard(){
       <label class="kbchk"><input type="checkbox" id="kbA_ee"${c.einzeln_erinnern?' checked':''}> Am Trainingstag nur die, die noch nicht geantwortet haben, persönlich erinnern <small>(günstig: meist 3–8 Nachrichten)</small></label>
       <label class="kbchk"><input type="checkbox" id="kbA_ei"${c.einzeln_einladen?' checked':''}> Jedem Spieler seinen persönlichen Link schicken <small>(ca. 30 Nachrichten je Training)</small></label>
       <div class="note">Jeder Spieler hat einen persönlichen Link: kein Namen-Suchen, ein Klick, nur für sich selbst. Meta berechnet je Vorlagen-Nachricht rund 4–5 Cent. Spieler können sich auf ihrer Seite selbst abmelden. Vorher kurz in der Mannschaft ankündigen.</div>
-      <div class="field" style="margin-top:8px"><label>Vorlagen-ID für Spieler <small>– „Hallo {{1}}, kommst du {{2}} ins Training? Hier abstimmen: {{3}} Danke dir!“ (Vorname, wann, Link)</small></label><input id="kbA_tps" value="${svEsc(c.sc_template_spieler||'')}" placeholder="tn_… (leer = Trainer-Vorlage mit Freitext)" maxlength="60"></div>
+      <div class="field" style="margin-top:8px"><label>Vorlagen-ID für Spieler <small>zum Beispiel „Hallo {{1}}, kommst du {{2}} ins Training? Hier abstimmen: {{3}} Danke dir!“ (Vorname, wann, Link)</small></label><input id="kbA_tps" value="${svEsc(c.sc_template_spieler||'')}" placeholder="tn_… (leer = Trainer-Vorlage mit Freitext)" maxlength="60"></div>
       <button class="btn ghost sm" id="kbA_pl" style="margin-top:8px">${SVI('users')} Handynummern & persönliche Links</button></div>
     <div class="btnrow sbact"><button class="btn" id="kbA_save">Speichern</button>${ready?`<button class="btn ghost" id="kbA_test">${SVI('chat')} Testnachricht</button>`:''}<button class="btn ghost" id="kbA_run">${SVI('refresh')} Jetzt prüfen</button></div></div>`;
 }
@@ -8783,6 +8787,104 @@ document.addEventListener('visibilitychange',()=>document.body.classList.toggle(
   return r; }; }
 
 /* =====================================================================
+   Sportzentrale 4.4 · Töne & „Kein Interesse“ mit Schwung
+   - Kleine, leise Töne (im Browser erzeugt, keine Dateien): Tippen, Erfolg, Hinweis, Swoosh
+   - Aus in „Mein Konto“ (svToene) · bei stummem iPhone still (Audio-Sitzung „ambient“)
+   - „Kein Interesse“: Spieler fliegt mit Swoosh aus der Liste bzw. das Profil schließt sich,
+     danach kurze Meldung mit „Rückgängig“
+   ===================================================================== */
+const SV44={ctx:null,noise:null,busy:false};
+const sv44On=()=>{ try{ return localStorage.getItem('svToene')!=='aus'; }catch(e){ return true; } };
+function sv44Ctx(){
+  if(SV44.ctx)return SV44.ctx;
+  const AC=window.AudioContext||window.webkitAudioContext; if(!AC)return null;
+  try{ if(navigator.audioSession)navigator.audioSession.type='ambient'; }catch(e){}
+  try{ SV44.ctx=new AC(); }catch(e){ return null; }
+  return SV44.ctx;
+}
+// Audio erst nach der ersten Berührung starten (Vorgabe der Browser)
+['pointerdown','keydown'].forEach(ev=>document.addEventListener(ev,()=>{ try{ if(!sv44On())return; const c=sv44Ctx(); if(c&&c.state==='suspended')c.resume(); }catch(e){} },{capture:true,passive:true}));
+function sv44Noise(c){
+  if(SV44.noise)return SV44.noise;
+  const n=Math.floor(c.sampleRate*0.6), b=c.createBuffer(1,n,c.sampleRate), d=b.getChannelData(0);
+  for(let i=0;i<n;i++)d[i]=Math.random()*2-1;
+  return SV44.noise=b;
+}
+function svSound(kind){
+  try{
+    if(!sv44On()||document.hidden)return;
+    const c=sv44Ctx(); if(!c||c.state!=='running')return;
+    const t=c.currentTime+0.005, out=c.createGain(); out.gain.value=1; out.connect(c.destination);
+    const tone=(f1,f2,start,dur,vol,type)=>{ const o=c.createOscillator(), g=c.createGain(); o.type=type||'sine';
+      o.frequency.setValueAtTime(f1,start); if(f2)o.frequency.exponentialRampToValueAtTime(f2,start+dur);
+      g.gain.setValueAtTime(0.0001,start); g.gain.exponentialRampToValueAtTime(vol,start+0.008); g.gain.exponentialRampToValueAtTime(0.0001,start+dur);
+      o.connect(g); g.connect(out); o.start(start); o.stop(start+dur+0.02); };
+    if(kind==='tick'||kind==='light'){ tone(1650,1100,t,0.035,0.022); return; }
+    if(kind==='success'){ tone(880,null,t,0.11,0.035); tone(1318,null,t+0.075,0.16,0.03); return; }
+    if(kind==='warn'){ tone(392,294,t,0.16,0.04,'triangle'); return; }
+    if(kind==='pop'){ tone(520,880,t,0.07,0.03); return; }
+    if(kind==='swoosh'){
+      const src=c.createBufferSource(); src.buffer=sv44Noise(c);
+      const bp=c.createBiquadFilter(); bp.type='bandpass'; bp.Q.value=1.1;
+      bp.frequency.setValueAtTime(380,t); bp.frequency.exponentialRampToValueAtTime(3600,t+0.26); bp.frequency.exponentialRampToValueAtTime(1800,t+0.42);
+      const g=c.createGain(); g.gain.setValueAtTime(0.0001,t); g.gain.exponentialRampToValueAtTime(0.16,t+0.12); g.gain.exponentialRampToValueAtTime(0.0001,t+0.44);
+      let last=g; if(c.createStereoPanner){ const p=c.createStereoPanner(); p.pan.setValueAtTime(-0.6,t); p.pan.linearRampToValueAtTime(0.7,t+0.4); g.connect(p); last=p; }
+      src.connect(bp); bp.connect(g); last.connect(out); src.start(t); src.stop(t+0.46);
+    }
+  }catch(e){}
+}
+// Töne an die vorhandene Haptik koppeln (Navigation, Erfolg, Hinweis)
+{ const _h44=svHaptic; svHaptic=function(kind){ const r=_h44.apply(this,arguments); try{ svSound(kind||'light'); }catch(e){} return r; }; }
+
+/* ---------- „Kein Interesse“: weg damit, mit Schwung ---------- */
+function sv44Refresh(){
+  try{ renderAll(); }catch(e){}
+  try{ if(typeof sc2After==='function')sc2After(); }catch(e){}
+}
+function sv44Undo(pid,name){
+  kToast('🚫 '+name+' ist raus. Kommt nicht mehr in Radar und Vorschlägen.','Rückgängig',()=>{
+    try{ crmSet(pid,{s:undefined,u:undefined}); try{crmApply();}catch(x){} sv44Refresh(); svSound('pop'); kToast('↩️ '+name+' ist wieder dabei'); }catch(x){} });
+}
+document.addEventListener('click',e=>{
+  const b=e.target.closest&&e.target.closest('[data-sc2="no"],[data-crm="no"]');
+  if(!b||b.__sw44||b.disabled)return;
+  if(b.dataset.crm==='no'&&b.classList.contains('on-no'))return;          // Zurücknehmen läuft normal
+  const host=b.closest('[data-sc2p]'), M=b.closest('#overlay .modal, #modal');
+  const pid=host?host.dataset.sc2p:(typeof CURVIEW!=='undefined'&&CURVIEW&&CURVIEW.id)||null, p=pid&&typeof trP==='function'?trP(pid):null;
+  const row=b.closest('.rdit,.sc2k,.sc2f,.kd4r,.kr4-row');
+  const still=sv43Reduced();
+  e.stopPropagation(); e.preventDefault();
+  const fire=()=>{ b.__sw44=1; try{ b.click(); }finally{ b.__sw44=0; } };
+  const done=()=>{ if(p)sv44Undo(p.id,p.name); };
+  svSound('swoosh'); try{ if(navigator.vibrate&&/Android/i.test(navigator.userAgent)&&sv43HapOn()&&!still)navigator.vibrate([6,40,10]); }catch(x){}
+  if(row){
+    // Eintrag in einer Liste: zur Seite wegfliegen, dann Lücke schließen
+    if(still){ fire(); done(); return; }
+    const h=row.getBoundingClientRect().height; row.style.height=h+'px'; row.classList.add('sw44'); void row.offsetWidth; row.classList.add('go');
+    setTimeout(()=>{ row.classList.add('zu'); },260);
+    setTimeout(()=>{ fire(); done(); },520);
+    return;
+  }
+  if(M){
+    // Im Spielerprofil: die ganze Karte fliegt weg, das Profil schließt sich
+    const card=M.classList.contains('modal')?M:(M.closest('.modal')||M);
+    if(still){ fire(); try{ closeOverlay(); }catch(x){} sv44Refresh(); done(); return; }
+    card.classList.add('sw44m'); const ov=document.getElementById('overlay'); if(ov)ov.classList.add('sw44o');
+    setTimeout(()=>{ fire(); try{ closeOverlay(); }catch(x){} card.classList.remove('sw44m'); if(ov)ov.classList.remove('sw44o'); sv44Refresh(); done(); },430);
+    return;
+  }
+  fire(); done();
+},true);
+
+// Mein Konto: Töne an/aus (neben der Haptik)
+{ const _acc44=svAccount; svAccount=function(){ const r=_acc44.apply(this,arguments);
+  try{ const M=document.getElementById('modal'), hap=M&&M.querySelector('.hap43l');
+    if(hap&&!M.querySelector('[data-snd44]')){ const on=sv44On();
+      hap.insertAdjacentHTML('afterend',`<label class="hap43l"><span><b>Töne</b><small>Leise Klicks, ein kurzer Klang bei Erfolg und ein Swoosh, wenn ein Spieler rausfliegt</small></span><input type="checkbox" data-snd44 ${on?'checked':''}></label>`);
+      M.querySelector('[data-snd44]').onchange=e=>{ try{ localStorage.setItem('svToene',e.target.checked?'an':'aus'); }catch(x){} if(e.target.checked){ const c=sv44Ctx(); if(c&&c.state==='suspended')c.resume(); setTimeout(()=>svSound('success'),60); } }; } }catch(e){}
+  return r; }; }
+
+/* =====================================================================
    SV/BSC Scout · Runde 20: „Was ist neu“: Update-Fenster & Patch-Historie
    - Nach jedem Update ein Pop-up: das Wichtigste in Kürze → „OK“ oder „Mehr erfahren“ (ganze Historie)
    - Jederzeit erreichbar: Seitenleiste / „Mehr“ / Mein Konto → „Was ist neu“
@@ -8791,6 +8893,11 @@ document.addEventListener('visibilitychange',()=>document.body.classList.toggle(
    Sichtbarkeit je Punkt: r:'team' (ohne Gäste) · r:'scout' · r:'admin' · ohne r = alle
    ===================================================================== */
 const SV_PATCHES=[
+  {id:'4.4',datum:'2026-09-25',titel:'Mit Schwung & Klang',kurz:'Wer kein Interesse hat, fliegt jetzt sichtbar raus. Dazu leise Töne und ein Lagebild, das zuverlässig kommt.',
+   punkte:[
+    {ic:'💨',t:'Kein Interesse? Weg damit',d:'Tippst du bei einem Spieler auf „Kein Interesse“, fliegt er mit einem Swoosh aus der Liste oder das Profil schließt sich. Kurz danach kannst du es noch rückgängig machen.',go:'radar'},
+    {ic:'🔈',t:'Leise Töne',d:'Ein zartes Klicken beim Wechseln, ein kurzer Klang bei Erfolg. Auf dem stummen iPhone bleibt alles still, abschalten unter Mein Konto → App.'},
+    {ic:'🧠',t:'Lagebild des Co-Trainers',d:'Das KI-Lagebild auf der Übersicht zeigt jetzt, dass es arbeitet, und kommt zuverlässig mit bis zu fünf konkreten Punkten für heute.',go:'home'}]},
   {id:'4.3',datum:'2026-09-24',titel:'Lebendiger & flüssiger',kurz:'Neuer Look mit sanft bewegtem Verlauf, weichen Übergängen beim Wechseln und einem Tippen-Gefühl auf dem Handy.',
    punkte:[
     {ic:'🌊',t:'Sanft bewegter Hintergrund',d:'Ein ruhiger Farbverlauf im Vereinsblau bewegt sich ganz langsam hinter der App, auch auf der Anmeldeseite. Im Hintergrund pausiert er, der Akku bleibt geschont.'},
