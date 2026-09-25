@@ -2100,7 +2100,7 @@ function openSlotPicker(i,depth){
 }
 
 /* ===== App-Modus: installierbar, offline-fest, aktualisiert sich selbst ===== */
-const APP_BUILD='0.7-202609251650', OUTBOX_KEY='svbcOutbox', APP_HIDE_KEY='svbcInstallHide';
+const APP_BUILD='beta-0.8', OUTBOX_KEY='svbcOutbox', APP_HIDE_KEY='svbcInstallHide';
 let _appPrompt=null, _appNew=null, _obT=null;
 function appStandalone(){ try{ return !!(window.matchMedia&&matchMedia('(display-mode: standalone)').matches)||navigator.standalone===true; }catch(e){ return false; } }
 function appPlatform(){
@@ -11048,6 +11048,157 @@ if(typeof SV50_INFO!=='undefined'&&SV50_INFO['kabine:abst']){ SV50_INFO['kabine:
   SV50_INFO['kabine:abst'].b=['Dienstag und Donnerstag wird automatisch abgestimmt, der Link geht am Vortag raus.','Wer Urlaub eingetragen hat, ist für diese Tage schon abgemeldet und wird nicht erinnert.']; }
 
 /* =====================================================================
+   Sportzentrale Beta 0.8 · MScore 3: die Liga setzt den Rahmen
+   Vorher war der MScore ein Durchschnitt vieler Bausteine, die fast alle bei 50 anfangen. Dadurch lagen
+   ein Stammspieler der Kreisoberliga und ein schwacher Spieler der Kreisliga D oft gleichauf.
+   Jetzt:
+   1. Jede Liga hat einen Rahmen, passend zur Eye-Test-Skala (50 = solider Stammspieler Kreisliga A).
+   2. Innerhalb des Rahmens entscheiden Einsatzzeit (45 %), Leistung im Vergleich zu Spielern derselben
+      Liga und Position (40 %) und die Stärke der Mannschaft (15 %).
+   3. Wer seine Liga dominiert (viele Tore je Spiel), kommt über den Rahmen hinaus.
+   4. Frühere höhere Ligen, Eye-Test, Trainernoten, Form, Alter, Presse und Elf der Woche verschieben den Wert.
+   ===================================================================== */
+// Mittelpunkt = typischer Stammspieler dieser Liga; Rahmen von Mitte −20 bis Mitte +10
+const SV92_MITTE={GL:72,KOL:63,A:51,B:42,C:34,D:27};
+const SV92_GRUPPE=pos=>['ST','OM','Flügel'].includes(pos)?'off':['IV','AV','TW'].includes(pos)?'def':'mid';
+const SV92_GRUPPE_T={off:'Offensivspieler',mid:'Mittelfeldspieler',def:'Abwehrspieler und Torhüter'};
+const SV92={dist:null,gen:-1,cache:new Map()};
+const sv92Rahmen=l=>{ const m=SV92_MITTE[l]; return m==null?null:{lo:m-20,hi:m+10,m}; };
+const sv92Clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+let _sv92prev=null;
+function sv92Liga(p,r){ const c=r&&r.cur, useCur=!!(c&&c.spiele>=3); return ligaBase(useCur?(c.sub||c.liga):(p.sub||p.liga))||ligaBase(p.liga); }
+// Rohwert der Leistung je Gruppe: vorne und Mitte Tore (Vorlagen halb) je Spiel, hinten Gegentore der Mannschaft im Vergleich zur Liga
+function sv92Roh(p,r){
+  const g=SV92_GRUPPE(p.pos);
+  if(g==='def')return r.defRaw!=null?r.defRaw:null;
+  const sp=Math.max(1,p.einsaetze||p.teamSp||1);
+  return (r.gpg||0)+(p.assists>0?0.5*p.assists/sp:0);
+}
+function sv92Dist(){
+  if(SV92.dist&&SV92.gen===SV4.gen)return SV92.dist;
+  const D={};
+  players.forEach(p=>{ if(p.isJugend)return; let r; try{ r=_sv92prev(p); }catch(e){ return; } if(!r||!r.comps)return;
+    const l=sv92Liga(p,r); if(!SV92_MITTE[l])return; const v=sv92Roh(p,r); if(v==null)return;
+    const k=l+'|'+SV92_GRUPPE(p.pos); (D[k]=D[k]||[]).push(v); });
+  Object.values(D).forEach(a=>a.sort((x,y)=>x-y));
+  SV92.dist=D; SV92.gen=SV4.gen; return D;
+}
+function sv92Pct(k,v){ const a=sv92Dist()[k]; if(!a||a.length<8||v==null)return null; let lo=0,hi=a.length; while(lo<hi){ const m=(lo+hi)>>1; if(a[m]<v)lo=m+1; else hi=m; } let up=lo; while(up<a.length&&a[up]===v)up++; return ((lo+up)/2)/a.length; }
+function sv92Score(p,r){
+  const l=sv92Liga(p,r), R=sv92Rahmen(l); if(!R)return null;
+  const grp=SV92_GRUPPE(p.pos), sp=Math.max(0,p.einsaetze||p.teamSp||0);
+  // 1) Einsatz
+  const e=r.q!=null?sv92Clamp(r.q,0,1):0.5, eEst=r.q==null||!!(r.E&&r.E.est);
+  // 2) Leistung im Vergleich zur Liga und Position
+  const roh=sv92Roh(p,r); let pct=sv92Pct(l+'|'+grp,roh);
+  const tRank=(r.cur&&r.cur.rank)||p.rank, tCount=(r.cur&&r.cur.teamCount)||p.teamCount;
+  const t=tRank!=null&&tCount>1?1-(tRank-1)/(tCount-1):0.5;
+  let lei=pct==null?0.5:pct; if(grp==='mid')lei=0.55*lei+0.45*t;
+  const n=sp; if(n<6)lei=0.5+(lei-0.5)*n/6;   // wenige Spiele: vorsichtig
+  // 3) Platz im Rahmen
+  const x=0.45*e+0.40*lei+0.15*t, basis=R.lo+x*(R.hi-R.lo);
+  const adj=[]; let M=basis;
+  // Ausnahmeleistung: wer mehr als ein Tor je Spiel schießt, sprengt den Rahmen
+  if(grp!=='def'&&(r.gpg||0)>1&&sp>=6){ const b=Math.min(30,((r.gpg||0)-1)*13); if(b>=0.5){ M+=b; adj.push(['aus','Dominiert die Liga',b,`${sv4Num(r.gpg,2)} Tore je Spiel`]); } }
+  // Früher höher gespielt: zur Hälfte angerechnet
+  const H=[]; if(r.cur&&r.cur.spiele>=3&&p.liga)H.push(['25/26',ligaBase(p.sub||p.liga)]); if(p.prev&&p.prev.liga)H.push(['24/25',ligaBase(p.prev.liga)]);
+  let best=null; H.forEach(([y,lg])=>{ const m=SV92_MITTE[lg]; if(m!=null&&(!best||m>best.m))best={y,lg,m}; });
+  if(best&&best.m>R.m){ const b=Math.max(0,(best.m-8-M)*0.5); if(b>=0.5){ M+=b; adj.push(['hist','Früher höher gespielt',b,`${best.y} in der ${LIGA_NAME[best.lg]||best.lg}`]); } }
+  // Eye-Test: je mehr Planer bewertet haben, desto mehr zählt er
+  if(r.eye!=null&&r.eyeE){ const k=r.eyeE.n, w=k>=3?0.45:k===2?0.35:0.25, b=(r.eye-M)*w; if(Math.abs(b)>=0.5){ M+=b; adj.push(['eye','Eye-Test',b,`Ø ${Math.round(r.eye)} aus ${k} Bewertung${k>1?'en':''}, zählt ${Math.round(w*100)} %`]); } }
+  // Trainernoten (nur eigene Spieler, echte Noten)
+  try{ const N=typeof sv70TrainerNoten==='function'?sv70TrainerNoten(p):null; if(N&&N.avg!=null){ const b=sv92Clamp((3-N.avg)*3,-6,6); if(Math.abs(b)>=0.5){ M+=b; adj.push(['trainer','Trainernoten',b,`Ø ${sv4Num(N.avg,1)} aus ${N.n} Noten`]); } } }catch(e){}
+  // Form, Alter, Presse, Elf der Woche: kleine Zusätze
+  if(r.tratio!=null&&r.trend!=null){ const b=sv92Clamp((r.trend-50)/50*3,-3,3); if(Math.abs(b)>=0.5){ M+=b; adj.push(['form','Form',b,b>0?'besser als in der Vorsaison':'schwächer als in der Vorsaison']); } }
+  if(p.alter!=null){ const b=p.alter<=21?2:p.alter<=23?1:p.alter>=33?-2:0; if(b){ M+=b; adj.push(['alter','Alter',b,b>0?`${p.alter} Jahre, Luft nach oben`:`${p.alter} Jahre`]); } }
+  if(p.pressIdx!=null){ const b=sv92Clamp((p.pressIdx-50)/50*2,-2,2); if(Math.abs(b)>=0.5){ M+=b; adj.push(['presse','Presse',b,'Tenor der Nennungen']); } }
+  if(p.sds>0){ const b=Math.min(3,p.sds); M+=b; adj.push(['sds','Elf der Woche',b,`${p.sds}× nominiert`]); }
+  M=sv92Clamp(M,5,97);
+  let total=Math.round(M*10)/10, man=null;
+  if(p.adjTo!=null){ man=Math.round((p.adjTo-total)*10)/10; total=p.adjTo; }
+  return {l,R,grp,e,eEst,lei,pct,roh,t,x,basis,adj,total,man,sp};
+}
+{ _sv92prev=scores; scores=function(p){
+  const r=_sv92prev.apply(this,arguments);
+  if(!p||!r||!r.comps||p.isJugend)return r;
+  const ck=p.id+'|'+SV4.gen+'|'+r.total; const hit=SV92.cache.get(ck); if(hit)return hit;
+  if(SV92.cache.size>6000)SV92.cache.clear();
+  let S=null; try{ S=sv92Score(p,r); }catch(e){ console.warn('MScore 3',p.id,e); }
+  if(!S)return r;
+  const o=Object.assign({},r);
+  o.alt=r.total; o.total=S.total; o.m3=S;
+  o.share=Math.round(S.e*100); o.prod=Math.round(S.lei*100); o.ctx=Math.round(S.t*100);
+  const pctTxt=S.pct!=null?`besser als ${Math.round(S.pct*100)} % der ${SV92_GRUPPE_T[S.grp]} in der ${LIGA_NAME[S.l]||S.l}`:'zu wenig Vergleichsdaten, neutral';
+  o.comps=[
+    {k:'level',t:'Einsatz',v:o.share,w:45,art:'auto',basis:S.eEst?'Einsatzquote geschätzt':`Einsatzquote ${Math.round(S.e*100)} % (Minuten bzw. Einsätze je Mannschaftsspiel)`,warum:'Wer in seiner Liga regelmäßig spielt, ist dort gesetzt. Ergänzungsspieler landen im unteren Teil des Rahmens.'},
+    {k:'prod',t:S.grp==='def'?'Leistung hinten':'Leistung',v:o.prod,w:40,art:'auto',basis:(S.grp==='def'?'Gegentore der Mannschaft im Verhältnis zur Liga, ':`${sv4Num(S.roh||0,2)} Tore je Spiel (Vorlagen halb), `)+pctTxt+(S.grp==='mid'?', dazu Stärke der Mannschaft':''),warum:'Verglichen wird nur mit Spielern derselben Liga und Position. Ein Mittelfeldspieler wird nicht an Stürmertoren gemessen.'},
+    {k:'ctx',t:'Mannschaft',v:o.ctx,w:15,art:'auto',basis:(r.cur&&r.cur.rank)||p.rank?`Tabellenplatz ${(r.cur&&r.cur.rank)||p.rank} von ${(r.cur&&r.cur.teamCount)||p.teamCount}`:'keine Tabelle, neutral',warum:'Wer in einer Spitzenmannschaft spielt, setzt sich gegen starke Konkurrenz durch.'},
+    {k:'pot',t:'Potenzial',v:r.pot,w:0,art:'auto',basis:p.alter!=null?`Alter ${p.alter}`:'Alter unbekannt',warum:'Zeigt, wie viel Entwicklung noch drin ist. Im Wert selbst nur als kleiner Zuschlag.'},
+    {k:'trend',t:'Form',v:r.trend,w:0,art:'auto',basis:r.tratio!=null?'Quote aktuell im Vergleich zur Vorsaison':'noch kein Vergleich möglich',warum:'Nur die Richtung, als kleiner Zusatz.'},
+    {k:'scout',t:'Eye-Test',v:r.eye==null?null:Math.round(r.eye),w:0,art:'manuell',basis:r.eyeE?`Ø aus ${r.eyeE.n} Bewertung${r.eyeE.n>1?'en':''}`:'noch kein Eye-Test',warum:'Was eure Augen sehen, zieht den Wert in Richtung eurer Bewertung, bei mehreren Planern stärker.'}];
+  o.sum=100;
+  // Datenbasis: Liga, echte Einsatzquote, Vergleichswert, Eye-Test
+  const known={liga:true,level:!S.eEst,prod:S.pct!=null&&S.sp>=6,scout:r.eye!=null};
+  const wk={liga:25,level:25,prod:30,scout:20}; let a=0,k=0; Object.keys(wk).forEach(x=>{ a+=wk[x]; if(known[x])k+=wk[x]; });
+  o.basis=Math.round(k/a*100); o.basisK={liga:true,level:known.level,prod:known.prod,scout:known.scout};
+  SV92.cache.set(ck,o); return o;
+}; }
+{ const _rb92=renderAll; renderAll=function(){ SV92.cache.clear(); SV92.dist=null; return _rb92.apply(this,arguments); }; }
+if(typeof SV4_CL!=='undefined')Object.assign(SV4_CL,{liga:'Liga',level:'Einsatz',prod:'Leistung',scout:'Eye-Test'});
+
+/* ---------- Profil: so entsteht der Wert ---------- */
+{ const _ph92=pf4ScoreHtml; pf4ScoreHtml=function(p,s){
+  const o=scores(p), S=o&&o.m3; if(!S)return _ph92.apply(this,arguments);
+  const bar=(t,v,w,info)=>`<div class="sc4r"><span>${svEsc(t)} ${info}</span><i><u style="width:${v||0}%;background:${tierColor(v||0)}"></u></i><b>${v==null?'':v}</b><em>${w} %</em></div>`;
+  const c=k=>o.comps.find(x=>x.k===k)||{};
+  const I=(k)=>{ const x=c(k); return sv4I(x.t||k,{art:x.art,basis:x.basis,txt:x.warum?svEsc(x.warum):null}); };
+  const pm=v=>(v>0?'+':'')+sv4Num(v,1);
+  return `<div class="pf4-sc m92">
+      <div class="m92-rahmen"><span>${svEsc(LIGA_NAME[S.l]||S.l)}</span><b>Rahmen ${S.R.lo} bis ${S.R.hi}</b><small>typischer Stammspieler dort: ${S.R.m}</small></div>
+      ${bar('Einsatz',o.share,45,I('level'))}${bar(c('prod').t,o.prod,40,I('prod'))}${bar('Mannschaft',o.ctx,15,I('ctx'))}
+      <div class="sc4r add m92-basis"><span>Platz im Rahmen</span><i></i><b>${sv4Num(S.basis,1)}</b><em></em></div>
+      ${S.adj.map(([k,t,v,d])=>`<div class="sc4r add"><span>${svEsc(t)} <small>${svEsc(d)}</small></span><i></i><b class="${v>0?'ok':'bad'}">${pm(v)}</b><em></em></div>`).join('')}
+      ${S.man!=null?`<div class="sc4r add"><span>Insider-Rating (manuell)</span><i></i><b>${pm(S.man)}</b><em></em></div>`:''}
+      <div class="sc4r tot"><span>MScore</span><i></i><b>${sv4Num(o.total,1)}</b><em></em></div></div>
+    <p class="bs70 b-${typeof sv70BasisTxt==='function'?sv70BasisTxt(o.basis):'mittel'}"><b>Datenbasis ${o.basis} %</b>${o.basisK&&!o.basisK.scout?' · noch kein Eye-Test':''}${o.basisK&&!o.basisK.level?' · Einsatzzeit geschätzt':''}</p>
+    <p class="note small">Die Liga setzt den Rahmen, innerhalb entscheiden Einsatz, Leistung im Vergleich zu Spielern derselben Liga und Position und die Mannschaft. Vereinstreue zählt nicht in den MScore.</p>`;
+}; }
+// Karte: die kleinen Werte heißen jetzt wie die Bausteine
+{ const _sr92=scRate; scRate=function(p){ const R=_sr92.apply(this,arguments); try{ if(R&&R.st&&!p.isJugend){ const M={ABS:'LEI',ANT:'EIN'}; R.st=R.st.map(([k,v])=>[M[k]||k,v]); } }catch(e){} return R; }; }
+
+/* ---------- Startseite: groß steht die Stärke, die Wechselchance daneben ---------- */
+{ const _rh92=renderHome; renderHome=function(){ const r=_rh92.apply(this,arguments);
+  try{ document.querySelectorAll('#homeCrm .rankrow[data-id], #homeWechsel .rankrow[data-id]').forEach(row=>{ const p=players.find(x=>x.id===row.dataset.id); if(!p)return; const s=scores(p), W=typeof wscoreSafe==='function'?wscoreSafe(p):null;
+      const rk=row.querySelector('.rk'); if(rk){ rk.textContent=Math.round(s.total); rk.style.color=tierColor(s.total); rk.title='Stärke (MScore)'; }
+      row.querySelectorAll('.rn i').forEach(i=>{ i.innerHTML=i.innerHTML.replace(/Stärke \d+ · /,'').replace(/Transfer-Chance [\d.]+/g,W?`Wechselchance ${W.w} %`:'').replace(/ · Wechsel-Index \d+/,'').replace(/^ · /,''); }); });
+    const n=document.querySelector('#homeWechsel .note'); if(n)n.innerHTML='Große Zahl = <b>Stärke</b> (MScore). Sortiert nach Wechselchance, nur Spieler ab Stärke 45. Zeile antippen öffnet das Profil mit Begründung.';
+  }catch(e){ console.warn('Home 0.8',e); }
+  return r; }; }
+
+/* ---------- Wissen → Modell ---------- */
+if(typeof SV4_MODEL!=='undefined'){
+  SV4_MODEL.length=0;
+  SV4_MODEL.push(['level','Einsatz','45 % des Platzes im Rahmen: Minuten bzw. Einsätze je Mannschaftsspiel.'],
+    ['prod','Leistung','40 %: vorne und im Mittelfeld Tore je Spiel (Vorlagen halb), hinten die Gegentore der Mannschaft im Verhältnis zur Liga. Immer verglichen mit Spielern derselben Liga und Position, im Mittelfeld zusammen mit der Stärke der Mannschaft.'],
+    ['ctx','Mannschaft','15 %: Tabellenplatz der Mannschaft.'],
+    ['scout','Eye-Test','Zieht den Wert Richtung eurer Bewertung: 25 % bei einer, 35 % bei zwei, 45 % ab drei Bewertungen.'],
+    ['trainer','Trainernoten','Nur eigene Spieler: plus oder minus bis 6 Punkte je nach Notenschnitt.'],
+    ['trend','Form, Alter, Presse','Kleine Zusätze von höchstens 3 Punkten.']);
+}
+{ const _mc92=sv4ModelCard; sv4ModelCard=function(){ const r=_mc92.apply(this,arguments);
+  try{ const P=document.getElementById('panel-model'), c=P&&P.querySelector('.m4'); if(!c||c.querySelector('.m92r'))return r;
+    const t=c.querySelector('table'); if(t){ t.querySelectorAll('thead th')[1].textContent='Anteil'; [...t.querySelectorAll('tbody tr')].forEach((tr,i)=>{ const td=tr.querySelectorAll('td'); if(td[0])td[0].innerHTML=['<b>45 %</b>','<b>40 %</b>','<b>15 %</b>','<b>bis 45 %</b>','<b>± 6</b>','<b>± 3</b>'][i]||''; }); }
+    c.querySelector('h3').textContent='MScore 3: die Liga setzt den Rahmen';
+    const note=c.querySelector('p.note'); if(note)note.textContent='Jede Liga hat einen Rahmen, passend zur Eye-Test-Skala. Innerhalb des Rahmens entscheiden Einsatz, Leistung und Mannschaft. Wer seine Liga dominiert, kommt über den Rahmen hinaus. Jeder Wert ist im Spielerprofil Schritt für Schritt erklärt.';
+    c.insertAdjacentHTML('beforeend',`<div class="m92r"><h4>Rahmen je Liga</h4><div class="m92-g">${Object.entries(SV92_MITTE).map(([l,m])=>`<div><span>${svEsc(LIGA_NAME[l]||l)}</span><b>${m-20} bis ${m+10}</b><small>Stammspieler ≈ ${m}</small></div>`).join('')}</div>
+      <p class="note small">Beispiel: Ein Stürmer der Kreisliga D mit drei Toren je Spiel liegt oben im Rahmen und bekommt für die Ausnahmeleistung noch einmal bis zu 30 Punkte, landet also um 60. Ein Ergänzungsspieler der Kreisoberliga liegt um 50, ein Stammspieler dort um 63.</p></div>`);
+    c.querySelectorAll('.m90,.m90w').forEach(x=>x.remove()); const th=[...c.querySelectorAll('thead th')].find(x=>/Warum eigenständig/.test(x.textContent)); if(th)th.remove();
+    // Die alten Schieberegler wirken nicht mehr
+    document.querySelectorAll('#panel-model [data-w]').forEach(i=>{ const box=i.closest('.card'); if(box&&!box.classList.contains('m4'))box.hidden=true; });
+  }catch(e){ console.warn('Modell 0.8',e); }
+  return r; }; }
+
+/* =====================================================================
    SV/BSC Scout · Runde 20: „Was ist neu“: Update-Fenster & Patch-Historie
    - Nach jedem Update ein Pop-up: das Wichtigste in Kürze → „OK“ oder „Mehr erfahren“ (ganze Historie)
    - Jederzeit erreichbar: Seitenleiste / „Mehr“ / Mein Konto → „Was ist neu“
@@ -11056,6 +11207,14 @@ if(typeof SV50_INFO!=='undefined'&&SV50_INFO['kabine:abst']){ SV50_INFO['kabine:
    Sichtbarkeit je Punkt: r:'team' (ohne Gäste) · r:'scout' · r:'admin' · ohne r = alle
    ===================================================================== */
 const SV_PATCHES=[
+  {id:'0.8',v:'0.8',datum:'2026-09-25',titel:'Neues Rating: die Liga setzt den Rahmen',kurz:'Der MScore ist neu gebaut. Ein Stammspieler der Kreisoberliga liegt jetzt klar vor einem Spieler der Kreisliga D. Innerhalb der Liga entscheiden Einsatz, Leistung im Vergleich zur gleichen Position und die Mannschaft. Wer seine Liga dominiert, kommt über den Rahmen hinaus.',
+   punkte:[
+    {ic:'🧮',t:'Jeder Wert erklärt',d:'Im Spielerprofil steht Schritt für Schritt: Rahmen der Liga, Einsatz, Leistung, Mannschaft und dann jeder Zu- und Abschlag mit Grund, etwa Trainernoten, frühere höhere Liga oder Alter.',r:'team',go:'training'},
+    {ic:'📐',t:'Rahmen je Liga',d:'Gruppenliga 52 bis 82, Kreisoberliga 43 bis 73, Kreisliga A 31 bis 61, B 22 bis 52, C 14 bis 44, D 7 bis 37. Ein typischer Stammspieler liegt in der Kreisoberliga bei 63, in der A-Liga bei 51, passend zur Skala des Eye-Tests.',r:'scout',go:'model'},
+    {ic:'⚖️',t:'Fair je Position',d:'Mittelfeldspieler werden nicht mehr an Stürmertoren gemessen, sondern an Mittelfeldspielern derselben Liga. Abwehr und Torwart zählen über die Gegentore der Mannschaft.'},
+    {ic:'🚀',t:'Ausnahmeleistung zählt',d:'Wer mehr als ein Tor je Spiel schießt, bekommt bis zu 30 Punkte obendrauf. Ein Stürmer der Kreisliga D mit drei Toren je Spiel landet so um 60.',r:'scout',go:'model'},
+    {ic:'👁️',t:'Eye-Test zählt mehr',d:'Eure Bewertung zieht den Wert in ihre Richtung: bei einer Bewertung zu 25 %, bei zwei zu 35 %, ab drei zu 45 %.',r:'scout',go:'eye'},
+    {ic:'🏠',t:'Startseite klarer',d:'Die große Zahl ist die Stärke, daneben steht die Wechselchance. Die Mischzahl „Transfer-Chance“ fällt weg.',r:'scout',go:'home'}]},
   {id:'0.7',v:'0.7',datum:'2026-09-25',titel:'Lukas\u2019 Liste komplett, Urlaub und Materialdienst',kurz:'Alle 27 Punkte aus Lukas\u2019 Vorschlägen sind jetzt drin, dazu Urlaub in der Kabine und der Materialdienst: Verfügbarkeit je Zeitraum, freie Plätze direkt in der Liste, eine echte Traumelf, Eye-Test je Kategorie, ein erklärter MScore und ein Änderungsverlauf.',
    punkte:[
     {ic:'🌴',t:'Urlaub in der Kabine',d:'Spieler tragen Urlaub frühzeitig über ihren Kabinen-Link ein. Für jedes Training im Zeitraum sind sie automatisch abgemeldet, bekommen keine Einladung und keine Erinnerung und stehen im Training mit Grund drin. Das Trainerteam kann Urlaub auch selbst eintragen.',r:'team',go:'abst'},
