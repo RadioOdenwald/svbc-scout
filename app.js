@@ -2100,7 +2100,7 @@ function openSlotPicker(i,depth){
 }
 
 /* ===== App-Modus: installierbar, offline-fest, aktualisiert sich selbst ===== */
-const APP_BUILD='4.5-202609250635', OUTBOX_KEY='svbcOutbox', APP_HIDE_KEY='svbcInstallHide';
+const APP_BUILD='5.0-202609251205', OUTBOX_KEY='svbcOutbox', APP_HIDE_KEY='svbcInstallHide';
 let _appPrompt=null, _appNew=null, _obT=null;
 function appStandalone(){ try{ return !!(window.matchMedia&&matchMedia('(display-mode: standalone)').matches)||navigator.standalone===true; }catch(e){ return false; } }
 function appPlatform(){
@@ -3307,7 +3307,7 @@ function sbQuick(sq){
    - Kennzahlen je Spieler & Team, Tendenz-Warnungen, einfacher Sprach-/Text-Parser
    ===================================================================== */
 const TRC=(function(){
-  const REASONS={verletzt:'Verletzt',krank:'Krank',arbeit:'Arbeit/Schicht',urlaub:'Urlaub',uni:'Schule/Uni',familie:'Familie',zweite:'In der Zweiten',privat:'Privat',ohne:'Ohne Grund'};
+  const REASONS={verletzt:'Verletzt',krank:'Krank',arbeit:'Arbeit/Schicht',urlaub:'Urlaub',uni:'Schule/Uni',familie:'Familie',zweite:'In der Zweiten',privat:'Privat',ohne:'Ohne Grund',keine_antwort:'Keine Rückmeldung'};
   const EXCUSE_NEUTRAL={verletzt:1,krank:1,zweite:1};          // zählen nicht gegen die Beteiligung
   const FOKUS={lauf:'Laufintensiv',athletik:'Athletik/Kraft',taktik:'Taktik',technik:'Technik',spielform:'Spielformen',abschluss:'Torabschluss',standards:'Standards',umschalt:'Umschalten',regeneration:'Regeneration',torwart:'Torwarttraining'};
   const ART={muskel:'Muskel',band:'Bänder/Sehnen',knochen:'Knochen',gelenk:'Gelenk/Meniskus',prellung:'Prellung',krankheit:'Krankheit',sonstiges:'Sonstiges'};
@@ -3317,7 +3317,7 @@ const TRC=(function(){
   const diffDays=(a,b)=>Math.round((new Date(a+'T12:00:00')-new Date(b+'T12:00:00'))/DAY);
   const fmt=s=>{ if(!s)return ''; const [y,m,d]=String(s).split('-'); return d+'.'+m+'.'; };
   const trainings=st=>(st&&st.sessions||[]).filter(s=>s.t==='training');
-  function rows(st,pid){ const out=[]; for(const s of trainings(st)){ for(const a of s.a||[]){ if(a[0]===pid){ out.push({d:s.d,st:a[1],g:a[2],mot:a[3],fit:a[4],n:a[5]}); break; } } } return out.sort((x,y)=>x.d<y.d?1:-1); }
+  function rows(st,pid){ const out=[]; for(const s of trainings(st)){ for(const a of s.a||[]){ if(a[0]===pid){ out.push({d:s.d,st:a[1],g:a[2],mot:a[3],fit:a[4],n:a[5],no:a[8]!=null?a[8]:null,ns:a[9]||null,ss:a[10]||null}); break; } } } return out.sort((x,y)=>x.d<y.d?1:-1); }
   function rate(list){ const c=list.filter(r=>!(r.st==='weg'&&EXCUSE_NEUTRAL[r.g])); if(!c.length)return null; return c.filter(r=>r.st!=='weg').length/c.length; }
   function activeInjury(st,pid,today){ return (st&&st.injuries||[]).find(i=>i.p===pid&&!i.z&&i.b<=today)||null; }
   function playerStats(st,pid,today){
@@ -3496,7 +3496,7 @@ const TRS=(function(){
   const ROLES={aufbau:'Aufbau',abbau:'Abbau',theke:'Theke/Bedienen',kasse:'Kasse',grill:'Grill',kuechen:'Küche/Kuchen',orga:'Organisation',fahrdienst:'Fahrdienst',teilnahme:'Teilnahme',sonstiges:'Sonstiges'};
   const EART={kerwe:'Kerwe',heimspiel:'Heimspiel-Dienst',weihnachten:'Weihnachtsmarkt/-feier',arbeitseinsatz:'Arbeitseinsatz',turnier:'Turnier/Hallencup',saisonfeier:'Saisonauftakt/-abschluss',mannschaft:'Mannschaftsabend/-fahrt',jugend:'Jugend-Event',sonstiges:'Sonstiges'};
   const HSTAT={geholfen:'geholfen',zugesagt:'zugesagt',abgesagt:'abgesagt',nicht_erschienen:'nicht erschienen'};
-  const CREDIT={arbeit:0.7,uni:0.7,urlaub:0.7,familie:0.7,privat:0.4,ohne:0};
+  const CREDIT={arbeit:0.7,uni:0.7,urlaub:0.7,familie:0.7,privat:0.4,ohne:0,keine_antwort:0};
   const NUMW={ein:1,eine:1,einen:1,einmal:1,zwei:2,zweimal:2,doppelt:2,doppelpack:2,drei:3,dreimal:3,hattrick:3,dreierpack:3,vier:4,viermal:4,fuenf:5,sechs:6,sieben:7,acht:8,neun:9,zehn:10,zwoelf:12};
   const wHalf=(today,d,hl)=>Math.pow(0.5,Math.max(0,T.diffDays(today,d))/hl);
   const avg=a=>a.length?a.reduce((x,y)=>x+y,0)/a.length:null;
@@ -6008,6 +6008,7 @@ function kbCfgEditor(){
 async function kbViewLink(B){
   B.innerHTML='<div class="card"><div class="empty">Lade Link …</div></div>';
   try{ await kbLink(); }catch(e){ B.innerHTML=`<div class="card"><div class="empty">${svEsc(e.message)}</div></div>`; return; }
+  if(!B.isConnected)return;   // Ansicht wurde inzwischen neu gezeichnet
   const u=kbUrl();
   B.innerHTML=`<div class="card kblink"><h3 class="trh">${SVI('link')} Kabinen-Link für die Mannschaft</h3>
       <p>Ein Link für alles: Abstimmungen und Mannschaftskasse. Einmal in die WhatsApp-Gruppe posten. Jeder Spieler tippt einmal seinen Namen an, danach reicht ein Klick. Kein Login, keine App-Installation.</p>
@@ -8298,7 +8299,7 @@ function tm4Rate(){
     <div class="r4sp"><textarea id="r4t" placeholder="Schnell per Sprache oder Text: „Müller 2 stark im Zweikampf, Schmidt 3, Wagner 2 …“"></textarea><button type="button" class="btn sm ghost" id="r4mic">🎤</button><button type="button" class="btn sm" id="r4parse">Übernehmen</button></div>
     <div class="r4l">${list.map(p=>`<div class="r4r" data-r4="${sv4Esc(p.id)}"><b>${sv4Esc(p.name)}</b><span class="r4n">${TM4_NOTE.map(([n,t])=>`<button type="button" data-n="${n}" title="${t}">${n}</button>`).join('')}</span><input maxlength="200" placeholder="Kommentar (optional)"></div>`).join('')}</div>
     <div class="btnrow" style="margin-top:12px"><button class="btn" id="r4save">${SVI('check')} Bewertungen speichern</button><button class="btn ghost" id="r4x">Abbrechen</button><button class="btn ghost" id="r4ki">${SVI('chat')} Mit dem Co-Trainer</button></div>
-    <p class="note small">Wird als Einheit „Spiel“ gespeichert: Note → Motivation/Leistung (1–5) und Kommentar je Spieler. Fließt in Trainings-Score und die Hinweise des Co-Trainers ein.</p>`);
+    <p class="note small">Wird als Einheit „Spiel“ gespeichert, mit Note und Kommentar je Spieler. Fließt in die Spielerliste und die Hinweise des Co-Trainers ein.</p>`);
   const setN=(pid,n)=>{ st[pid]=n; const r=M.querySelector(`[data-r4="${CSS.escape(pid)}"]`); if(r)r.querySelectorAll('[data-n]').forEach(b=>b.classList.toggle('on',b.dataset.n===String(n))); };
   M.querySelectorAll('[data-r4] [data-n]').forEach(b=>b.onclick=()=>setN(b.closest('[data-r4]').dataset.r4,+b.dataset.n));
   M.querySelector('#r4x').onclick=()=>closeOverlay();
@@ -8311,7 +8312,7 @@ function tm4Rate(){
     kToast(`✓ ${Object.keys(st).length} Noten erkannt`); };
   sv4Mic(M.querySelector('#r4mic'),M.querySelector('#r4t'));
   M.querySelector('#r4save').onclick=async e=>{ const ids=Object.keys(st); if(!ids.length)return kToast('Noch keine Note vergeben'); e.currentTarget.disabled=true;
-    const sp=ids.map(pid=>{ const n=st[pid], k=(M.querySelector(`[data-r4="${CSS.escape(pid)}"] input`)||{}).value||''; return {player_id:pid,status:'da',motivation:Math.max(1,Math.min(5,Math.round(6-n*0.8))),notiz:(`Note ${n}`+(k?' · '+k:'')).slice(0,500)}; });
+    const sp=ids.map(pid=>{ const n=st[pid], k=(M.querySelector(`[data-r4="${CSS.escape(pid)}"] input`)||{}).value||''; return {player_id:pid,status:'da',status_src:'manuell',note:n,note_src:'manuell',notiz:k?k.slice(0,500):null}; });
     try{ const gg=(M.querySelector('#r4g').value||'').trim().slice(0,80); await trSaveSession(Object.assign({datum:M.querySelector('#r4d').value||sv4Today(),typ:/^training$/i.test(gg)?'training':'spiel',spieler:sp},gg&&!/^training$/i.test(gg)?{gegner:gg}:{})); closeOverlay(); kToast('✓ '+ids.length+' Bewertungen gespeichert'); try{ trRender(); }catch(x){} }
     catch(x){ kToast('⚠️ '+x.message); e.currentTarget.disabled=false; } };
 }
@@ -9063,6 +9064,652 @@ function sw45NoList(refresh){
   return r; }; }
 
 /* =====================================================================
+   Sportzentrale 5.0 · Etappe 1: Arbeitsabläufe statt Einzelfunktionen
+   - Reihenfolge Mannschaft → Kader → Scouting, Nebenbereiche (Gegnercheck, Kasse) weiter unten
+   - Mannschaft: Spieler · Training (Einheiten | Statistik) · Spiele · Verletzungen · Abstimmungen (mit Automatik)
+   - Kader: Kaderplan · Gespräche · Eigene Jugend · Traumelf · Rollen & Skills (Aufstellung nicht mehr als eigener Tab)
+   - Scouting: … · Elf der Woche · A-Jugend extern
+   - Beteiligung (mehrjährig) wandert zu Rankings & Verein
+   - Jede Ansicht erklärt sich oben in einem kleinen, einklappbaren Kasten
+   ===================================================================== */
+
+/* ---------- Navigation ---------- */
+SV4_HUB.mannschaft.tabs=[['training:players','Spieler'],['training:sessions','Training'],['training:games','Spiele'],['training:injuries','Verletzungen'],['kabine:abst','Abstimmungen']];
+SV4_HUB.kader.tabs=[['kader','Kaderplan'],['gespr','Gespräche'],['ejugend','Eigene Jugend'],['sxi','Traumelf'],['kaderplan','Rollen & Skills']];
+SV4_HUB.scouting.tabs=[['scout','Spielermarkt'],['bedarf','Bedarf & Aufträge'],['kandidaten','Kandidaten'],['radar','Radar'],['totw','Elf der Woche'],['jugend','A-Jugend extern'],['cmp','Vergleich']];
+Object.assign(SV4_OF,{ejugend:'kader',totw:'scouting'}); delete SV4_OF.gegner;
+Object.assign(SV_PAGES,{
+  training:['Mannschaft','Spieler, Training, Spiele, Verletzungen und Abstimmungen der laufenden Saison'],
+  kabine:['Mannschaft','Abstimmungen und automatischer Versand'],
+  sxi:['Traumelf','Wunschspieler und Planung für Rückrunde, nächste und übernächste Saison'],
+  totw:['Scouting','Elf der Woche: wer ist gerade in Form?'],
+  ejugend:['Kader','Eigene Jugend: A- und B-Jugend auf dem Weg zu den Aktiven'],
+  jugend:['Scouting','A-Jugend extern: Talente anderer Vereine'],
+  gegner:['Gegnercheck','Der nächste Gegner in Zahlen']});
+Object.assign(SV_TABBAR,{trainer:['home','training','kader','scout'],planer:['home','training','kader','scout'],admin:['home','training','kader','scout']});
+{ const O=['Übersicht','Mannschaft','Kader','Scouting','Verein','Spieltag & Kasse','Wissen','Verwaltung'];
+  ['trainer','planer','vorstand','admin'].forEach(r=>SV_SIDE[r]=O.slice()); }
+if(typeof TR!=='undefined')TR.view='players';
+// Unteransichten, die keinen eigenen Reiter mehr haben, markieren den passenden Reiter
+{ const _sub50=sv4Sub; sv4Sub=function(tab){ const k=_sub50.apply(this,arguments);
+  return ({'training:home':'training:sessions','training:bet':'training:players','kabine:link':'kabine:abst','kabine:kontakte':'kabine:abst'})[k]||k; }; }
+// Alte Wege führen an den neuen Ort
+{ const _go50=sv4Go; sv4Go=function(k){
+  if(k==='training:bet'){ VR.view='bet'; return goTab('verein'); }
+  if(k==='elf'&&false)return;
+  return _go50.apply(this,arguments); }; }
+
+/* ---------- Abstimmungen und Automatik auf einer Seite ---------- */
+{ const _vp50=kbViewPolls; kbViewPolls=function(B){ const r=_vp50.apply(this,arguments);
+  try{ if(!canTraining())return r; const box=document.createElement('div'); box.id='kbAuto50'; box.innerHTML='<h3 class="sec50">Automatik & Kabinen-Link</h3><div id="kbAuto50b"></div>'; B.appendChild(box);
+    kbViewLink(document.getElementById('kbAuto50b')); }catch(e){ console.warn('Automatik',e); }
+  return r; }; }
+
+/* ---------- Rankings & Verein: Beteiligung über mehrere Saisons ---------- */
+{ const _vr50=vrRender; vrRender=function(){
+  const bet=VR.view==='bet'; if(bet)VR.view='rank';
+  const r=_vr50.apply(this,arguments);
+  try{ if(!canTraining()){ return r; }
+    const P=document.getElementById('panel-verein'), tabs=P&&P.querySelector('.trtabs'); if(!tabs)return r;
+    const rk=tabs.querySelector('[data-vrv="rank"]'); const b=document.createElement('button'); b.dataset.vrv='bet'; b.textContent='Beteiligung'; if(rk)rk.after(b); else tabs.appendChild(b);
+    b.onclick=()=>{ VR.view='bet'; vrRender(); };
+    if(bet){ VR.view='bet'; tabs.querySelectorAll('button').forEach(x=>x.classList.toggle('on',x===b));
+      const B=document.getElementById('vrBody'); if(B){ if(typeof SV41!=='undefined'&&!SV41.betLoaded&&!SV41.betBusy&&typeof sv41LoadBet==='function')sv41LoadBet().then(()=>{ if(SV41.betLoaded&&VR.view==='bet'&&svCurTab()==='verein')vrRender(); });
+        tm41Bet(B); } }
+  }catch(e){ console.warn('Beteiligung',e); }
+  return r; }; }
+
+/* ---------- Erklärkasten je Ansicht ---------- */
+// w: was, f: wofür, h: warum hier, s: so geht's, b: Beispiele
+const SV50_INFO={
+  'training:players':{w:'Alle Spieler der laufenden Saison, getrennt nach 1. und 2. Mannschaft, mit den wichtigsten Angaben auf einen Blick.',
+    f:'Du siehst sofort, wer verfügbar ist, wie es um Training und Form steht und wo noch Angaben fehlen.',
+    h:'Hier geht es um die Mannschaft von heute. Die Planung für die nächsten Jahre steht unter Kader, alles Saisonübergreifende unter Rankings & Verein.',
+    s:'Oben eine Ansicht wählen, auf eine Spalte tippen zum Sortieren, auf einen Namen für das Profil.',
+    b:['Vor dem Spieltag nach Beteiligung sortieren und sehen, wer zuletzt gefehlt hat.','Filter „Lücken“: wer hat noch keinen starken Fuß oder keine Handynummer hinterlegt?']},
+  'training:sessions':{w:'Die einzelnen Trainingseinheiten: wer da war, wie die Einheit lief, Noten und Notizen je Spieler.',
+    f:'Beteiligung und Eindrücke laufen mit, ganz ohne Excel-Liste.',
+    h:'Hier wird erfasst. Die Auswertung der laufenden Saison liegt direkt daneben unter Statistik, alles Saisonübergreifende unter Rankings & Verein.',
+    s:'Nach dem Training dem Co-Trainer kurz erzählen, wie es war. Die Anwesenheit kommt aus der Abstimmung, du korrigierst nur Abweichungen.',
+    b:['„Gutes Training, Tim und Ben fehlten wegen Arbeit, Max war richtig stark.“','Wer nicht erwähnt wird, bekommt automatisch eine 3 und ist als Annahme markiert.']},
+  'training:home':{w:'Die Auswertung der laufenden Saison: Beteiligung, Durchschnittsnoten, Entwicklungen und Auffälligkeiten.',
+    f:'Früh sehen, wer nachlässt oder durchstartet, bevor es auf dem Platz auffällt.',
+    h:'Nur diese Saison, weil das für die tägliche Arbeit zählt. Mehrjährige Vergleiche findest du unter Rankings & Verein.',
+    s:'Hinweise antippen, um direkt zu reagieren. In der Tabelle auf eine Spalte tippen zum Sortieren.',
+    b:['Einer rutscht in vier Wochen von 90 auf 60 Prozent Beteiligung: Gespräch suchen.','Durchschnittsnote 2 bei hoher Beteiligung: Kandidat für mehr Einsatzzeit.']},
+  'training:games':{w:'Die Pflichtspiele der Saison mit Startelf, Einwechslungen, Minuten, Toren und Vorlagen.',
+    f:'Einsätze sauber festhalten und mit FuPa und fussball.de abgleichen.',
+    h:'Wie beim Training geht es um die laufende Saison. Ewige Tabellen und Allzeit-Statistiken stehen unter Rankings & Verein.',
+    s:'FuPa-Datei übernehmen oder den Spielbericht vom Co-Trainer auslesen lassen. Du prüfst die Vorschau, dann wird gespeichert.',
+    b:['Nach dem Wochenende die FuPa-Datei hochladen: Minuten und Vorlagen sind in einer Minute drin.','Weicht das Ergebnis von fussball.de ab, markiert die App das Spiel zum Prüfen.']},
+  'training:injuries':{w:'Wer gerade verletzt ist, seit wann, und wann er voraussichtlich zurückkommt.',
+    f:'Ausfälle fließen automatisch in Planung, Aufstellung und die Hinweise des Co-Trainers ein.',
+    h:'Verletzungen betreffen die Mannschaft von heute, deshalb stehen sie hier und nicht im Kader.',
+    s:'Am einfachsten dem Co-Trainer erzählen. Er fragt nach, wenn Diagnose oder Prognose fehlen.',
+    b:['„Jonas hat sich am Sonntag das Sprunggelenk verdreht, der Arzt sagt drei Wochen.“']},
+  'kabine:abst':{w:'Wer kommt zum Training oder Spiel? Die Abstimmungen per Link und die Automatik, die sie verschickt.',
+    f:'Die Zusagen landen direkt als Anwesenheit im Training, du änderst nur noch Abweichungen.',
+    h:'Abstimmung und Automatik gehören zusammen, deshalb stehen sie auf einer Seite.',
+    s:'Oben die laufenden Abstimmungen, darunter Automatik und Kabinen-Link.',
+    b:['Dienstag und Donnerstag wird automatisch abgestimmt, der Link geht am Vortag raus.']},
+  kader:{w:'Welche Spieler dir heute und in den nächsten beiden Saisons auf jeder Position zur Verfügung stehen.',
+    f:'Daraus erkennt die App offene Kaderplätze und macht daraus Bedarfe fürs Scouting.',
+    h:'Hier wird geplant, nicht erfasst. Was heute auf dem Platz passiert, steht unter Mannschaft.',
+    s:'Saison wählen, Spieler antippen und die Zukunft festlegen. Leere Plätze zeigen, wo etwas fehlt.',
+    b:['Ein Spieler ist nächste Saison für die Zweite geplant. Auf seiner Position in der Ersten entsteht ein Bedarf.']},
+  gespr:{w:'Die Gespräche mit den eigenen Spielern: letzter Stand, offene Themen, Tendenz für die Zukunft.',
+    f:'Die Kaderplanung beruht so auf echten Aussagen und nicht nur auf Annahmen.',
+    h:'Gespräche entscheiden über die Zukunft im Kader, deshalb gehören sie hierher.',
+    s:'Nach dem Training oder Spiel dem Co-Trainer erzählen, was besprochen wurde. Er hält das Wesentliche fest.',
+    b:['„Mit Tim gesprochen, er will bleiben, möchte aber mehr Spielzeit.“']},
+  ejugend:{w:'Unsere A- und B-Jugend mit Statistik, Entwicklung und Einschätzungen der Trainer.',
+    f:'Früh sehen, wer den Sprung zu den Aktiven schaffen kann.',
+    h:'Die eigene Jugend ist Teil unserer Kaderplanung. Fremde Jugendspieler stehen im Scouting.',
+    s:'Spieler antippen für Details und Einschätzung.',
+    b:['Ein A-Jugendlicher trifft regelmäßig: im Kaderplan für die nächste Saison einplanen.']},
+  sxi:{w:'Deine Wunschelf für Rückrunde, nächste und übernächste Saison, auch mit Spielern, die noch nicht zugesagt haben.',
+    f:'Frei planen, ohne den verbindlichen Kaderplan zu verfälschen.',
+    h:'Wunschspieler gehören hierhin. Im Kaderplan stehen nur Spieler, mit denen es wirklich Gespräche gibt.',
+    s:'Zeitraum wählen, Position antippen und einen Spieler setzen.',
+    b:['Für die nächste Saison einen Wunsch-Sechser eintragen und mit dem aktuellen Kader vergleichen.']},
+  kaderplan:{w:'Rollen, Stärken und starker Fuß im aktuellen Kader.',
+    f:'Nicht nur zählen, wer da ist, sondern sehen, was fehlt: Tempo, Kopfball, Linksfüße.',
+    h:'Das ist die qualitative Seite der Kaderplanung und gehört deshalb zum Kader.',
+    s:'Spieler antippen und Rollen oder Skills zuordnen.',
+    b:['Nur ein Linksfuß in der Abwehr: Bedarf für einen linken Innenverteidiger anlegen.']},
+  scout:{w:'Alle Spieler der Region mit den wichtigsten Kennzahlen, filterbar und sortierbar.',
+    f:'Den passenden Spieler für einen Bedarf finden.',
+    h:'Hier beginnt die Suche. Wer interessant ist, kommt auf die Merkliste oder zu den Kandidaten.',
+    s:'Filter setzen und sortieren. Nach rechts wischen heißt kein Interesse, nach links Merkliste.',
+    b:['Stürmer unter 23 im Umkreis von 15 Kilometern mit mindestens zehn Toren.']},
+  bedarf:{w:'Die offenen Bedarfe aus dem Kaderplan und die Suchaufträge dazu.',
+    f:'Vom Loch im Kader direkt zu passenden Spielern.',
+    h:'Der Bedarf entsteht im Kader, gesucht wird im Scouting. Hier treffen sich beide.',
+    s:'Bedarf öffnen, Vorschläge prüfen und bei Bedarf einen KI-Auftrag starten.',
+    b:['Linker Verteidiger für die nächste Saison: die App schlägt passende Spieler vor, die KI prüft die besten.']},
+  kandidaten:{w:'Externe Spieler, bei denen es konkret wird: Kontakt, Wechselchance und wer sich kümmert.',
+    f:'Keiner geht verloren und jeder weiß, wer dran ist.',
+    h:'Kandidaten sind der Schritt zwischen Spielermarkt und Kaderplan.',
+    s:'Letzten Kontakt eintragen, Wechselchance einschätzen, Zuständigkeit festlegen.',
+    b:['Seit vier Wochen kein Kontakt: die App erinnert den Zuständigen.']},
+  radar:{w:'Automatische Meldungen: Torserien, heiße Läufe und Rohdiamanten.',
+    f:'Auffälligkeiten sehen, die in keiner Liste stehen.',
+    h:'Das Radar sucht von selbst und liefert Hinweise, bevor andere Vereine sie haben.',
+    s:'Meldung antippen. Nach rechts wischen heißt erledigt, bei Spielern kein Interesse.',
+    b:['Ein Stürmer aus der B-Klasse trifft fünfmal in Folge: nach links auf die Merkliste.']},
+  totw:{w:'Die auffälligsten Spieler eines Spieltags in der Region.',
+    f:'Formstarke Spieler schnell entdecken.',
+    h:'Es geht um fremde Spieler, deshalb steht die Elf der Woche im Scouting.',
+    s:'Spieltag wählen und Spieler antippen.',
+    b:['Wer zweimal hintereinander drin ist, lohnt einen zweiten Blick.']},
+  jugend:{w:'A-Jugendliche anderer Vereine aus der Region.',
+    f:'Talente früh auf dem Schirm haben.',
+    h:'Unsere eigene Jugend steht im Kader, hier erscheinen nur fremde Spieler.',
+    s:'Filtern und antippen. Angesprochen wird immer über Eltern oder Jugendtrainer.',b:[]},
+  cmp:{w:'Spieler einer Position oder eines Auftrags nebeneinander.',
+    f:'Entscheidungen zwischen zwei oder drei Kandidaten treffen.',
+    h:'Der Vergleich ist der letzte Schritt im Scouting, bevor ein Spieler Kandidat wird.',
+    s:'Bis zu drei Spieler wählen.',b:[]},
+  verein:{w:'Rankings, Beteiligung über mehrere Saisons, Helfer und Veranstaltungen, Allzeit-Statistik und Legenden.',
+    f:'Das große Bild über mehrere Jahre.',
+    h:'Alles Saisonübergreifende ist hier gebündelt, damit Mannschaft, Kader und Scouting schlank bleiben.',
+    s:'Oben den Bereich wählen.',
+    b:['Die Trainingsbeteiligung der letzten Saisons vergleichen.']},
+  gegner:{w:'Der nächste Gegner in Zahlen: Tabelle, Form und Torschützen.',
+    f:'Gezielt auf den Spieltag vorbereiten.',
+    h:'Ein eigener Bereich, weil er nur rund um den Spieltag gebraucht wird.',
+    s:'Spiel wählen und auf Wunsch den KI-Gegnercheck starten.',b:[]}
+};
+function sv50Key(){
+  const t=svCurTab();
+  if(t==='training')return 'training:'+(TR.view==='bet'?'players':TR.view);
+  if(t==='kabine')return KB.view==='kasse'?'kasse':'kabine:abst';
+  return t;
+}
+const sv50Closed=()=>{ try{ return JSON.parse(localStorage.getItem('svInfo50')||'{}'); }catch(e){ return {}; } };
+function sv50InfoBox(P){
+  if(!P||!P.classList.contains('active'))return;
+  const team=(typeof canTraining==='function'&&canTraining())||(typeof canScout==='function'&&canScout());   // Gäste sehen nur Ausschnitte, der Kasten würde mehr versprechen
+  const k=sv50Key(), I=team?SV50_INFO[k]:null; let box=P.querySelector(':scope > .info50');
+  if(!I){ if(box)box.remove(); return; }
+  if(box&&box.dataset.k===k)return;
+  if(box)box.remove();
+  const closed=!!sv50Closed()[k];
+  box=document.createElement('div'); box.className='info50'+(closed?' zu':''); box.dataset.k=k;
+  box.innerHTML=`<button type="button" class="info50-h" aria-expanded="${!closed}">${SVI('info')}<span>${closed?'Worum geht es hier?':'So funktioniert diese Ansicht'}</span><i>${closed?'anzeigen':'einklappen'}</i></button>
+    <div class="info50-b"><p><b>${svEsc(I.w)}</b> ${svEsc(I.f)}</p><p class="info50-h2">${svEsc(I.h)}</p><p><b>So geht's:</b> ${svEsc(I.s)}</p>${(I.b||[]).length?`<ul>${I.b.map(x=>`<li>${svEsc(x)}</li>`).join('')}</ul>`:''}</div>`;
+  box.querySelector('.info50-h').onclick=()=>{ const c=sv50Closed(); if(box.classList.contains('zu'))delete c[k]; else c[k]=1; try{ localStorage.setItem('svInfo50',JSON.stringify(c)); }catch(e){} box.remove(); sv50InfoBox(P); };
+  P.prepend(box);
+}
+{ const seen=new WeakSet(); const hook=()=>{ document.querySelectorAll('main .panel').forEach(P=>{ if(seen.has(P))return; seen.add(P);
+    new MutationObserver(()=>{ if(P.classList.contains('active'))sv50InfoBox(P); }).observe(P,{childList:true,attributes:true,attributeFilter:['class']}); }); };
+  const t=setInterval(()=>{ if(document.querySelector('main .panel')){ hook(); clearInterval(t); const a=document.querySelector('main .panel.active'); if(a)sv50InfoBox(a); } },300); }
+// „Eigene Jugend“ ist jetzt ein Reiter im Kader. Eigener Eintrag in der Seitenleiste nur noch für Jugendtrainer ohne Kaderzugang.
+{ const _nv50=sv4NavVis; sv4NavVis=function(){ const r=_nv50.apply(this,arguments);
+  try{ if(svTabAllowed('kader'))document.querySelectorAll('.snav [data-tab="ejugend"],.sgrid [data-sheet="ejugend"]').forEach(b=>b.style.display='none'); }catch(e){}
+  return r; }; }
+
+/* ---------- Mannschaft → Spieler: die zentrale Liste der laufenden Saison ---------- */
+const SV50={preset:'trainer',team:'alle',q:'',luecken:false,sort:null,dir:1};
+function sv50Start(){ return typeof VR_SEASON_START!=='undefined'?VR_SEASON_START:(trToday().slice(0,4)+'-07-01'); }
+function sv50Stat(p){
+  const start=sv50Start(), today=trToday(), R=TRC.rows(TR.st,p.id).filter(r=>r.d>=start), s=TRC.playerStats(TR.st,p.id,today);
+  const cnt=R.filter(r=>!(r.st==='weg'&&TRC.EXCUSE_NEUTRAL[r.g])), bet=cnt.length?cnt.filter(r=>r.st!=='weg').length/cnt.length:null;
+  const echt=R.filter(r=>r.no!=null&&r.ns!=='default'), noten=R.filter(r=>r.no!=null);
+  const avgN=L=>L.length?L.reduce((a,r)=>a+r.no,0)/L.length:null;
+  const G=TR.st.sessions.filter(x=>x.t==='spiel'&&x.d>=start); let ein=0,start11=0,min=0,tore=0,vor=0,minKnown=false;
+  G.forEach(g=>{ const a=(g.a||[]).find(x=>x[0]===p.id); if(!a)return; if(a[1]==='da'||a[1]==='spaet'){ ein++; if(a[1]==='da')start11++; if(a[11]!=null){ min+=a[11]; minKnown=true; } } tore+=a[6]||0; vor+=a[7]||0; });
+  return {bet,n:cnt.length,rate28:s.rate28,last:s.lastSeen,inj:s.injury,note:avgN(echt),noteN:echt.length,noteAll:avgN(noten),ein,start11,min:minKnown?min:null,tore,vor,spiele:G.length};
+}
+function sv50Luecken(p){
+  const k=typeof kxOf==='function'?kxOf(p.id):{}, L=[];
+  if(!p.pos)L.push('Position'); if(!p.fuss)L.push('Fuß'); if(p.alter==null&&!p.geb)L.push('Alter');
+  if(typeof KX!=='undefined'&&KX.loaded&&!k.tel)L.push('Handy');
+  return L;
+}
+const SV50_PRESETS={
+  trainer:{t:'Trainer',cols:['pos','alter','bet','r28','note','ein','min','tore','last','status']},
+  planung:{t:'Kaderplanung',cols:['pos','pos2','alter','fuss','mscore','zuk','status']},
+  kontakte:{t:'Kontakte',cols:['pos','tel','mail','luecken']},
+  tw:{t:'Torhüter',cols:['alter','bet','note','ein','min','last','status'],only:p=>p.pos==='TW'}
+};
+const SV50_COLS={
+  pos:{t:'Pos',v:(p)=>TR_POS.indexOf(p.pos)<0?99:TR_POS.indexOf(p.pos),h:(p)=>svEsc(p.pos||'–')},
+  pos2:{t:'Auch',v:(p)=>(p.pos2||[]).length?0:1,h:(p)=>svEsc((p.pos2||[]).join(', ')||'–')},
+  alter:{t:'Alter',v:(p)=>p.alter==null?999:p.alter,h:(p)=>p.alter!=null?p.alter+(p.alterCa||!p.geb?'~':''):'<i class="miss50">?</i>'},
+  fuss:{t:'Fuß',v:(p)=>p.fuss||'~',h:(p)=>p.fuss?svEsc(p.fuss):'<i class="miss50">?</i>'},
+  bet:{t:'Beteiligung',v:(p,s)=>s.bet==null?-1:s.bet,h:(p,s)=>s.bet==null?'–':`<span class="trpill ${trRateCls(s.bet)}">${Math.round(s.bet*100)} %</span> <small>${s.n}×</small>`,d:-1},
+  r28:{t:'4 Wochen',v:(p,s)=>s.rate28==null?-1:s.rate28,h:(p,s)=>s.rate28==null?'–':Math.round(s.rate28*100)+' %',d:-1},
+  note:{t:'Ø Note',v:(p,s)=>s.note==null?9:s.note,h:(p,s)=>s.note!=null?`<b class="note50 n${Math.round(s.note)}">${s.note.toFixed(1).replace('.',',')}</b> <small>${s.noteN}×</small>`:s.noteAll!=null?'<small title="Nur Standardwerte, noch keine echte Bewertung">3 · Annahme</small>':'–'},
+  ein:{t:'Einsätze',v:(p,s)=>-s.ein,h:(p,s)=>s.ein?`${s.ein} <small>(${s.start11} S11)</small>`:'–'},
+  min:{t:'Min.',v:(p,s)=>-(s.min||0),h:(p,s)=>s.min!=null?s.min:'–'},
+  tore:{t:'T / V',v:(p,s)=>-(s.tore*10+s.vor),h:(p,s)=>s.tore||s.vor?`${s.tore} / ${s.vor}`:'–'},
+  last:{t:'Zuletzt da',v:(p,s)=>s.last?-Number(s.last.replace(/-/g,'')):0,h:(p,s)=>s.last?TRC.fmt(s.last):'–'},
+  status:{t:'Status',v:(p,s)=>s.inj?0:1,h:(p,s)=>s.inj?`<span class="trpill bad">🩹 ${svEsc(s.inj.dg)}</span>`:(p.kader===2&&SV50.team==='alle'?'<small>II</small>':'<span class="ok50">verfügbar</span>')},
+  mscore:{t:'MScore',v:(p)=>{ try{ return -scores(p).total; }catch(e){ return 0; } },h:(p)=>{ try{ const t=Math.round(scores(p).total); return `<b style="color:${tierColor(t)}">${t}</b>`; }catch(e){ return '–'; } }},
+  zuk:{t:'Nächste Saison',v:(p)=>{ const z=sv50Zuk(p); return z?z[0]:'~'; },h:(p)=>{ const z=sv50Zuk(p); return z?`<span class="z50 ${z[1]}">${svEsc(z[0])}</span>`:'<small>offen</small>'; }},
+  tel:{t:'Handy',v:(p)=>(kxOf(p.id).tel?0:1),h:(p)=>{ const k=kxOf(p.id); return k.tel?`<a href="${svEsc(kxWa(k.tel))}" target="_blank" rel="noopener" data-stop50>${svEsc(kxTelFmt(k.tel))}</a>${k.optout?' <small>abgemeldet</small>':''}`:'<i class="miss50">fehlt</i>'; }},
+  mail:{t:'E-Mail',v:(p)=>(kxOf(p.id).email?0:1),h:(p)=>{ const k=kxOf(p.id); return k.email?`<a href="mailto:${svEsc(k.email)}" data-stop50>${svEsc(k.email)}</a>`:'<i class="miss50">fehlt</i>'; }},
+  luecken:{t:'Lücken',v:(p)=>-sv50Luecken(p).length,h:(p)=>{ const L=sv50Luecken(p); return L.length?`<span class="miss50">${L.map(svEsc).join(', ')}</span>`:'<span class="ok50">vollständig</span>'; }}
+};
+function sv50Zuk(p){ try{ if(typeof SV4==='undefined'||!SV4.loaded)return null; const z=sv4Zuk(p,sv4SAdd(sv4S(),1)); return z&&SV4_ZUK[z]?SV4_ZUK[z]:null; }catch(e){ return null; } }
+function sv50Squad(){
+  return players.filter(p=>p.own&&!p.isJugend&&!p.verzicht).map(p=>({p,team:p.kader===2||/ II$/.test(p.club||'')?'2':'1'}));
+}
+trViewPlayers=function(B){
+  // Kontakte und Kaderplan je Sitzung nur einmal nachladen (sonst Endlosschleife, wenn es keine Rechte gibt oder das Laden schon läuft)
+  const again=()=>{ if(svCurTab()==='training'&&TR.view==='players')trRender(); };
+  if(typeof kxLoad==='function'&&!KX.loaded&&!SV50.kxTry&&typeof kxOk==='function'&&kxOk()){ SV50.kxTry=1; kxLoad().then(()=>{ if(KX.loaded)again(); }); }
+  if(typeof SV4!=='undefined'&&!SV4.loaded&&!SV4.loading&&!SV50.sv4Try&&typeof sv4Load==='function'&&typeof sv4Can==='function'&&sv4Can()){ SV50.sv4Try=1; sv4Load().then(()=>{ if(SV4.loaded)again(); }); }
+  const P=SV50_PRESETS[SV50.preset]||SV50_PRESETS.trainer, cols=P.cols;
+  const q=TRC.N(SV50.q||'');
+  let rows=sv50Squad().filter(x=>(!P.only||P.only(x.p))&&(SV50.team==='alle'||x.team===SV50.team)&&(!q||TRC.N(x.p.name).includes(q))).map(x=>Object.assign(x,{s:sv50Stat(x.p)}));
+  if(SV50.luecken)rows=rows.filter(x=>sv50Luecken(x.p).length);
+  const sk=SV50.sort&&cols.includes(SV50.sort)?SV50.sort:null;
+  rows.sort((a,b)=>{ if(sk){ const va=SV50_COLS[sk].v(a.p,a.s), vb=SV50_COLS[sk].v(b.p,b.s); if(va!==vb)return (va<vb?-1:1)*SV50.dir; }
+    const pi=p=>{ const i=TR_POS.indexOf(p.pos); return i<0?99:i; }; return (pi(a.p)-pi(b.p))||a.p.name.localeCompare(b.p.name,'de'); });
+  const table=L=>`<div class="trtw"><table class="trtab t50"><thead><tr><th class="nm50"><button data-s50="">Spieler</button></th>${cols.map(c=>`<th><button data-s50="${c}" class="${sk===c?'on':''}">${SV50_COLS[c].t}${sk===c?(SV50.dir>0?' ▲':' ▼'):''}</button></th>`).join('')}</tr></thead>
+    <tbody>${L.map(({p,s})=>{ const lk=sv50Luecken(p); return `<tr data-svp="${svEsc(p.id)}"><td class="nm50"><b>${svEsc(p.name)}</b>${lk.length&&SV50.preset!=='kontakte'?` <i class="gap50" title="Es fehlt: ${svEsc(lk.join(', '))}">${lk.length}</i>`:''}</td>${cols.map(c=>`<td>${SV50_COLS[c].h(p,s)}</td>`).join('')}</tr>`; }).join('')}</tbody></table></div>`;
+  const groups=SV50.team==='alle'?[['1','1. Mannschaft'],['2','2. Mannschaft']]:[[SV50.team,SV50.team==='1'?'1. Mannschaft':'2. Mannschaft']];
+  const total=rows.length, gaps=sv50Squad().filter(x=>sv50Luecken(x.p).length).length;
+  B.innerHTML=`<div class="card sp50">
+      <div class="sp50-bar"><div class="chips4 sp50-pre">${Object.entries(SV50_PRESETS).map(([k,v])=>`<button type="button" class="${SV50.preset===k?'on':''}" data-pre50="${k}">${v.t}</button>`).join('')}</div>
+        <div class="sp50-f"><input type="search" id="sp50q" placeholder="Name suchen" value="${svEsc(SV50.q)}"><div class="chips4">${[['alle','Alle'],['1','Erste'],['2','Zweite']].map(([k,t])=>`<button type="button" class="${SV50.team===k?'on':''}" data-team50="${k}">${t}</button>`).join('')}
+          <button type="button" class="${SV50.luecken?'on':''}" data-gap50>Lücken${gaps?' ('+gaps+')':''}</button></div></div></div>
+      ${groups.map(([t,l])=>{ const L=rows.filter(x=>x.team===t); return L.length?`<h3 class="trh sp50-h">${l} <small>${L.length}</small></h3>${table(L)}`:''; }).join('')||'<div class="empty">Keine Spieler für diese Auswahl.</div>'}
+      <div class="note">${total} Spieler. Beteiligung und Noten zählen ab ${TRC.fmt(sv50Start())}${sv50Start().slice(0,4)}. „Annahme“ heißt: automatisch vergebene 3, weil nichts gesagt wurde. Die Zahl am Namen zeigt fehlende Angaben.</div>
+      ${SV50.preset==='kontakte'?`<div class="btnrow"><button type="button" class="btn ghost sm" data-kx50>${SVI('phone')} Kontakte bearbeiten und importieren</button></div>`:''}
+    </div>`;
+  B.querySelectorAll('[data-pre50]').forEach(b=>b.onclick=()=>{ SV50.preset=b.dataset.pre50; SV50.sort=null; trViewPlayers(B); });
+  B.querySelectorAll('[data-team50]').forEach(b=>b.onclick=()=>{ SV50.team=b.dataset.team50; trViewPlayers(B); });
+  B.querySelector('[data-gap50]').onclick=()=>{ SV50.luecken=!SV50.luecken; trViewPlayers(B); };
+  const qi=B.querySelector('#sp50q'); qi.oninput=()=>{ SV50.q=qi.value; clearTimeout(SV50._t); SV50._t=setTimeout(()=>{ trViewPlayers(B); const n=B.querySelector('#sp50q'); if(n){ n.focus(); n.setSelectionRange(n.value.length,n.value.length); } },220); };
+  B.querySelectorAll('[data-s50]').forEach(b=>b.onclick=e=>{ e.stopPropagation(); const k=b.dataset.s50||null; if(SV50.sort===k)SV50.dir*=-1; else { SV50.sort=k; SV50.dir=1; } trViewPlayers(B); });
+  B.querySelectorAll('tr[data-svp]').forEach(r=>r.onclick=e=>{ if(e.target.closest('[data-stop50]'))return; openModal(r.dataset.svp); });
+  const kb=B.querySelector('[data-kx50]'); if(kb)kb.onclick=()=>sv4Go('kabine:kontakte');
+};
+
+/* ---------- Mannschaft → Training: Einheiten | Statistik, Schnell-Erfassung mit Noten 1–6 ---------- */
+// Herkunft jeder Angabe: manuell (du), ki (Co-Trainer), abstimmung (Link), default (Annahme), import (Datei)
+const SV50_SRC={manuell:['bestätigt','m'],ki:['Co-Trainer','k'],abstimmung:['Abstimmung','a'],default:['Annahme','d'],import:['Import','i']};
+const SV50_NOTE=['','sehr gut','gut','befriedigend','ausreichend','mangelhaft','ungenügend'];
+function sv50Src(s){ const x=SV50_SRC[s]; return x?`<i class="src50 ${x[1]}">${x[0]}</i>`:''; }
+function sv50Poll(datum){ try{ return typeof KB!=='undefined'&&KB.loaded?KB.polls.find(p=>p.datum===datum&&p.art==='training')||null:null; }catch(e){ return null; } }
+// Standardannahmen für einen Trainingstag: Abstimmung → Anwesenheit, sonst alle da; Verletzte fehlen; Anwesende bekommen eine 3
+function sv50Defaults(datum){
+  const out={}, poll=sv50Poll(datum), V=new Map(poll?kbVotes(poll).map(v=>[v.player_id,v]):[]), inPoll=new Set(poll?(poll.teilnehmer||[]).map(t=>t.id):[]);
+  trSquad().forEach(p=>{
+    let r;
+    if(trInjury(p.id))r={status:'weg',grund:'verletzt',status_src:'default'};
+    else if(poll&&inPoll.has(p.id)){ const v=V.get(p.id);
+      if(v&&v.antwort==='zu')r={status:'da',status_src:'abstimmung'};
+      else if(v&&v.antwort==='ab')r={status:'weg',grund:v.grund||'ohne',status_src:'abstimmung'};
+      else r={status:'weg',grund:'keine_antwort',status_src:'default'}; }
+    else r={status:'da',status_src:'default'};
+    if(r.status!=='weg')Object.assign(r,{note:3,note_src:'default'});
+    out[p.id]=r; });
+  return {rows:out,poll};
+}
+function sv50Seg(B){
+  const v=TR.view==='home'?'home':'sessions';
+  B.insertAdjacentHTML('afterbegin',`<div class="seg50" role="tablist"><button type="button" class="${v==='sessions'?'on':''}" data-seg50="sessions">Einheiten</button><button type="button" class="${v==='home'?'on':''}" data-seg50="home">Statistik</button></div>`);
+  B.querySelectorAll('[data-seg50]').forEach(b=>b.onclick=()=>{ TR.view=b.dataset.seg50; trRender(); });
+}
+function sv50Tell(datum){
+  closeOverlay(); trChatOpen();
+  setTimeout(()=>{ const ta=document.getElementById('trcTxt'); if(ta&&!ta.value){ ta.value=(datum&&datum!==trToday()?'Training am '+TRC.fmt(datum)+': ':'Training heute: '); ta.focus(); ta.setSelectionRange(ta.value.length,ta.value.length); ta.dispatchEvent(new Event('input')); } },260);
+}
+{ const _vs50=trViewSessions; trViewSessions=function(B){
+  const r=_vs50.apply(this,arguments);
+  try{
+    const today=trToday(), s0=trSessionOn(today), poll=sv50Poll(today);
+    const hero=document.createElement('div'); hero.className='card hero50';
+    hero.innerHTML=`<div class="hero50-t"><h3>${s0?'Heutiges Training ist erfasst':'Training erfassen'}</h3>
+        <p>${s0?`${(s0.a||[]).filter(a=>a[1]!=='weg').length} da, ${(s0.a||[]).filter(a=>a[1]==='weg').length} fehlen${s0.no?', Gesamteindruck '+s0.no:''}. Du kannst jederzeit nachbessern.`:poll?'Die Anwesenheit kommt aus der Abstimmung. Erzähl dem Co-Trainer kurz, wie es lief, oder trag selbst ein.':'Erzähl dem Co-Trainer kurz, wie es lief. Wer nicht erwähnt wird, gilt als da und bekommt eine 3 als Annahme.'}</p></div>
+      <div class="btnrow"><button type="button" class="btn" data-tell50>🎙️ Dem Co-Trainer erzählen</button><button type="button" class="btn ghost" data-quick50>${SVI('check')} ${s0?'Heute bearbeiten':'Selbst eintragen'}</button></div>`;
+    B.prepend(hero);
+    hero.querySelector('[data-tell50]').onclick=()=>sv50Tell(today);
+    hero.querySelector('[data-quick50]').onclick=()=>sv50Quick(today);
+    // Trainings öffnen die Schnell-Erfassung, Spiele den bisherigen Editor
+    B.querySelectorAll('.trs[data-edit-s]').forEach(b=>{ const s=TR.st.sessions.find(x=>x.id===b.dataset.editS); if(!s)return;
+      if(s.no){ const f=b.querySelector('.trs-f'); if(f)f.insertAdjacentHTML('afterbegin',`<i class="note50 n${s.no}">Note ${s.no}</i>`); }
+      const rated=(s.a||[]).filter(a=>a[8]!=null&&a[9]!=='default').length, ki=(s.a||[]).some(a=>a[9]==='ki'||a[10]==='ki');
+      if(rated||ki){ const f=b.querySelector('.trs-f'); if(f)f.insertAdjacentHTML('beforeend',`${rated?`<i>${rated} bewertet</i>`:''}${ki?'<i class="src50 k">Co-Trainer</i>':''}`); }
+      if(s.t==='training')b.onclick=()=>sv50Quick(s.d,s.id); });
+    sv50Seg(B);
+  }catch(e){ console.warn('Training 5.0',e); }
+  return r; }; }
+{ const _vh50=trViewHome; trViewHome=function(B){
+  const r=_vh50.apply(this,arguments);
+  try{
+    const rt=B.querySelector('.rt4 [data-rt="tr"]'); if(rt)rt.onclick=()=>sv50Quick(trToday());
+    B.querySelectorAll('[data-tr-new2]').forEach(b=>b.onclick=()=>sv50Quick(trToday()));
+    const rows=trSquad().map(p=>({p,s:sv50Stat(p),R:TRC.rows(TR.st,p.id).filter(x=>x.d>=sv50Start()&&x.no!=null&&x.ns!=='default').slice(0,5)}))
+      .sort((a,b)=>(a.s.note==null?9:a.s.note)-(b.s.note==null?9:b.s.note)||(b.s.bet||0)-(a.s.bet||0));
+    const c=document.createElement('div'); c.className='card';
+    c.innerHTML=`<h3 class="trh">${SVI('star')} Saison im Training <small>ab ${TRC.fmt(sv50Start())}${sv50Start().slice(2,4)}</small></h3>
+      <div class="trtw"><table class="trtab t50"><thead><tr><th class="nm50">Spieler</th><th>Beteiligung</th><th>4 Wochen</th><th>Ø Note</th><th>Letzte Noten</th><th>Ohne Grund</th></tr></thead><tbody>
+      ${rows.map(({p,s,R})=>{ const oh=TRC.rows(TR.st,p.id).filter(x=>x.d>=sv50Start()&&x.st==='weg'&&(x.g==='ohne'||x.g==='keine_antwort')).length;
+        return `<tr data-svp="${svEsc(p.id)}"><td class="nm50"><b>${svEsc(p.name)}</b></td><td>${SV50_COLS.bet.h(p,s)}</td><td>${SV50_COLS.r28.h(p,s)}</td><td>${SV50_COLS.note.h(p,s)}</td>
+          <td>${R.length?R.slice().reverse().map(x=>`<i class="note50 n${x.no}" title="${TRC.fmt(x.d)}">${x.no}</i>`).join(' '):'–'}</td><td>${oh?`<b class="bad">${oh}</b>`:'0'}</td></tr>`; }).join('')}</tbody></table></div>
+      <div class="note">Nur echte Bewertungen zählen in die Durchschnittsnote. Automatisch vergebene 3er stehen als Annahme in den Einheiten, fließen aber nicht in den Schnitt ein. „Ohne Grund“ zählt auch fehlende Rückmeldungen.</div>`;
+    const anchor=B.querySelector('.trtiles'); if(anchor)anchor.after(c); else B.appendChild(c);
+    c.querySelectorAll('tr[data-svp]').forEach(x=>x.onclick=()=>openModal(x.dataset.svp));
+    sv50Seg(B);
+  }catch(e){ console.warn('Statistik 5.0',e); }
+  return r; }; }
+{ const _tr50=trRender; trRender=function(){ const r=_tr50.apply(this,arguments);
+  try{ const P=document.getElementById('panel-training'), b=P&&P.querySelector('[data-tr-new]'); if(b)b.onclick=()=>sv50Quick(trToday());
+    // Die große Aktionsleiste weicht den Aktionen in der jeweiligen Ansicht; Export sitzt direkt an der Liste
+    if(P){ P.dataset.v50=TR.view||''; const sx=P.querySelector('.tract [data-sx]');
+      const host=P.querySelector('.sp50-bar .sp50-f, .gm50 .vrat-h .btnrow'), seg=P.querySelector('#trBody > .seg50');
+      if(sx&&host&&!host.querySelector('[data-sx50]')){ host.insertAdjacentHTML('beforeend',`<button type="button" class="btn ghost sm" data-sx50>${SVI('download')} Export</button>`); host.querySelector('[data-sx50]').onclick=()=>sx.click(); }
+      else if(sx&&!host&&seg&&!P.querySelector('[data-sx50]')){ seg.insertAdjacentHTML('afterend',`<button type="button" class="btn ghost sm sx50" data-sx50>${SVI('download')} Export</button>`); P.querySelector('[data-sx50]').onclick=()=>sx.click(); } }
+  }catch(e){}
+  return r; }; }
+
+// Schnell-Erfassung: Gesamteindruck, Anwesenheit aus der Abstimmung, Noten 1–6, alles mit Herkunft
+function sv50Quick(datum,sid,ki){
+  const s0=sid?TR.st.sessions.find(s=>s.id===sid):trSessionOn(datum||trToday(),'training');
+  const st={datum:s0?s0.d:(datum||trToday()),no:s0&&s0.no!=null?s0.no:null,ns:s0?s0.ns:null,n:s0?s0.n||'':'',rows:{},orig:new Set(),open:null,ki:!!ki};
+  const fill=()=>{
+    st.rows={}; st.orig=new Set();
+    const cur=trSessionOn(st.datum,'training'), D=sv50Defaults(st.datum); st.poll=D.poll;
+    const have=new Map(((cur&&cur.a)||[]).map(a=>[a[0],a]));
+    new Set([...trSquad().map(p=>p.id),...have.keys()]).forEach(id=>{
+      const a=have.get(id);
+      if(a){ st.orig.add(id); st.rows[id]={status:a[1],grund:a[2],notiz:a[5]||'',note:a[8],note_src:a[9]||null,status_src:a[10]||'manuell',saved:true}; }
+      else if(D.rows[id])st.rows[id]=Object.assign({notiz:''},D.rows[id]); });
+    if(cur){ st.no=cur.no!=null?cur.no:st.no; st.ns=cur.ns||st.ns; st.n=cur.n||st.n; }
+  };
+  fill();
+  // Vorschlag des Co-Trainers darüberlegen
+  if(ki){ const i=ki.input||ki; if(i.datum&&i.datum!==st.datum){ st.datum=i.datum; fill(); }
+    (i.spieler||[]).forEach(x=>{ if(!x.player_id||!trP(x.player_id))return; const r=st.rows[x.player_id]=st.rows[x.player_id]||{notiz:''};
+      if(x.status){ r.status=x.status; r.status_src='ki'; r.grund=x.status==='weg'?(x.grund||r.grund||'ohne'):null; }
+      if(x.note){ r.note=x.note; r.note_src='ki'; } else if(r.status!=='weg'&&r.note==null){ r.note=3; r.note_src='default'; }
+      if(x.notiz)r.notiz=x.notiz; if(x.motivation)r.motivation=x.motivation; if(x.fitness)r.fitness=x.fitness; });
+    if(i.note){ st.no=i.note; st.ns='ki'; } if(i.notiz&&!st.n)st.n=i.notiz; }
+  const M=svModal(`<div class="mhead"><div class="rm-ic" style="width:46px;height:46px">${SVI('activity')}</div><div><h2 style="margin:0">Training ${s0?'bearbeiten':'erfassen'}</h2><div class="msub">Anwesenheit und Noten 1 bis 6. Die Herkunft jeder Angabe steht daneben.</div></div></div><div id="q50"></div>`);
+  const draw=()=>{
+    const E=document.getElementById('q50'); if(!E)return;
+    const pi=p=>{ const i=TR_POS.indexOf(p.pos); return i<0?99:i; };
+    const list=Object.keys(st.rows).map(trP).filter(Boolean).sort((a,b)=>(pi(a)-pi(b))||a.name.localeCompare(b.name,'de'));
+    const c={da:0,spaet:0,weg:0}; list.forEach(p=>{ const r=st.rows[p.id]; if(r.status)c[r.status]++; });
+    const ann=list.filter(p=>{ const r=st.rows[p.id]; return r.status_src==='default'||(r.status!=='weg'&&r.note_src==='default'); }).length;
+    E.innerHTML=`<div class="q50-top"><div class="field"><label>Datum</label><input type="date" id="q50d" value="${svEsc(st.datum)}" max="${TRC.addDays(trToday(),14)}"></div>
+        <div class="q50-ges"><span>Gesamteindruck ${st.ns?sv50Src(st.ns):''}</span><div class="n50row">${[1,2,3,4,5,6].map(n=>`<button type="button" class="n50 n${n}${st.no===n?' on':''}" data-ges="${n}" title="${SV50_NOTE[n]}">${n}</button>`).join('')}</div></div></div>
+      <div class="q50-info">${st.poll?`${SVI('check')} Anwesenheit aus der Abstimmung „${svEsc(st.poll.titel||'Training')}“ übernommen.`:'Keine Abstimmung für diesen Tag, deshalb gelten erst einmal alle als da.'} ${ann?`<b>${ann} Annahmen</b> sind gelb markiert, tippe nur an, was anders war.`:''}</div>
+      <div class="q50-sum"><span><b>${c.da}</b> da</span><span><b>${c.spaet}</b> spät</span><span class="${c.weg?'bad':''}"><b>${c.weg}</b> fehlen</span>
+        <button type="button" class="btn ghost sm" data-all3>Alle Annahmen bestätigen</button></div>
+      <div class="q50l">${list.map(p=>{ const r=st.rows[p.id], o=st.open===p.id, weg=r.status==='weg', annS=r.status_src==='default', annN=!weg&&r.note_src==='default';
+        return `<div class="q50r${weg?' weg':''}${annS||annN?' ann':''}" data-q50="${svEsc(p.id)}">
+          <div class="q50-h"><span class="q50-n" data-q50open><b>${svEsc(p.name)}</b><em>${svEsc(p.pos||'')}${trInjury(p.id)?' · 🩹':''} ${sv50Src(r.status_src)}</em></span>
+            <div class="trseg">${[['da','Da'],['spaet','Spät'],['weg','Fehlt']].map(([k,t])=>`<button type="button" data-q50s="${k}" class="${r.status===k?'on':''}">${t}</button>`).join('')}</div></div>
+          ${weg?`<div class="trg">${Object.entries(TRC.REASONS).map(([k,t])=>`<button type="button" data-q50g="${k}" class="${r.grund===k?'on'+(k==='ohne'||k==='keine_antwort'?' warn':''):''}">${t}</button>`).join('')}</div>`
+            :`<div class="q50-no"><div class="n50row sm">${[1,2,3,4,5,6].map(n=>`<button type="button" class="n50 n${n}${r.note===n?' on':''}" data-q50n="${n}" title="${SV50_NOTE[n]}">${n}</button>`).join('')}</div>${r.note!=null?sv50Src(r.note_src):''}</div>`}
+          ${o?`<input class="q50-in" data-q50t maxlength="500" value="${svEsc(r.notiz||'')}" placeholder="Notiz, z.B. „stark im Abschlussspiel“">`:`<button type="button" class="trr-more" data-q50open>${r.notiz?'„'+svEsc(r.notiz.slice(0,60))+'“':'+ Notiz'}</button>`}
+        </div>`; }).join('')}</div>
+      <div class="field"><label>Notiz zur Einheit</label><input id="q50n" maxlength="2000" value="${svEsc(st.n)}" placeholder="z.B. laufintensiv, gute Stimmung, Standards geübt"></div>
+      <div class="btnrow sbact"><button class="btn" type="button" id="q50save">${SVI('check')} Speichern</button><button class="btn ghost" type="button" id="q50tell">🎙️ Erzählen</button><button class="btn ghost" type="button" id="q50more" title="Fokus, Intensität, Spieler aus der Zweiten">Details</button></div>`;
+    const keep=()=>{ const n=E.querySelector('#q50n'); if(n)st.n=n.value; E.querySelectorAll('[data-q50t]').forEach(i=>{ const r=st.rows[i.closest('[data-q50]').dataset.q50]; if(r)r.notiz=i.value; }); };
+    E.querySelector('#q50d').onchange=e=>{ keep(); if(!e.target.value)return; st.datum=e.target.value; const ex=trSessionOn(st.datum,'training'); st.no=ex&&ex.no!=null?ex.no:null; st.ns=ex?ex.ns:null; st.n=ex?ex.n||'':''; fill(); draw(); };
+    E.querySelectorAll('[data-ges]').forEach(b=>b.onclick=()=>{ keep(); const n=+b.dataset.ges; if(st.no===n&&st.ns==='manuell'){ st.no=null; st.ns=null; } else { st.no=n; st.ns='manuell'; } draw(); });
+    E.querySelectorAll('[data-q50]').forEach(row=>{ const id=row.dataset.q50, r=st.rows[id];
+      row.querySelectorAll('[data-q50s]').forEach(b=>b.onclick=()=>{ keep(); const v=b.dataset.q50s; r.status=v; r.status_src='manuell';
+        if(v==='weg'){ r.grund=trInjury(id)?'verletzt':(r.grund&&r.grund!=='keine_antwort'?r.grund:'ohne'); } else { r.grund=null; if(r.note==null){ r.note=3; r.note_src='default'; } }
+        svSound('tick'); draw(); });
+      row.querySelectorAll('[data-q50g]').forEach(b=>b.onclick=()=>{ keep(); r.grund=b.dataset.q50g; r.status_src='manuell'; draw(); });
+      row.querySelectorAll('[data-q50n]').forEach(b=>b.onclick=()=>{ keep(); const n=+b.dataset.q50n; if(r.note===n&&r.note_src==='manuell'){ r.note=3; r.note_src='default'; } else { r.note=n; r.note_src='manuell'; } if(r.status_src==='default')r.status_src='manuell'; draw(); });
+      row.querySelectorAll('[data-q50open]').forEach(b=>b.onclick=()=>{ keep(); st.open=st.open===id?null:id; draw(); const i=document.querySelector(`[data-q50="${CSS.escape(id)}"] [data-q50t]`); if(i)i.focus(); }); });
+    E.querySelector('[data-all3]').onclick=()=>{ keep(); let n=0; Object.values(st.rows).forEach(r=>{ if(r.status_src==='default'){ r.status_src='manuell'; n++; } if(r.status!=='weg'&&r.note_src==='default'){ r.note_src='manuell'; n++; } }); draw(); kToast(n?'✓ Annahmen bestätigt':'Keine offenen Annahmen'); };
+    E.querySelector('#q50tell').onclick=()=>sv50Tell(st.datum);
+    E.querySelector('#q50more').onclick=()=>{ const ex=trSessionOn(st.datum,'training'); closeOverlay(); setTimeout(()=>trSessionEditor(st.datum,ex&&ex.id,'training'),40); };
+    E.querySelector('#q50save').onclick=async e=>{ keep(); const b=e.currentTarget;
+      const sp=[]; Object.entries(st.rows).forEach(([id,r])=>{ if(!r.status){ if(st.orig.has(id))sp.push({player_id:id,status:''}); return; }
+        const weg=r.status==='weg';
+        sp.push(Object.assign({player_id:id,status:r.status,grund:weg?(r.grund||'ohne'):null,status_src:r.status_src||'manuell',notiz:(r.notiz||'').trim()||null,
+          note:weg?null:(r.note||null),note_src:weg||r.note==null?null:(r.note_src||'manuell')},r.motivation?{motivation:r.motivation}:{},r.fitness?{fitness:r.fitness}:{})); });
+      b.disabled=true; b.textContent='Speichert …';
+      try{ await trSaveSession({datum:st.datum,typ:'training',note:st.no,note_src:st.no?(st.ns||'manuell'):null,notiz:(st.n||'').trim()||null,quelle:st.ki?'ki':'manuell',spieler:sp});
+        closeOverlay(); svSound('success'); kToast('✓ Training vom '+TRC.fmt(st.datum)+' gespeichert · '+sp.filter(x=>x.status==='weg').length+' fehlten');
+        if(ki&&typeof ki==='object'&&!ki.done){ ki.done='Training '+TRC.fmt(st.datum)+' eingetragen'; }
+      }catch(x){ b.disabled=false; b.innerHTML=SVI('check')+' Speichern'; kToast('⚠️ '+x.message); } };
+  };
+  draw();
+  if(typeof KB!=='undefined'&&!KB.loaded&&typeof kbLoad==='function')kbLoad().then(()=>{ if(!document.getElementById('q50'))return; const touched=Object.values(st.rows).some(r=>r.status_src==='manuell'&&!r.saved); if(!touched&&!st.ki&&!st.orig.size){ fill(); draw(); } });
+}
+
+/* ---------- Co-Trainer: Noten mit Herkunft „KI“, der Rest aus Abstimmung und Annahmen ---------- */
+{ const _as50=trActSummary; trActSummary=function(a){
+  const h=_as50.apply(this,arguments); if(a.type!=='training')return h;
+  const i=a.input||{}, sp=i.spieler||[], no=sp.filter(x=>x.note);
+  return h.replace(/<label class="trc-rest">[\s\S]*<\/label>\s*$/,'')
+    +(i.note?`<div>Gesamteindruck: <b class="note50 n${i.note}">${i.note}</b></div>`:'')
+    +(no.length?`<div>Noten: ${no.map(x=>`${svEsc(trShort(x.player_id))} <b class="note50 n${x.note}">${x.note}</b>`).join(', ')}</div>`:'')
+    +`<label class="trc-rest"><input type="checkbox" data-rest ${i.rest_da!==false?'checked':''}> Alle anderen nach Abstimmung eintragen (sonst da, mit einer 3 als Annahme)</label>`
+    +(a.done||a.skip?'':`<div class="btnrow"><button type="button" class="btn ghost sm" data-form50>Im Formular prüfen</button></div>`);
+}; }
+{ const _ex50=trExec; trExec=async function(a,rest){
+  if(a.type!=='training')return _ex50.apply(this,arguments);
+  const i=a.input||{}, datum=i.datum||trToday();
+  const sp=(i.spieler||[]).filter(x=>x.player_id&&trP(x.player_id)).map(x=>{ const st=x.status||'da', weg=st==='weg';
+    return Object.assign({player_id:x.player_id,status:st,status_src:'ki'},weg?{grund:x.grund||'ohne'}:{},x.motivation?{motivation:x.motivation}:{},x.fitness?{fitness:x.fitness}:{},x.notiz?{notiz:x.notiz}:{},
+      !weg&&x.note?{note:x.note,note_src:'ki'}:{}); });
+  const ex=trSessionOn(datum), have=new Set([...sp.map(x=>x.player_id),...((ex&&ex.a)||[]).map(x=>x[0])]);
+  // Genannte Anwesende ohne Note bekommen die Annahme 3
+  sp.forEach(x=>{ if(x.status!=='weg'&&!x.note){ const old=((ex&&ex.a)||[]).find(z=>z[0]===x.player_id); if(!old||old[8]==null){ x.note=3; x.note_src='default'; } } });
+  if(rest){ const D=sv50Defaults(datum).rows; Object.entries(D).forEach(([id,r])=>{ if(!have.has(id))sp.push(Object.assign({player_id:id},r)); }); }
+  const p={datum,typ:'training',quelle:'ki',spieler:sp}; ['fokus','intensitaet','stimmung','notiz'].forEach(k=>{ if(i[k]!=null&&!(Array.isArray(i[k])&&!i[k].length))p[k]=i[k]; });
+  if(i.note){ p.note=i.note; p.note_src='ki'; }
+  await trSaveSession(p); return 'Training '+TRC.fmt(datum)+' eingetragen';
+}; }
+document.addEventListener('click',e=>{ const b=e.target.closest&&e.target.closest('[data-form50]'); if(!b)return;
+  const box=b.closest('[data-ai]'); if(!box)return; const [mi,ai]=box.dataset.ai.split(':').map(Number), a=TR.chat[mi]&&TR.chat[mi].actions[ai]; if(!a)return;
+  e.preventDefault(); e.stopPropagation(); closeOverlay(); setTimeout(()=>sv50Quick((a.input||{}).datum||trToday(),null,a),40); },true);
+
+/* ---------- Mannschaft → Spiele: FuPa-Datei übernehmen, mit Vorschau, Namenszuordnung und Abgleich ---------- */
+// Liest die Ausgabe des eigenen FuPa-Auswerters (season.json, result.json, saison_statistik.csv). Die App ruft FuPa selbst nie ab.
+const SV50_DS={vorlaeufig:['vorläufig','d'],bestaetigt:['bestätigt','m'],widerspruch:['Widerspruch','bad'],korrigiert:['korrigiert','a']};
+const SV50_Q={fupa:'FuPa',fussballde:'fussball.de',ki:'Co-Trainer',manuell:'App'};
+const sv50Own=s=>/m(ö|oe|o)rlenbach/i.test(String(s||''));
+const sv50Nk=s=>TRC.N(String(s||'')).replace(/ß/g,'ss').replace(/ä/g,'ae').replace(/ö/g,'oe').replace(/ü/g,'ue').replace(/[^a-z0-9 ]/g,' ').replace(/\s+/g,' ').trim();
+function sv50Club(s){ const w=sv50Nk(s).split(' ').filter(x=>x&&!/^(sv|tsv|fc|sg|spvgg|fv|vfl|vfr|tv|tsg|ssv|sc|fsv|jsg|ksv|dsg|djk|sgm|ev|e|v|1|19\d\d|20\d\d|bsc|kickers|germania|eintracht|viktoria|olympia|alemannia|union|borussia|rot|weiss|blau)$/.test(x));
+  const two=w.some(x=>x==='ii'||x==='2'); return {k:w.filter(x=>x!=='ii'&&x!=='2'&&x!=='iii').join(' '),two}; }
+function sv50SameClub(a,b){ const A=sv50Club(a), B=sv50Club(b); if(!A.k||!B.k||A.two!==B.two)return false; return A.k===B.k||(A.k.length>=4&&B.k.includes(A.k))||(B.k.length>=4&&A.k.includes(B.k)); }
+function sv50SamePerson(a,b){ const A=sv50Nk(a).split(' '), B=sv50Nk(b).split(' '); if(!A[0]||!B[0])return false; if(A.join(' ')===B.join(' '))return true;
+  const la=A[A.length-1], lb=B[B.length-1]; return la===lb&&A[0][0]===B[0][0]; }
+// FuPa-Name → Spieler im Bestand (sicher nur bei eindeutigem Treffer)
+function sv50PMatch(name){
+  const own=players.filter(p=>p.own&&!p.isJugend), n=sv50Nk(name), W=n.split(' '), last=W[W.length-1], fi=(W[0]||'')[0];
+  const hit=L=>L.length===1?L[0]:null;
+  let p=hit(own.filter(x=>sv50Nk(x.name)===n)); if(p)return {id:p.id,sicher:true};
+  p=hit(own.filter(x=>{ const V=sv50Nk(x.name).split(' '); return V[V.length-1]===last&&V[0]&&V[0][0]===fi; })); if(p)return {id:p.id,sicher:W.length>1&&W[0].length>2};
+  p=hit(own.filter(x=>{ const V=sv50Nk(x.name).split(' '); return V[V.length-1]===last; })); if(p)return {id:p.id,sicher:false};
+  return {id:null,sicher:false};
+}
+function sv50Csv(text){
+  const L=String(text).replace(/^﻿/,'').split(/\r?\n/).filter(x=>x.trim()); if(!L.length)return [];
+  const d=(L[0].match(/;/g)||[]).length>=(L[0].match(/,/g)||[]).length?';':',', H=L[0].split(d).map(x=>x.trim().replace(/^"|"$/g,''));
+  return L.slice(1).map(l=>{ const c=l.split(d).map(x=>x.trim().replace(/^"|"$/g,'')), o={}; H.forEach((h,i)=>o[h]=c[i]); return o; });
+}
+function sv50FupaMatch(m){
+  const side=m.team_side||(sv50Own(m.home)?'home':sv50Own(m.away)?'away':''); if(!side)return null;
+  const heim=side==='home', opp=heim?m.away:m.home, tw=heim?m.home_goals:m.away_goals, tg=heim?m.away_goals:m.home_goals;
+  const ref=String(m.url||'').split('?')[0].replace(/\/+$/,'').split('/').pop()||'';
+  const subs=(m.substitutions||[]).filter(s=>sv50Own(s.team)).sort((a,b)=>(a.minute||0)-(b.minute||0));
+  const lineup=(m.starters||[]).map(p=>({name:p.name,role:'starter'})).concat((m.bench||[]).map(p=>({name:p.name,role:'bench',entered:!!p.entered})));
+  const rows=lineup.map(p=>{
+    const inSub=subs.some(s=>sv50SamePerson(s.player_in,p.name)), played=p.role==='starter'||p.entered||inSub;
+    let min=null;
+    if(played){ let start=p.role==='starter'?0:null, tot=0, known=true;
+      subs.forEach(s=>{ if(start==null&&sv50SamePerson(s.player_in,p.name)){ if(s.minute==null)known=false; start=s.minute||0; }
+        else if(start!=null&&sv50SamePerson(s.player_out,p.name)){ if(s.minute==null)known=false; tot+=Math.max(0,(s.minute||0)-start); start=null; } });
+      if(start!=null)tot+=Math.max(0,90-start); else if(p.role!=='starter'&&!inSub)known=false;
+      min=known?Math.min(130,tot):null; }
+    return {name:p.name,status:p.role==='starter'?'da':played?'spaet':'bank',min,tore:0,vor:0};
+  });
+  (m.goals||[]).filter(g=>sv50Own(g.team)&&!g.own_goal).forEach(g=>{ const s=rows.find(r=>sv50SamePerson(r.name,g.scorer)); if(s)s.tore++; if(g.assist){ const a=rows.find(r=>sv50SamePerson(r.name,g.assist)); if(a)a.vor++; } });
+  return {ref:ref.slice(0,120),url:m.url||'',wett:m.competition||'',heim,opp:opp||'?',tw,tg,status:m.status||'CHECK',warn:(m.warnings||[]).slice(),rows};
+}
+// Mögliche Spieltage: Spielberichte (fussball.de), Spielplan, bereits erfasste Spiele
+function sv50Dates(g){
+  const out=new Map(), today=trToday(), add=(d,src,x)=>{ if(!d||d>today)return; const o=out.get(d)||{d,src:[],score:null}; if(!o.src.includes(src))o.src.push(src); if(x!=null)o.score=x; out.set(d,o); };
+  try{ (typeof FB!=='undefined'?FB.m:[]).filter(x=>x.team==='A'&&x.wir_heim===g.heim&&sv50SameClub(g.heim?x.gast:x.heim,g.opp)).forEach(x=>add(x.datum,'fussball.de')); }catch(e){}
+  try{ if(typeof SP!=='undefined'){ const k=SP_OWN.A;
+    SP.fx.filter(f=>f.datum&&((g.heim&&f.heim_key===k&&sv50SameClub(f.gast,g.opp))||(!g.heim&&f.gast_key===k&&sv50SameClub(f.heim,g.opp)))).forEach(f=>add(f.datum,'Spielplan'));
+    SP.res.filter(r=>((g.heim&&r.heim_key===k&&sv50SameClub(r.gast,g.opp))||(!g.heim&&r.gast_key===k&&sv50SameClub(r.heim,g.opp)))&&(r.datum||r.bis)).forEach(r=>{ const f=g.heim?r.tore_heim:r.tore_gast, a=g.heim?r.tore_gast:r.tore_heim; add(r.datum||r.bis,'Ergebnis',f+':'+a); }); } }catch(e){}
+  TR.st.sessions.filter(s=>s.t==='spiel'&&s.g&&sv50SameClub(s.g,g.opp)).forEach(s=>add(s.d,'App',s.tw!=null?s.tw+':'+s.tg:null));
+  const want=g.tw!=null?g.tw+':'+g.tg:null;
+  return [...out.values()].sort((a,b)=>((b.score===want)-(a.score===want))||b.src.length-a.src.length||b.d.localeCompare(a.d));
+}
+// Abgleich mit fussball.de (Spielbericht und Ergebnis) für einen Tag
+function sv50Check(g,datum,map){
+  const H=[]; let quelle2=false;
+  try{ const k=SP_OWN.A, L=typeof SP!=='undefined'?SP.res.filter(x=>(x.datum===datum||x.bis===datum)&&(x.heim_key===k||x.gast_key===k)):[];
+    const r=L.find(x=>sv50SameClub(x.heim_key===k?x.gast:x.heim,g.opp));
+    if(r){ quelle2=true; const f=r.heim_key===k?r.tore_heim:r.tore_gast, a=r.heim_key===k?r.tore_gast:r.tore_heim; if(g.tw!=null&&(f!==g.tw||a!==g.tg))H.push(`Ergebnis laut fussball.de ${f}:${a}, laut FuPa ${g.tw}:${g.tg}.`); }
+    else if(L.length){ const o=L[0]; H.push(`Laut fussball.de war an diesem Tag das Spiel gegen ${o.heim_key===k?o.gast:o.heim}. Datum prüfen.`); } }catch(e){}
+  try{ const D=typeof FB!=='undefined'?FB.m.filter(y=>y.team==='A'&&y.datum===datum):[], x=D.find(y=>y.bericht&&sv50SameClub(y.wir_heim?y.gast:y.heim,g.opp));
+    if(!x&&D.length&&!H.some(h=>/Datum prüfen/.test(h))){ const o=D[0]; H.push(`Laut fussball.de war an diesem Tag das Spiel gegen ${o.wir_heim?o.gast:o.heim}. Datum prüfen.`); }
+    if(x){ quelle2=true; const M=fbMap(), S1=new Set(x.apps.filter(a=>a.s).map(a=>M.get(a.p)).filter(Boolean)), T1={}; x.apps.forEach(a=>{ const id=M.get(a.p); if(id&&a.t)T1[id]=a.t; });
+      const S2=new Set(), T2={}; g.rows.forEach(r=>{ const id=map[r.name]; if(!id)return; if(r.status==='da')S2.add(id); if(r.tore)T2[id]=r.tore; });
+      const nur1=[...S1].filter(i=>!S2.has(i)), nur2=[...S2].filter(i=>!S1.has(i));
+      if(S1.size>=7&&S2.size>=7&&(nur1.length||nur2.length))H.push(`Startelf weicht ab: ${nur2.length?'nur FuPa '+nur2.map(trShort).join(', '):''}${nur1.length&&nur2.length?'; ':''}${nur1.length?'nur fussball.de '+nur1.map(trShort).join(', '):''}.`);
+      const ids=new Set([...Object.keys(T1),...Object.keys(T2)]); const td=[...ids].filter(i=>(T1[i]||0)!==(T2[i]||0));
+      if(td.length)H.push(`Torschützen weichen ab: ${td.map(i=>`${trShort(i)} ${T2[i]||0} statt ${T1[i]||0}`).join(', ')}.`); } }catch(e){}
+  return {H,ds:H.length?'widerspruch':quelle2?'bestaetigt':'vorlaeufig'};
+}
+function sv50Fupa(){
+  svModal(`<div class="mhead"><div class="rm-ic" style="width:46px;height:46px">${SVI('ball')}</div><div><h2 style="margin:0">Spiele übernehmen</h2><div class="msub">FuPa-Auswertung oder Screenshot, du prüfst alles vor dem Speichern</div></div></div>
+    <div class="fu50-opts">
+      <label class="fu50-o"><input type="file" id="fu50f" accept=".json,.csv,application/json,text/csv" multiple hidden><b>${SVI('upload')} FuPa-Datei wählen</b><span>season.json für die ganze Saison, result.json für ein Spiel oder saison_statistik.csv zum Abgleich</span></label>
+      <button type="button" class="fu50-o" id="fu50shot"><b>📷 Screenshot auslesen</b><span>Aufstellung oder Spielbericht als Bild: der Co-Trainer liest es und bereitet das Spiel vor</span></button>
+    </div>
+    <p class="note small">Die App ruft FuPa nicht selbst ab. Du lädst nur die Dateien hoch, die dein Auswerter erzeugt hat. Spiele ohne Datum ordnet die App über Gegner und Ergebnis dem Spielplan zu.</p>`);
+  const f=document.getElementById('fu50f');
+  document.getElementById('fu50shot').onclick=()=>{ closeOverlay(); trChatOpen(); setTimeout(()=>{ const ta=document.getElementById('trcTxt'); if(ta){ ta.value='Werte den Screenshot vom Spiel aus: Ergebnis, Startelf, Wechsel mit Minuten, Tore und Vorlagen. Bereite das Spiel vor.'; ta.dispatchEvent(new Event('input')); } const c=document.getElementById('trcClip'); if(c)c.click(); },260); };
+  f.onchange=async()=>{ const files=[...f.files]; f.value=''; const M=[], C=[];
+    for(const x of files){ try{ if(x.size>25e6){ kToast('Datei zu groß: '+x.name); continue; } const t=await x.text();
+      if(/\.csv$/i.test(x.name)||/^﻿?Spieler;/.test(t))C.push(...sv50Csv(t));
+      else { const j=JSON.parse(t); (Array.isArray(j.matches)?j.matches:j.starters||j.url?[j]:[]).forEach(m=>M.push(m)); if(Array.isArray(j.season_stats_ready_only)&&!M.length)C.push(...j.season_stats_ready_only); } }
+      catch(e){ kToast('⚠️ '+x.name+' konnte nicht gelesen werden'); } }
+    if(M.length)return sv50FupaPreview(M.map(sv50FupaMatch).filter(Boolean));
+    if(C.length)return sv50FupaCsv(C);
+    kToast('In der Datei stehen keine Spiele'); };
+}
+function sv50FupaPreview(G,warte){
+  // Spielplan und Spielberichte für den Abgleich: einmal anstoßen, höchstens ein paar Sekunden warten
+  const fehlt=()=>(typeof FB!=='undefined'&&!FB.loaded)||(typeof SP!=='undefined'&&typeof spLoad==='function'&&typeof canScout==='function'&&canScout()&&!SP.loaded);
+  if(fehlt()&&(warte||0)<16){
+    if(!warte){ try{ if(!FB.loaded)fbLoad(); }catch(e){} try{ if(!SP.loaded&&typeof spLoad==='function')spLoad(); }catch(e){} svModal('<div class="empty">Lade Spielplan und Spielberichte zum Abgleich …</div>'); }
+    setTimeout(()=>sv50FupaPreview(G,(warte||0)+1),500); return; }
+  const names=[...new Set(G.flatMap(g=>g.rows.map(r=>r.name)))], map={}, sure={};
+  names.forEach(n=>{ const m=sv50PMatch(n); map[n]=m.id; sure[n]=m.sicher; });
+  const used=new Set();
+  G.forEach(g=>{ g.dates=sv50Dates(g); const d=g.dates.find(x=>!used.has(x.d)); g.datum=d?d.d:''; if(g.datum)used.add(g.datum); g.on=g.status!=='BLOCK'&&!!g.datum; g.open=false; });
+  G.sort((a,b)=>(b.datum||'').localeCompare(a.datum||''));
+  const own=players.filter(p=>p.own&&!p.isJugend).sort((a,b)=>a.name.localeCompare(b.name,'de'));
+  const M=svModal(`<div class="mhead"><div class="rm-ic" style="width:46px;height:46px">${SVI('ball')}</div><div><h2 style="margin:0">Vorschau: ${G.length} Spiel${G.length>1?'e':''} aus FuPa</h2><div class="msub">Datum, Namen und Abweichungen prüfen, dann übernehmen</div></div></div><div id="fu50"></div>`);
+  const draw=()=>{
+    const E=document.getElementById('fu50'); if(!E)return;
+    const open=names.filter(n=>!map[n]||!sure[n]);
+    E.innerHTML=`${open.length?`<div class="card fu50-map"><h3 class="trh">Namen zuordnen <small>${open.filter(n=>!map[n]).length} offen, ${open.filter(n=>map[n]).length} unsicher</small></h3>
+        ${open.map(n=>`<div class="fu50-mr${map[n]?'':' miss'}"><span>${svEsc(n)}</span><select data-map50="${svEsc(n)}"><option value="">nicht übernehmen</option>${own.map(p=>`<option value="${svEsc(p.id)}"${map[n]===p.id?' selected':''}>${svEsc(p.name)}</option>`).join('')}</select></div>`).join('')}</div>`:''}
+      ${G.map((g,i)=>{ const chk=g.datum?sv50Check(g,g.datum,map):{H:[],ds:'vorlaeufig'}; g.chk=chk; const ex=g.datum&&trSessionOn(g.datum,'spiel');
+        const fu=g.status==='READY'?['vollständig','m']:g.status==='BLOCK'?['unsicher','bad']:['prüfen','d'];
+        return `<div class="fu50-g${g.on?' on':''}" data-g50="${i}"><div class="fu50-gh"><label class="fu50-chk"><input type="checkbox" data-on50 ${g.on?'checked':''}></label>
+          <div class="fu50-gt"><b>${g.heim?'vs':'@'} ${svEsc(g.opp)} <span class="fu50-res">${g.tw!=null?g.tw+':'+g.tg:'?'}</span></b>
+            <span>${svEsc(g.wett||'')} ${sv50Src2('FuPa '+fu[0],fu[1])} ${sv50Src2(SV50_DS[chk.ds][0],SV50_DS[chk.ds][1])}</span></div></div>
+          <div class="fu50-d"><label>Datum</label><select data-d50>${g.dates.map(d=>`<option value="${d.d}"${g.datum===d.d?' selected':''}>${TRC.fmt(d.d)}${d.d.slice(2,4)} · ${svEsc(d.src.join(', '))}${d.score?' '+d.score:''}</option>`).join('')}<option value="x"${g.datum&&!g.dates.some(d=>d.d===g.datum)?' selected':''}>anderes Datum …</option></select>
+            ${!g.dates.some(d=>d.d===g.datum)?`<input type="date" data-dx50 value="${svEsc(g.datum)}" max="${trToday()}">`:''}</div>
+          ${ex?`<div class="note small">In der App steht für diesen Tag schon ein Spiel${ex.tw!=null?' ('+ex.tw+':'+ex.tg+')':''}. Die FuPa-Daten ergänzen es, eingetragene Gründe fürs Fehlen bleiben.</div>`:''}
+          ${g.warn.length||chk.H.length?`<ul class="fu50-w">${chk.H.map(h=>`<li class="bad">${svEsc(h)}</li>`).join('')}${g.warn.map(w=>`<li>${svEsc(w)}</li>`).join('')}</ul>`:''}
+          <button type="button" class="trr-more" data-open50>${g.open?'Spieler ausblenden':(()=>{ const t=g.rows.reduce((a,r)=>a+r.tore,0), v=g.rows.reduce((a,r)=>a+r.vor,0); return `${g.rows.filter(r=>r.status!=='bank').length} Spieler, ${t} ${t===1?'Tor':'Tore'}, ${v} ${v===1?'Vorlage':'Vorlagen'} anzeigen`; })()}</button>
+          ${g.open?`<div class="trtw"><table class="trtab fu50-t"><thead><tr><th>FuPa</th><th>Spieler</th><th>Status</th><th>Min.</th><th>T</th><th>V</th></tr></thead><tbody>${g.rows.map(r=>`<tr class="${map[r.name]?'':'miss'}"><td>${svEsc(r.name)}</td><td>${map[r.name]?svEsc(trName(map[r.name])):'<i class="miss50">nicht zugeordnet</i>'}</td><td>${r.status==='da'?'Startelf':r.status==='spaet'?'eingewechselt':'Bank'}</td><td>${r.min!=null?r.min:'–'}</td><td>${r.tore||''}</td><td>${r.vor||''}</td></tr>`).join('')}</tbody></table></div>`:''}
+        </div>`; }).join('')}
+      <div class="btnrow sbact"><button class="btn" type="button" id="fu50save">${SVI('check')} ${G.filter(g=>g.on&&g.datum).length} Spiele übernehmen</button><button class="btn ghost" type="button" id="fu50x">Abbrechen</button></div>
+      <p class="note small">Gespeichert wird mit Quelle FuPa. Stimmt fussball.de überein, gilt das Spiel als bestätigt, sonst als vorläufig oder mit Widerspruch zum Prüfen.</p>`;
+    E.querySelectorAll('[data-map50]').forEach(s=>s.onchange=()=>{ map[s.dataset.map50]=s.value||null; sure[s.dataset.map50]=true; draw(); });
+    E.querySelectorAll('[data-g50]').forEach(box=>{ const g=G[+box.dataset.g50];
+      box.querySelector('[data-on50]').onchange=e=>{ g.on=e.target.checked; draw(); };
+      box.querySelector('[data-d50]').onchange=e=>{ g.datum=e.target.value==='x'?'':e.target.value; draw(); };
+      const dx=box.querySelector('[data-dx50]'); if(dx)dx.onchange=()=>{ g.datum=dx.value; g.dates.push({d:dx.value,src:['manuell'],score:null}); draw(); };
+      box.querySelector('[data-open50]').onclick=()=>{ g.open=!g.open; draw(); }; });
+    E.querySelector('#fu50x').onclick=()=>closeOverlay();
+    E.querySelector('#fu50save').onclick=async e=>{ const L=G.filter(g=>g.on&&g.datum); if(!L.length)return kToast('Kein Spiel ausgewählt oder Datum fehlt');
+      const days=L.map(g=>g.datum); if(new Set(days).size!==days.length)return kToast('Zwei Spiele haben dasselbe Datum. Bitte prüfen.');
+      const b=e.currentTarget; b.disabled=true; let ok=0; const err=[];
+      for(const g of L){ b.textContent=`Speichert ${ok+1} von ${L.length} …`;
+        const seen=new Set(), sp=[]; g.rows.forEach(r=>{ const id=map[r.name]; if(!id||seen.has(id))return; seen.add(id);
+          sp.push({player_id:id,status:r.status,status_src:'import',minuten:r.min,tore:r.tore||null,vorlagen:r.vor||null}); });
+        const chk=sv50Check(g,g.datum,map), hw=chk.H.concat(g.warn).join(' ').slice(0,1000);
+        const p={datum:g.datum,typ:'spiel',gegner:String(g.opp).slice(0,80),heim:g.heim,quelle:'fupa',quelle_ref:g.ref||null,daten_status:chk.ds,hinweise:hw||null,spieler:sp};
+        if(g.tw!=null&&g.tg!=null){ p.tore_wir=g.tw; p.tore_gegner=g.tg; }
+        try{ const {error}=await SVB.sb.rpc('training_save',{p}); if(error)throw new Error(error.message); ok++; }catch(x){ err.push(TRC.fmt(g.datum)+': '+x.message); } }
+      await trLoad(true); closeOverlay(); svSound(err.length?'warn':'success');
+      kToast(err.length?`⚠️ ${ok} übernommen, ${err.length} mit Fehler: ${err[0]}`:`✓ ${ok} Spiel${ok>1?'e':''} aus FuPa übernommen`);
+      if(svCurTab()==='training')trRender(); };
+  };
+  draw();
+}
+function sv50Src2(t,c){ return `<i class="src50 ${c}">${svEsc(t)}</i>`; }
+// saison_statistik.csv: nur Abgleich der Summen, es wird nichts gespeichert
+function sv50FupaCsv(R){
+  const rows=R.filter(r=>r.Spieler).map(r=>{ const m=sv50PMatch(r.Spieler), p=m.id&&trP(m.id), s=p?sv50Stat(p):null;
+    const f={sp:+r.Spiele||0,t:+r.Tore||0,v:+r.Vorlagen||0,s11:+r.Startelf||0};
+    return {n:r.Spieler,p,f,s,diff:s?(f.sp!==s.ein||f.t!==s.tore||f.v!==s.vor||f.s11!==s.start11):true}; });
+  const d=rows.filter(r=>r.diff).length;
+  svModal(`<div class="mhead"><div class="rm-ic" style="width:46px;height:46px">${SVI('chart')}</div><div><h2 style="margin:0">Abgleich mit FuPa</h2><div class="msub">Saison-Summen aus saison_statistik.csv neben den Zahlen der App</div></div></div>
+    <p class="note">${d?`<b>${d} Spieler</b> weichen ab.`:'Alles stimmt überein.'} Die Summen enthalten nur Spiele, die dein Auswerter als vollständig markiert hat. Für einzelne Spiele lade bitte season.json hoch, dann kann die App sie übernehmen.</p>
+    <div class="trtw"><table class="trtab t50"><thead><tr><th class="nm50">Spieler</th><th>Spiele</th><th>Startelf</th><th>Tore</th><th>Vorlagen</th></tr></thead><tbody>
+    ${rows.map(r=>{ const c=(a,b)=>b==null?`${a} <small>/ –</small>`:a===b?`${a}`:`<b class="bad">${a}</b> <small>App ${b}</small>`;
+      return `<tr${r.p?` data-svp="${svEsc(r.p.id)}"`:''}><td class="nm50">${r.p?`<b>${svEsc(r.p.name)}</b>`:`${svEsc(r.n)} <i class="miss50">nicht zugeordnet</i>`}</td><td>${c(r.f.sp,r.s&&r.s.ein)}</td><td>${c(r.f.s11,r.s&&r.s.start11)}</td><td>${c(r.f.t,r.s&&r.s.tore)}</td><td>${c(r.f.v,r.s&&r.s.vor)}</td></tr>`; }).join('')}</tbody></table></div>
+    <div class="btnrow sbact"><button class="btn ghost" type="button" onclick="closeOverlay()">Schließen</button></div>`);
+  document.querySelectorAll('#modal tr[data-svp]').forEach(x=>x.onclick=()=>openModal(x.dataset.svp));
+}
+// Spiele-Ansicht: Import oben, darunter die erfassten Spiele mit Quelle und Datenstatus
+{ const _vg50=trViewGames; trViewGames=function(B){
+  const r=_vg50.apply(this,arguments);
+  try{ if(typeof TM4!=='undefined'&&TM4.gs&&TM4.gs!==sv4S())return r; if(!B.querySelector('.card'))return r;
+    const G=TR.st.sessions.filter(s=>s.t==='spiel'&&s.d>=sv50Start()).sort((a,b)=>b.d.localeCompare(a.d)), wid=G.filter(s=>s.ds==='widerspruch').length;
+    const c=document.createElement('div'); c.className='card gm50';
+    c.innerHTML=`<div class="vrat-h"><h3 class="trh" style="margin:0">${SVI('ball')} Erfasste Spiele <small>${G.length}${wid?` · <b class="bad">${wid} zum Prüfen</b>`:''}</small></h3>
+        <div class="btnrow"><button type="button" class="btn sm" data-fu50>${SVI('upload')} FuPa übernehmen</button><button type="button" class="btn ghost sm" data-g50new>${SVI('plus')} Spiel</button></div></div>
+      ${G.length?`<div class="gm50-l">${G.map(s=>{ const da=(s.a||[]).filter(a=>a[1]==='da'||a[1]==='spaet').length;
+        return `<button type="button" class="gm50-r${s.ds==='widerspruch'?' bad':''}" data-gs50="${s.id}"><span class="gm50-d">${TRC.fmt(s.d)}</span>
+          <span class="gm50-t"><b>${s.h===false?'@':'vs'} ${svEsc(s.g||'?')}</b>${s.hw?`<small>${svEsc(s.hw.slice(0,140))}${s.hw.length>140?' …':''}</small>`:''}</span>
+          <span class="gm50-s">${s.tw!=null?`<i class="res ${s.tw>s.tg?'w':s.tw===s.tg?'d':'l'}">${s.tw}:${s.tg}</i>`:''}${s.q?sv50Src2(SV50_Q[s.q]||s.q,s.q==='fupa'?'i':s.q==='ki'?'k':'m'):''}${s.ds?sv50Src2(SV50_DS[s.ds][0],SV50_DS[s.ds][1]):''}<small>${da} eingesetzt</small></span></button>`; }).join('')}</div>`
+        :'<p class="note">Noch keine Spiele erfasst. Am schnellsten mit der FuPa-Datei: Startelf, Wechsel, Minuten, Tore und Vorlagen in einem Schritt.</p>'}`;
+    B.prepend(c);
+    c.querySelector('[data-fu50]').onclick=()=>sv50Fupa();
+    c.querySelector('[data-g50new]').onclick=()=>trSessionEditor(trToday(),null,'spiel');
+    c.querySelectorAll('[data-gs50]').forEach(b=>b.onclick=()=>sv50Game(b.dataset.gs50));
+    const chips=B.querySelector('.tm4s'); if(chips)B.prepend(chips);
+  }catch(e){ console.warn('Spiele 5.0',e); }
+  return r; }; }
+// Spiel öffnen: Hinweise sichtbar, Datenstatus setzen, dann der gewohnte Editor
+function sv50Game(id){
+  const s=TR.st.sessions.find(x=>x.id===id); if(!s)return;
+  if(!s.q&&!s.ds&&!s.hw)return trSessionEditor(null,id);
+  const M=svModal(`<div class="mhead"><div class="rm-ic" style="width:46px;height:46px">${SVI('ball')}</div><div><h2 style="margin:0">${s.h===false?'@':'vs'} ${svEsc(s.g||'?')} ${s.tw!=null?s.tw+':'+s.tg:''}</h2><div class="msub">${TRC.fmt(s.d)}${s.d.slice(2,4)} · Quelle ${svEsc(SV50_Q[s.q]||s.q||'App')}${s.qr?' · '+svEsc(s.qr):''}</div></div></div>
+    ${s.hw?`<div class="q50-info">${svEsc(s.hw)}</div>`:''}
+    <div class="field"><label>Datenstatus</label><div class="chips4">${Object.entries(SV50_DS).map(([k,[t]])=>`<button type="button" data-ds50="${k}" class="${s.ds===k?'on':''}">${t}</button>`).join('')}</div></div>
+    <div class="trtw"><table class="trtab"><thead><tr><th>Spieler</th><th>Status</th><th>Min.</th><th>T</th><th>V</th><th></th></tr></thead><tbody>
+    ${(s.a||[]).filter(a=>a[1]!=='weg').sort((a,b)=>['da','spaet','bank','zuschauer'].indexOf(a[1])-['da','spaet','bank','zuschauer'].indexOf(b[1])).map(a=>`<tr><td>${svEsc(trName(a[0]))}</td><td>${({da:'Startelf',spaet:'eingewechselt',bank:'Kader',zuschauer:'zugeschaut'})[a[1]]||a[1]}</td><td>${a[11]!=null?a[11]:'–'}</td><td>${a[6]||''}</td><td>${a[7]||''}</td><td>${sv50Src(a[10])}</td></tr>`).join('')}</tbody></table></div>
+    <div class="btnrow sbact"><button class="btn" type="button" id="gm50e">Bearbeiten</button><button class="btn ghost" type="button" id="gm50x">Schließen</button></div>`);
+  M.querySelectorAll('[data-ds50]').forEach(b=>b.onclick=async()=>{ try{ await trSaveSession({datum:s.d,typ:'spiel',daten_status:b.dataset.ds50}); kToast('✓ Datenstatus: '+SV50_DS[b.dataset.ds50][0]); sv50Game(id); if(svCurTab()==='training')trRender(); }catch(e){ kToast('⚠️ '+e.message); } });
+  M.querySelector('#gm50e').onclick=()=>{ closeOverlay(); setTimeout(()=>trSessionEditor(null,id),40); };
+  M.querySelector('#gm50x').onclick=()=>closeOverlay();
+}
+// Co-Trainer: Spiele mit Minuten und Herkunft
+{ const _ex50b=trExec; trExec=async function(a,rest){
+  if(a.type!=='spiel')return _ex50b.apply(this,arguments);
+  const i=a.input||{}, sp=(i.spieler||[]).filter(x=>x.player_id&&trP(x.player_id)).map(x=>Object.assign({player_id:x.player_id,status:x.status||'da',status_src:'ki'},x.status==='weg'?{grund:x.grund||'ohne'}:{},x.tore?{tore:x.tore}:{},x.vorlagen?{vorlagen:x.vorlagen}:{},x.minuten!=null?{minuten:Math.max(0,Math.min(130,x.minuten))}:{},x.note?{note:x.note,note_src:'ki'}:{}));
+  const p={datum:i.datum||trToday(),typ:'spiel',quelle:'ki',daten_status:'vorlaeufig',spieler:sp}; ['gegner','heim','tore_wir','tore_gegner'].forEach(k=>{ if(i[k]!=null&&i[k]!=='')p[k]=i[k]; });
+  await trSaveSession(p); return 'Spiel '+TRC.fmt(p.datum)+' eingetragen'; }; }
+
+/* =====================================================================
    SV/BSC Scout · Runde 20: „Was ist neu“: Update-Fenster & Patch-Historie
    - Nach jedem Update ein Pop-up: das Wichtigste in Kürze → „OK“ oder „Mehr erfahren“ (ganze Historie)
    - Jederzeit erreichbar: Seitenleiste / „Mehr“ / Mein Konto → „Was ist neu“
@@ -9071,6 +9718,14 @@ function sw45NoList(refresh){
    Sichtbarkeit je Punkt: r:'team' (ohne Gäste) · r:'scout' · r:'admin' · ohne r = alle
    ===================================================================== */
 const SV_PATCHES=[
+  {id:'5.0',datum:'2026-09-25',titel:'Mannschaft, Kader, Scouting',kurz:'Die App folgt jetzt deinem Ablauf: erst die Mannschaft von heute, dann der Kader von morgen, dann die Suche. Training erfasst du mit Noten von 1 bis 6, Spiele kommen aus deiner FuPa-Datei.',
+   punkte:[
+    {ic:'🧭',t:'Neue Reihenfolge',d:'Mannschaft, Kader und Scouting stehen oben, Gegnercheck und Kasse weiter unten. Jede Ansicht erklärt sich in einem kleinen Kasten, den du einklappen kannst.',r:'team',go:'training'},
+    {ic:'📋',t:'Eine Spielerliste für alles',d:'Erste und Zweite getrennt, mit Beteiligung, Durchschnittsnote, Einsätzen und Minuten. Ansichten für Trainer, Kaderplanung, Kontakte und Torhüter. Fehlende Angaben sind markiert.',r:'team',go:'training'},
+    {ic:'🎓',t:'Training mit Noten 1 bis 6',d:'Die Anwesenheit kommt aus der Abstimmung, wer nichts sagt, bekommt eine 3 als Annahme. Neben jeder Angabe steht, woher sie kommt: Abstimmung, Co-Trainer, Annahme oder von dir bestätigt.',r:'team',go:'training'},
+    {ic:'🎙️',t:'Einfach erzählen',d:'Sag dem Co-Trainer nach dem Training, wie es war. Er schlägt Noten und Fehlgründe vor, du prüfst sie auf Wunsch im Formular.',r:'team',go:'cotrainer'},
+    {ic:'⚽',t:'Spiele aus FuPa',d:'Unter Mannschaft → Spiele die Datei deines FuPa-Auswerters hochladen. Die App ordnet Datum und Namen zu, rechnet Minuten aus und gleicht mit fussball.de ab. Du siehst alles vorher.',r:'team',go:'training'},
+    {ic:'🏆',t:'Beteiligung bei Rankings & Verein',d:'Die Beteiligung über mehrere Saisons steht jetzt unter Rankings & Verein. Abstimmungen und Automatik sind auf einer Seite.',r:'team',go:'verein'}]},
   {id:'4.5',datum:'2026-09-25',titel:'Einfach wegwischen',kurz:'Spieler und Meldungen wischst du jetzt wie auf dem Sperrbildschirm weg. Die anderen rücken nach, und aussortierte Spieler holst du genauso leicht zurück.',
    punkte:[
     {ic:'👉',t:'Nach rechts: weg damit',d:'Spieler in Scouting, Radar und Bedarf nach rechts wischen heißt Kein Interesse. Meldungen und Hinweise nach rechts heißt erledigt. Kurz danach kannst du es rückgängig machen.',go:'radar'},

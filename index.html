@@ -13,7 +13,7 @@
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <link rel="icon" type="image/png" href="favicon-64.png">
-<meta name="app-build" content="4.5-202609250635">
+<meta name="app-build" content="5.0-202609251205">
 <title>SV/BSC Sportzentrale</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js" async></script>
 <style>
@@ -2293,6 +2293,114 @@ body.sw45nosel,body.sw45nosel *{user-select:none!important;-webkit-user-select:n
 .sw45no-b b{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 .sw45no-b span{font-size:12.5px;color:var(--ink3,#94a3b8);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 
+/* ===== Sportzentrale 5.0 · Etappe 1 ===== */
+.info50{margin:0 0 14px;border:1px solid rgba(96,165,250,.28);background:linear-gradient(180deg,rgba(59,130,246,.10),rgba(59,130,246,.04));border-radius:16px;overflow:hidden;}
+.info50-h{all:unset;box-sizing:border-box;display:flex;align-items:center;gap:8px;width:100%;padding:11px 14px;cursor:pointer;font-weight:700;font-size:13.5px;color:#bfdbfe;}
+.info50-h svg{width:17px;height:17px;flex:none;}
+.info50-h span{flex:1;}
+.info50-h i{font-style:normal;font-weight:600;font-size:12px;color:var(--ink3,#94a3b8);}
+.info50-b{padding:0 14px 12px;font-size:13.5px;line-height:1.5;color:var(--ink2,#cbd5e1);text-wrap:pretty;}
+.info50-b p{margin:0 0 6px;}
+.info50-b .info50-h2{color:var(--ink3,#94a3b8);}
+.info50-b ul{margin:4px 0 0;padding-left:18px;color:var(--ink3,#94a3b8);}
+.info50-b li{margin:2px 0;}
+.info50.zu{background:transparent;border-color:var(--line,rgba(255,255,255,.08));display:inline-block;}
+.info50.zu .info50-b{display:none;}
+.info50.zu .info50-h{padding:7px 12px;font-weight:600;font-size:12.5px;color:var(--ink3,#94a3b8);}
+.info50.zu .info50-h i{display:none;}
+.sec50{font-size:15px;margin:22px 2px 10px;color:var(--ink2,#cbd5e1);}
+.sp50-bar{display:flex;flex-direction:column;gap:10px;margin-bottom:6px;}
+.sp50-f{display:flex;gap:10px;flex-wrap:wrap;align-items:center;}
+.sp50-f input{flex:1;min-width:160px;max-width:280px;}
+.sp50-h{margin:16px 0 8px;}
+.sp50-h small{color:var(--ink3,#94a3b8);font-weight:600;}
+.t50 th button{white-space:nowrap;}
+.t50 td{white-space:nowrap;}
+.t50 .nm50{position:sticky;left:0;z-index:1;background:var(--card,#0f1522);}
+.t50 tbody tr{cursor:pointer;}
+.gap50{display:inline-grid;place-items:center;min-width:17px;height:17px;border-radius:9px;background:rgba(245,158,11,.18);color:#fcd34d;font-size:11px;font-style:normal;font-weight:700;padding:0 4px;}
+.miss50{color:#fcd34d;font-style:normal;}
+.ok50{color:#86efac;font-size:12.5px;}
+.note50{display:inline-block;min-width:30px;text-align:center;border-radius:8px;padding:1px 6px;background:rgba(148,163,184,.14);}
+.note50.n1,.note50.n2{background:rgba(34,197,94,.18);color:#bbf7d0;}
+.note50.n4{background:rgba(245,158,11,.16);color:#fde68a;}
+.note50.n5,.note50.n6{background:rgba(239,68,68,.18);color:#fecaca;}
+.z50{font-size:12.5px;padding:2px 8px;border-radius:9px;background:rgba(148,163,184,.14);}
+.z50.ok{background:rgba(34,197,94,.16);color:#bbf7d0;} .z50.warn{background:rgba(245,158,11,.16);color:#fde68a;} .z50.bad{background:rgba(239,68,68,.16);color:#fecaca;} .z50.info{background:rgba(59,130,246,.16);color:#bfdbfe;}
+.seg50{display:inline-flex;gap:2px;padding:3px;border-radius:12px;background:rgba(148,163,184,.12);margin:0 0 12px;}
+.seg50 button{all:unset;cursor:pointer;padding:7px 16px;border-radius:9px;font-weight:700;font-size:13.5px;color:var(--ink3,#94a3b8);}
+.seg50 button.on{background:var(--card,#0f1522);color:var(--ink,#f1f5f9);box-shadow:0 1px 3px rgba(0,0,0,.3);}
+.hero50{display:flex;flex-wrap:wrap;gap:12px;align-items:center;justify-content:space-between;border-color:rgba(34,197,94,.3);background:linear-gradient(135deg,rgba(34,197,94,.12),rgba(34,197,94,.03));}
+.hero50-t{flex:1 1 260px;}
+.hero50 h3{margin:0 0 4px;font-size:16px;}
+.hero50 p{margin:0;color:var(--ink2,#cbd5e1);font-size:13.5px;line-height:1.45;text-wrap:pretty;}
+.src50{display:inline-block;font-style:normal;font-size:10.5px;font-weight:700;letter-spacing:.02em;padding:1px 6px;border-radius:7px;vertical-align:1px;background:rgba(148,163,184,.14);color:var(--ink3,#94a3b8);}
+.src50.m{background:rgba(34,197,94,.15);color:#86efac;} .src50.k{background:rgba(168,85,247,.18);color:#d8b4fe;} .src50.a{background:rgba(59,130,246,.16);color:#93c5fd;}
+.src50.d{background:rgba(245,158,11,.16);color:#fcd34d;} .src50.i{background:rgba(20,184,166,.16);color:#5eead4;}
+.n50row{display:flex;gap:5px;}
+.n50{all:unset;box-sizing:border-box;cursor:pointer;width:36px;height:36px;border-radius:10px;display:grid;place-items:center;font-weight:800;font-size:15px;background:rgba(148,163,184,.12);color:var(--ink2,#cbd5e1);transition:transform .12s,background .15s;}
+.n50row.sm .n50{width:31px;height:31px;font-size:13.5px;border-radius:9px;}
+.n50:active{transform:scale(.92);}
+.n50.on{color:#0b1220;}
+.n50.on.n1{background:#22c55e;} .n50.on.n2{background:#86efac;} .n50.on.n3{background:#cbd5e1;} .n50.on.n4{background:#fcd34d;} .n50.on.n5{background:#fb923c;} .n50.on.n6{background:#f87171;}
+.q50-top{display:flex;flex-wrap:wrap;gap:14px;align-items:flex-end;margin:12px 0 8px;}
+.q50-top .field{margin:0;min-width:150px;}
+.q50-ges>span{display:block;font-size:12.5px;font-weight:700;color:var(--ink3,#94a3b8);margin-bottom:5px;}
+.q50-info{font-size:13px;color:var(--ink2,#cbd5e1);background:rgba(59,130,246,.08);border-radius:12px;padding:9px 12px;margin:4px 0 10px;line-height:1.45;}
+.q50-info svg{width:14px;height:14px;vertical-align:-2px;color:#86efac;}
+.q50-sum{display:flex;gap:14px;align-items:center;flex-wrap:wrap;font-size:13.5px;margin-bottom:8px;}
+.q50-sum .btn{margin-left:auto;}
+.q50l{display:flex;flex-direction:column;gap:6px;margin-bottom:12px;}
+.q50r{border:1px solid var(--line,rgba(255,255,255,.08));border-radius:14px;padding:9px 10px;background:rgba(148,163,184,.04);}
+.q50r.ann{border-color:rgba(245,158,11,.35);background:rgba(245,158,11,.05);}
+.q50r.weg{background:rgba(239,68,68,.05);}
+.q50-h{display:flex;gap:8px;align-items:center;justify-content:space-between;flex-wrap:wrap;}
+.q50-n{display:flex;flex-direction:column;cursor:pointer;min-width:0;flex:1 1 140px;}
+.q50-n em{font-style:normal;font-size:12px;color:var(--ink3,#94a3b8);}
+.q50-no{display:flex;gap:8px;align-items:center;margin-top:7px;flex-wrap:wrap;}
+.q50r .trg{margin-top:7px;}
+.q50r .trr-more{margin-top:6px;}
+.q50-in{width:100%;margin-top:7px;}
+@media (max-width:520px){ .n50{width:33px;height:33px;} .n50row.sm .n50{width:30px;height:30px;} .q50-sum .btn{margin-left:0;} }
+.fu50-opts{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px;margin:14px 0 10px;}
+.fu50-o{all:unset;box-sizing:border-box;cursor:pointer;display:flex;flex-direction:column;gap:5px;padding:14px;border-radius:14px;border:1px solid var(--line,rgba(255,255,255,.08));background:rgba(148,163,184,.06);}
+.fu50-o:hover{border-color:rgba(96,165,250,.45);}
+.fu50-o b{display:flex;gap:7px;align-items:center;font-size:14.5px;}
+.fu50-o b svg{width:17px;height:17px;}
+.fu50-o span{font-size:12.5px;color:var(--ink3,#94a3b8);line-height:1.4;}
+.fu50-map{margin:12px 0;}
+.fu50-mr{display:flex;gap:10px;align-items:center;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--line,rgba(255,255,255,.06));flex-wrap:wrap;}
+.fu50-mr.miss span{color:#fcd34d;}
+.fu50-mr select{max-width:220px;}
+.fu50-g{border:1px solid var(--line,rgba(255,255,255,.08));border-radius:14px;padding:11px 12px;margin:8px 0;opacity:.62;}
+.fu50-g.on{opacity:1;border-color:rgba(20,184,166,.35);}
+.fu50-gh{display:flex;gap:10px;align-items:flex-start;}
+.fu50-chk input{width:20px;height:20px;margin:2px 0 0;}
+.fu50-gt{display:flex;flex-direction:column;gap:4px;min-width:0;}
+.fu50-gt span{font-size:12.5px;color:var(--ink3,#94a3b8);display:flex;gap:6px;flex-wrap:wrap;align-items:center;}
+.fu50-res{margin-left:6px;font-variant-numeric:tabular-nums;}
+.fu50-d{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:8px 0 4px;}
+.fu50-d label{font-size:12.5px;color:var(--ink3,#94a3b8);font-weight:700;}
+.fu50-w{margin:6px 0;padding-left:18px;font-size:12.5px;color:var(--ink3,#94a3b8);}
+.fu50-w li.bad{color:#fca5a5;}
+.fu50-t tr.miss td{color:#fcd34d;}
+.gm50-l{display:flex;flex-direction:column;gap:6px;margin-top:10px;}
+.gm50-r{all:unset;box-sizing:border-box;cursor:pointer;display:grid;grid-template-columns:54px 1fr auto;gap:10px;align-items:center;padding:9px 11px;border-radius:12px;border:1px solid var(--line,rgba(255,255,255,.08));background:rgba(148,163,184,.04);}
+.gm50-r.bad{border-color:rgba(239,68,68,.4);}
+.gm50-d{font-weight:800;font-size:13px;color:var(--ink2,#cbd5e1);font-variant-numeric:tabular-nums;}
+.gm50-t{display:flex;flex-direction:column;min-width:0;}
+.gm50-t small{color:var(--ink3,#94a3b8);font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.gm50-s{display:flex;gap:6px;align-items:center;flex-wrap:wrap;justify-content:flex-end;}
+.gm50-s small{color:var(--ink3,#94a3b8);font-size:12px;}
+.gm50-s .res{font-style:normal;font-weight:800;padding:2px 7px;border-radius:7px;background:rgba(148,163,184,.14);}
+.gm50-s .res.w{background:rgba(34,197,94,.18);color:#bbf7d0;} .gm50-s .res.l{background:rgba(239,68,68,.18);color:#fecaca;}
+.src50.bad{background:rgba(239,68,68,.18);color:#fecaca;}
+@media (max-width:520px){ .gm50-r{grid-template-columns:44px 1fr;} .gm50-s{grid-column:2;justify-content:flex-start;} }
+#panel-training[data-v50="players"] .tract,#panel-training[data-v50="sessions"] .tract,#panel-training[data-v50="home"] .tract,#panel-training[data-v50="games"] .tract{display:none;}
+#panel-training[data-v50="injuries"] .tract [data-tr-new],#panel-training[data-v50="injuries"] .tract [data-tr-game],#panel-training[data-v50="injuries"] .tract [data-sx]{display:none;}
+#panel-training[data-v50] .trtop{margin-bottom:0;}
+.sx50{margin:0 0 12px 8px;vertical-align:top;}
+
 </style>
 <style id="v3gate">
 /* =====================================================================
@@ -2454,7 +2562,7 @@ body.gated{overflow:hidden;}
 <div class="shell" id="shell">
   <aside class="side">
     <div class="brand"><img src="logo.png" alt=""><div><b>SV/BSC Sportzentrale</b><span>SV/BSC Mörlenbach</span></div></div>
-    <nav class="snav"><div class="sgrp">Übersicht</div><button data-tab="home" data-tip="Übersicht" class="active"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.5V21h14V9.5"/><path d="M10 21v-6h4v6"/></svg><span>Übersicht</span></button><div class="sgrp">Kader</div><button data-tab="kader" data-tip="Kader"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M12 4v16"/><circle cx="12" cy="12" r="3"/><path d="M3 9h3v6H3M21 9h-3v6h3"/></svg><span>Kader</span></button><div class="sgrp">Scouting</div><button data-tab="scout" data-tip="Scouting"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg><span>Scouting</span><span class="cnt" data-cnt="kandidaten" style="display:none"></span></button><div class="sgrp">Mannschaft</div><button data-tab="training" data-tip="Mannschaft"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12h4l3 8 4-16 3 8h4"/></svg><span>Mannschaft</span><span class="cnt" data-cnt="training" style="display:none"></span></button><button data-tab="gegner" data-tip="Spieltag"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1.5"/></svg><span>Spieltag</span></button><button data-tab="kasse" data-tip="Mannschaftskasse"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="6" width="18" height="14" rx="2.5"/><path d="M16 13.5h.01"/><path d="M3 10h18"/><path d="M7 6V4.8A1.8 1.8 0 0 1 8.8 3H17"/></svg><span>Mannschaftskasse</span></button><div class="sgrp">Nachwuchs</div><button data-tab="ejugend" data-tip="Eigene Jugend"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 21v-8"/><path d="M12 13c0-4 3-7 8-7 0 4-3 7-8 7z"/><path d="M12 11C12 8 10 5 4 5c0 3 2.5 6 8 6z"/></svg><span>Eigene Jugend</span></button><div class="sgrp">Verein</div><button data-tab="verein" data-tip="Rankings & Verein"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 21h8M12 17v4"/><path d="M7 4h10v5a5 5 0 0 1-10 0V4z"/><path d="M17 5h3v2a3 3 0 0 1-3 3M7 5H4v2a3 3 0 0 0 3 3"/></svg><span>Rankings & Verein</span></button><div class="sgrp">Wissen</div><button data-tab="play" data-tip="Playbook & Modell"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 5a2 2 0 0 1 2-2h13v16H6a2 2 0 0 0-2 2V5z"/><path d="M4 19a2 2 0 0 1 2-2h13"/></svg><span>Playbook & Modell</span></button><div class="sgrp adm-only">Verwaltung</div><button data-tab="admin" data-tip="Nutzer & Rollen"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3 4 6v6c0 5 3.5 8 8 9 4.5-1 8-4 8-9V6l-8-3z"/><path d="m9 12 2 2 4-4"/></svg><span>Nutzer & Rollen</span></button></nav>
+    <nav class="snav"><div class="sgrp">Übersicht</div><button data-tab="home" data-tip="Übersicht" class="active"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.5V21h14V9.5"/><path d="M10 21v-6h4v6"/></svg><span>Übersicht</span></button><div class="sgrp">Mannschaft</div><button data-tab="training" data-tip="Mannschaft"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12h4l3 8 4-16 3 8h4"/></svg><span>Mannschaft</span><span class="cnt" data-cnt="training" style="display:none"></span></button><div class="sgrp">Kader</div><button data-tab="kader" data-tip="Kader"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M12 4v16"/><circle cx="12" cy="12" r="3"/><path d="M3 9h3v6H3M21 9h-3v6h3"/></svg><span>Kader</span></button><button data-tab="ejugend" data-tip="Eigene Jugend"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 21v-8"/><path d="M12 13c0-4 3-7 8-7 0 4-3 7-8 7z"/><path d="M12 11C12 8 10 5 4 5c0 3 2.5 6 8 6z"/></svg><span>Eigene Jugend</span></button><div class="sgrp">Scouting</div><button data-tab="scout" data-tip="Scouting"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg><span>Scouting</span><span class="cnt" data-cnt="kandidaten" style="display:none"></span></button><div class="sgrp">Verein</div><button data-tab="verein" data-tip="Rankings & Verein"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 21h8M12 17v4"/><path d="M7 4h10v5a5 5 0 0 1-10 0V4z"/><path d="M17 5h3v2a3 3 0 0 1-3 3M7 5H4v2a3 3 0 0 0 3 3"/></svg><span>Rankings & Verein</span></button><div class="sgrp">Spieltag & Kasse</div><button data-tab="gegner" data-tip="Gegnercheck"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1.5"/></svg><span>Gegnercheck</span></button><button data-tab="kasse" data-tip="Mannschaftskasse"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="6" width="18" height="14" rx="2.5"/><path d="M16 13.5h.01"/><path d="M3 10h18"/><path d="M7 6V4.8A1.8 1.8 0 0 1 8.8 3H17"/></svg><span>Mannschaftskasse</span></button><div class="sgrp">Wissen</div><button data-tab="play" data-tip="Playbook & Modell"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 5a2 2 0 0 1 2-2h13v16H6a2 2 0 0 0-2 2V5z"/><path d="M4 19a2 2 0 0 1 2-2h13"/></svg><span>Playbook & Modell</span></button><div class="sgrp adm-only">Verwaltung</div><button data-tab="admin" data-tip="Nutzer & Rollen"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3 4 6v6c0 5 3.5 8 8 9 4.5-1 8-4 8-9V6l-8-3z"/><path d="m9 12 2 2 4-4"/></svg><span>Nutzer & Rollen</span></button></nav>
     <div class="sfoot"><div class="online" id="svOnline"></div>
       <button class="mebtn" data-me><div class="uav" data-me-ini></div><div class="who"><b data-me-name></b><span data-me-role></span></div><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 6 6 6-6 6"/></svg></button></div>
   </aside>
@@ -2926,16 +3034,16 @@ a.kbtn{text-decoration:none;display:inline-block}
   <button class="tmore" id="tMore"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="4" width="6" height="6" rx="1.5"/><rect x="14" y="4" width="6" height="6" rx="1.5"/><rect x="4" y="14" width="6" height="6" rx="1.5"/><rect x="14" y="14" width="6" height="6" rx="1.5"/></svg>Mehr</button>
 </div>
 <div class="sheet-bg" id="sheetBg"></div>
-<div class="sheet" id="moreSheet"><div class="grab"></div><h4>Übersicht</h4><div class="sgrid"><button data-sheet="home"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.5V21h14V9.5"/><path d="M10 21v-6h4v6"/></svg>Übersicht</button></div><h4>Kader</h4><div class="sgrid"><button data-sheet="kader"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M12 4v16"/><circle cx="12" cy="12" r="3"/><path d="M3 9h3v6H3M21 9h-3v6h3"/></svg>Kader</button></div><h4>Scouting</h4><div class="sgrid"><button data-sheet="scout"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>Scouting</button></div><h4>Mannschaft</h4><div class="sgrid"><button data-sheet="training"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12h4l3 8 4-16 3 8h4"/></svg>Mannschaft</button><button data-sheet="gegner"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1.5"/></svg>Spieltag</button><button data-sheet="kasse"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="6" width="18" height="14" rx="2.5"/><path d="M16 13.5h.01"/><path d="M3 10h18"/><path d="M7 6V4.8A1.8 1.8 0 0 1 8.8 3H17"/></svg>Kasse</button></div><h4>Nachwuchs</h4><div class="sgrid"><button data-sheet="ejugend"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 21v-8"/><path d="M12 13c0-4 3-7 8-7 0 4-3 7-8 7z"/><path d="M12 11C12 8 10 5 4 5c0 3 2.5 6 8 6z"/></svg>Jugend</button></div><h4>Verein</h4><div class="sgrid"><button data-sheet="verein"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 21h8M12 17v4"/><path d="M7 4h10v5a5 5 0 0 1-10 0V4z"/><path d="M17 5h3v2a3 3 0 0 1-3 3M7 5H4v2a3 3 0 0 0 3 3"/></svg>Verein</button></div><h4>Wissen</h4><div class="sgrid"><button data-sheet="play"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 5a2 2 0 0 1 2-2h13v16H6a2 2 0 0 0-2 2V5z"/><path d="M4 19a2 2 0 0 1 2-2h13"/></svg>Wissen</button></div><h4 class="adm-only">Verwaltung</h4><div class="sgrid adm-only"><button data-sheet="admin"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3 4 6v6c0 5 3.5 8 8 9 4.5-1 8-4 8-9V6l-8-3z"/><path d="m9 12 2 2 4-4"/></svg>Nutzer</button></div>
+<div class="sheet" id="moreSheet"><div class="grab"></div><h4>Übersicht</h4><div class="sgrid"><button data-sheet="home"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.5V21h14V9.5"/><path d="M10 21v-6h4v6"/></svg>Übersicht</button></div><h4>Mannschaft</h4><div class="sgrid"><button data-sheet="training"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12h4l3 8 4-16 3 8h4"/></svg>Mannschaft</button></div><h4>Kader</h4><div class="sgrid"><button data-sheet="kader"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M12 4v16"/><circle cx="12" cy="12" r="3"/><path d="M3 9h3v6H3M21 9h-3v6h3"/></svg>Kader</button><button data-sheet="ejugend"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 21v-8"/><path d="M12 13c0-4 3-7 8-7 0 4-3 7-8 7z"/><path d="M12 11C12 8 10 5 4 5c0 3 2.5 6 8 6z"/></svg>Jugend</button></div><h4>Scouting</h4><div class="sgrid"><button data-sheet="scout"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>Scouting</button></div><h4>Verein</h4><div class="sgrid"><button data-sheet="verein"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 21h8M12 17v4"/><path d="M7 4h10v5a5 5 0 0 1-10 0V4z"/><path d="M17 5h3v2a3 3 0 0 1-3 3M7 5H4v2a3 3 0 0 0 3 3"/></svg>Verein</button></div><h4>Spieltag & Kasse</h4><div class="sgrid"><button data-sheet="gegner"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1.5"/></svg>Gegnercheck</button><button data-sheet="kasse"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="6" width="18" height="14" rx="2.5"/><path d="M16 13.5h.01"/><path d="M3 10h18"/><path d="M7 6V4.8A1.8 1.8 0 0 1 8.8 3H17"/></svg>Kasse</button></div><h4>Wissen</h4><div class="sgrid"><button data-sheet="play"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 5a2 2 0 0 1 2-2h13v16H6a2 2 0 0 0-2 2V5z"/><path d="M4 19a2 2 0 0 1 2-2h13"/></svg>Wissen</button></div><h4 class="adm-only">Verwaltung</h4><div class="sgrid adm-only"><button data-sheet="admin"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3 4 6v6c0 5 3.5 8 8 9 4.5-1 8-4 8-9V6l-8-3z"/><path d="m9 12 2 2 4-4"/></svg>Nutzer</button></div>
   <div class="meline" data-me><div class="uav" data-me-ini></div><div style="flex:1;min-width:0"><b data-me-name></b><span data-me-role></span></div><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 6 6 6-6 6"/></svg></div>
 </div>
 
 
 
 <div class="overlay" id="overlay"><div class="modal" id="modal"></div></div>
-<script>window.SVBC_CFG={"url": "https://lvaukuzgcwgqipxwzabo.supabase.co", "anon": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imx2YXVrdXpnY3dncWlweHd6YWJvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTAxNTYwMTcsImV4cCI6MjEwNTczMjAxN30.jYZF8q8-SyCaWykM0wwcK58EzfTbO2VASKz1NIv1xbo", "build": "4.5-202609250635", "dataBytes": 3053230};</script>
-<script src="vendor/supabase.js?v=4.5-202609250635"></script>
-<script src="icons.js?v=4.5-202609250635"></script>
-<script src="boot.js?v=4.5-202609250635"></script>
+<script>window.SVBC_CFG={"url": "https://lvaukuzgcwgqipxwzabo.supabase.co", "anon": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imx2YXVrdXpnY3dncWlweHd6YWJvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTAxNTYwMTcsImV4cCI6MjEwNTczMjAxN30.jYZF8q8-SyCaWykM0wwcK58EzfTbO2VASKz1NIv1xbo", "build": "5.0-202609251205", "dataBytes": 3053230};</script>
+<script src="vendor/supabase.js?v=5.0-202609251205"></script>
+<script src="icons.js?v=5.0-202609251205"></script>
+<script src="boot.js?v=5.0-202609251205"></script>
 </body>
 </html>
