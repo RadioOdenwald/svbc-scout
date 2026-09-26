@@ -2100,7 +2100,7 @@ function openSlotPicker(i,depth){
 }
 
 /* ===== App-Modus: installierbar, offline-fest, aktualisiert sich selbst ===== */
-const APP_BUILD='beta-0.11', OUTBOX_KEY='svbcOutbox', APP_HIDE_KEY='svbcInstallHide';
+const APP_BUILD='beta-0.12', OUTBOX_KEY='svbcOutbox', APP_HIDE_KEY='svbcInstallHide';
 let _appPrompt=null, _appNew=null, _obT=null;
 function appStandalone(){ try{ return !!(window.matchMedia&&matchMedia('(display-mode: standalone)').matches)||navigator.standalone===true; }catch(e){ return false; } }
 function appPlatform(){
@@ -11492,102 +11492,204 @@ function svSpielerAntwort(text){
 }
 
 /* =====================================================================
-   Sportzentrale Beta 0.11 · Importstatus (nur Admin, Verwaltung)
-   Quellenunabhängige Import-Grundlage: je Datenquelle Datenstand, Datensätze je Art, fehlende Werte,
-   letzte Läufe mit verständlichen Fehlern und ein Datensatzdetail mit Herkunft.
-   Schreiben passiert nur auf dem Server (Edge Function import-sync). Die App liest nur.
+   Sportzentrale Beta 0.12 · Importstatus und KLA-Datenquelle (nur Admin, Verwaltung)
+   Je Datenquelle: Datenstand, Stand der Quelle selbst, Datensätze je Art, fehlende Werte, letzte Läufe
+   mit verständlichen Fehlern, Liste mit Filtern und Datensatzdetail mit Herkunft.
+   Abgleich läuft auf dem Server (Edge Function import-sync, stündlich). Die App liest nur.
    ===================================================================== */
-const IMP={st:null,offen:null,detail:null,busy:false};
+const IMP={st:null,offen:null,busy:false,filter:{liga:'',saison:'',suche:''},seite:0};
 const IMP_ART={verbindung:['Verbindung','Die Quelle war nicht erreichbar. Meist ist das vorübergehend, der nächste Abgleich versucht es wieder.'],
   berechtigung:['Berechtigung','Die Quelle hat den Zugang abgelehnt. Den Schlüssel der Quelle in Supabase unter Edge Functions, Secrets prüfen.'],
   nicht_verfuegbar:['Nicht verfügbar','Die Quelle bietet diese Funktion nicht an. Adresse oder Adapter prüfen.'],
   inhalt:['Inhalt','Die Daten passten nicht zum erwarteten Aufbau. Von dieser Seite wurde nichts übernommen.'],
   begrenzt:['Begrenzt','Die Quelle bremst gerade wegen zu vieler Abrufe. Später klappt es wieder.'],
-  abbruch:['Abgebrochen','Der Lauf wurde unterbrochen. Der nächste Abgleich macht an derselben Stelle weiter.']};
-const IMP_KIND={player_stats:'Spielerstatistik',team_table:'Tabelle',team_stats:'Mannschaftsstatistik',roster:'Kader',player_profile:'Spielerprofil',player_mvp:'MVP der Quelle',screenshot:'Screenshot'};
-const IMP_FELD={name:'Name',team:'Mannschaft',position:'Position',einsaetze:'Einsätze',minuten:'Minuten',tore:'Tore',vorlagen:'Vorlagen',gelb:'Gelbe Karten',rot:'Rote Karten',platz:'Platz',spiele:'Spiele',punkte:'Punkte',gegentore:'Gegentore',synthetisch:'Synthetisch'};
+  abbruch:['Abgebrochen','Der Lauf wurde unterbrochen. Der nächste Abgleich macht an derselben Stelle weiter.'],
+  konflikt:['Konflikt','Ein anderer Abgleich war gleichzeitig dran. Es ist nichts verloren gegangen, der nächste Abgleich lädt den gespeicherten Stand neu.']};
+const IMP_KIND={player_stats:'Spielerstatistik',player_mvp:'MVP der Quelle je Saison',team_total:'Tabelle gesamt',team_home:'Heimtabelle',team_away:'Auswärtstabelle',team_form:'Form',
+  league_history:'Saisonchronik der Ligen',stats_coverage:'Abdeckung der Statistik',team_table:'Tabelle',team_stats:'Mannschaftsstatistik',screenshot:'Screenshot'};
+const IMP_LIGA={'herren-gruppenliga-darmstadt':'Gruppenliga Darmstadt','herren-kreisoberliga-bergstrasse':'Kreisoberliga Bergstraße','kla-bergstrasse':'Kreisliga A Bergstraße',
+  'klb-bergstrasse':'Kreisliga B Bergstraße','klc-bergstrasse':'Kreisliga C Bergstraße','kreisliga-d-1-bergstrasse':'Kreisliga D Bergstraße 1','kld2-bergstrasse':'Kreisliga D Bergstraße 2'};
+const IMP_FELD={name:'Name',team:'Mannschaft',position:'Position',einsaetze:'Einsätze',minuten:'Minuten',tore:'Tore',vorlagen:'Vorlagen',gelb:'Gelbe Karten',rot:'Rote Karten',platz:'Platz',spiele:'Spiele',punkte:'Punkte',gegentore:'Gegentore',synthetisch:'Synthetisch',
+  firstName:'Vorname',lastName:'Nachname',club_name:'Verein',team_name:'Mannschaft',squad:'Mannschaft Nr.',age_group:'Altersklasse',goals:'Tore',assists:'Vorlagen',minutesPlayed:'Minuten',
+  starts_derived:'Startelf (abgeleitet)',substitutesIn:'Eingewechselt',substitutesOut:'Ausgewechselt',yellowCards:'Gelbe Karten',yellowRedCards:'Gelb-Rote Karten',redCards:'Rote Karten',
+  topEleven:'Elf der Woche',penaltiesHit:'Elfmetertore',points:'Punkte',rank:'Platz',wins:'Siege',draws:'Unentschieden',defeats:'Niederlagen',ownGoals:'Tore',againstGoals:'Gegentore',
+  goalDifference:'Tordifferenz',team_count:'Mannschaften in der Liga',league_name:'Liga',penaltyPoints:'Strafpunkte',split:'Tabelle',mvp_updated_at:'MVP berechnet am',seasons:'Saisons',age:'Altersklasse',
+  player_rows:'Spielerzeilen',state:'Stand der Statistik'};
+const IMP_ORD=['name','firstName','lastName','club_name','team_name','team','squad','league_name','position','age_group','rank','platz','matches','spiele','einsaetze','minutesPlayed','minuten','starts_derived','substitutesIn','substitutesOut',
+  'goals','tore','assists','vorlagen','penaltiesHit','yellowCards','gelb','yellowRedCards','redCards','rot','topEleven','wins','draws','defeats','ownGoals','againstGoals','gegentore','goalDifference','points','punkte','penaltyPoints','team_count'];
+function impTech(k){ return /(^|_)(id|slug)$/i.test(k)||/_id$|_slug$/.test(k)||k==='slug'||k==='source_field'; }
 function impE(s){ return String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function impN(n){ return Number(n||0).toLocaleString('de-DE'); }
 function impKind(k){ return IMP_KIND[k]||k; }
-function impIstMvp(k){ return /mvp/i.test(k); }
-function impFeld(k){ return impIstMvp(k)?'MVP der Quelle':(IMP_FELD[k]||k); }
-function impZeit(t,kurz){ if(!t)return ''; const d=new Date(t); if(isNaN(d))return impE(t);
+function impSaison(s){ return String(s||'').replace(/^20(\d\d)-(\d\d)$/,'$1/$2'); }
+function impLiga(l){ return IMP_LIGA[l]||String(l||'').replace(/-/g,' ').replace(/\b\w/g,c=>c.toUpperCase()); }
+function impIstMvp(k){ return /mvp$/i.test(k)||k==='fupa_mvp'||k==='mvp'; }
+function impFeld(k,kind){ if(impIstMvp(k))return 'MVP der Quelle'; if(k==='matches')return /^team_/.test(kind||'')?'Spiele':'Einsätze'; return IMP_FELD[k]||k; }
+function impDatum(t){ if(t==null||t==='')return null; const s=String(t); if(/^\d{9,11}$/.test(s))return new Date(+s*1000); if(/^\d{12,14}$/.test(s))return new Date(+s); const d=new Date(s); return isNaN(d)?null:d; }
+function impZeit(t,kurz){ const d=impDatum(t); if(!d)return t?impE(t):'';
   return d.toLocaleString('de-DE',kurz?{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}:{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'}); }
-function impQuelleZeit(t){ if(!t)return '<i class="imp-fehlt">fehlt</i>'; const d=new Date(t);
-  return (isNaN(d)?'':impZeit(t)+' ')+`<small class="imp-roh" title="Wortgleich aus der Quelle">${impE(t)}</small>`; }
-function impWert(v){ if(v===null||v===undefined)return '<i class="imp-fehlt">fehlt</i>'; if(typeof v==='object')return `<code>${impE(JSON.stringify(v))}</code>`; if(typeof v==='boolean')return v?'ja':'nein'; return impE(v); }
+function impQuelleZeit(t){ if(t==null||t==='')return '<i class="imp-fehlt">fehlt</i>'; const d=impDatum(t);
+  return (d?impZeit(t)+' ':'')+`<small class="imp-roh" title="Wortgleich aus der Quelle">${impE(t)}</small>`; }
+function impWert(v,k){ if(v===null||v===undefined||v==='')return '<i class="imp-fehlt">fehlt</i>';
+  if(k==='mvp_updated_at')return impQuelleZeit(v);
+  if(Array.isArray(v))return impE(v.join(', '));
+  if(typeof v==='object')return impE(v.team_name||v.name||JSON.stringify(v));
+  if(typeof v==='boolean')return v?'ja':'nein'; if(k==='age_group'&&v==='m')return 'Herren';
+  if(k==='split')return ({total:'Gesamt',home:'Heim',away:'Auswärts'})[v]||impE(v); if(k==='state')return ({available:'vorhanden',missing:'fehlt',empty:'leer'})[v]||impE(v); return impE(v); }
+function impTitel(r){ const d=r.data||{};
+  if(d.firstName||d.lastName)return [d.firstName,d.lastName].filter(Boolean).join(' ');
+  if(d._name)return d._name;
+  if(d.team_name)return d.team_name; if(d.team&&typeof d.team==='object')return d.team.team_name||d.team.club_name||r.record_key;
+  if(d.name)return d.name; if(d.team)return d.team; if(d.player_id)return 'Spieler '+d.player_id; return r.record_key; }
+function impGruende(g){ const e=Object.entries(g||{}); return e.length?' ('+e.map(([k,n])=>impN(n)+' '+k).join(', ')+')':''; }
 function impLaufZeile(l){
-  const ok=l.status==='ok', tl=l.status==='teilweise';
-  const zahl=[l.neu+' neu',l.geaendert+' geändert',l.unveraendert+' unverändert'].concat(l.ausgelassen?[l.ausgelassen+' ausgelassen (Jugend)']:[]).join(' · ');
+  const ok=l.status==='ok', tl=l.status==='teilweise', zw=ok&&l.komplett===false;
+  const zahl=[impN(l.neu)+' neu',impN(l.geaendert)+' geändert',impN(l.unveraendert)+' unverändert'].concat(l.ausgelassen?[impN(l.ausgelassen)+' ausgelassen'+impGruende(l.ausgelassen_gruende)]:[]).join(' · ');
   const f=(l.fehler||[]).map(x=>{ const a=IMP_ART[x.art]||[x.art,'']; return `<div class="imp-err"><b>${impE(a[0])}${x.status?' · HTTP '+impE(x.status):''}</b> ${impE(x.meldung)}<span>${impE(a[1])}</span></div>`; }).join('');
-  return `<li class="imp-lauf ${ok?'ok':tl?'teil':'bad'}"><div><span class="imp-dot"></span><b>${ok?'Erfolgreich':tl?'Teilweise':'Fehlgeschlagen'}</b> <span class="imp-mute">${impZeit(l.start,true)}${l.ausloeser==='test'?' · Testlauf':l.ausloeser==='zeitplan'?' · Zeitplan':''}</span></div>
-    <div class="imp-mute">${l.seiten} ${l.seiten===1?'Seite':'Seiten'} · ${zahl} · Cursor ${impE(l.cursor_von)} → ${impE(l.cursor_bis)}</div>${f}</li>`;
+  const titel=l.laeuft?'Läuft gerade':zw?'Zwischenstand':ok?'Erfolgreich':tl?'Teilweise':'Fehlgeschlagen';
+  return `<li class="imp-lauf ${l.laeuft||zw?'teil':ok?'ok':tl?'teil':'bad'}"><div><b>${titel}</b> <span class="imp-mute">${impZeit(l.start,true)}${l.ausloeser==='test'?' · Testlauf':l.ausloeser==='zeitplan'?' · automatisch':' · von Hand'}</span></div>
+    <div class="imp-mute">${impN(l.seiten)} ${l.seiten===1?'Seite':'Seiten'} · ${zahl} · Cursor ${impN(l.cursor_von)} → ${impN(l.cursor_bis)}</div>${zw?'<div class="imp-mute">Es gibt noch mehr Änderungen. Der nächste Abgleich macht genau hier weiter.</div>':''}${f}</li>`;
 }
+function impQuellstatus(q){ const s=q.quellstatus; if(!s)return '';
+  const z=s.zeitplan, tage={Monday:'Mo',Tuesday:'Di',Wednesday:'Mi',Thursday:'Do',Friday:'Fr',Saturday:'Sa',Sunday:'So'};
+  const rest=s.head_seq!=null?Math.max(0,s.head_seq-q.cursor):null;
+  return `<div class="imp-qs"><b>Stand der Quelle</b> <span class="imp-mute">(abgefragt ${impZeit(s.abgerufen,true)})</span>
+    <div>Letzter Quellenabgleich: ${s.letzter_quellenabgleich?impZeit(s.letzter_quellenabgleich):'unbekannt'}${z&&z.tage?' · Quellenläufe '+impE((z.tage||[]).map(t=>tage[t]||t).join(' und '))+' ab '+impE(z.uhrzeit)+' Uhr':''}${s.gesperrt?' · <span class="imp-warn">Quelle pausiert</span>':''}</div>
+    ${rest!=null?`<div>${rest===0?'<span class="imp-okt">Alles übernommen</span>, was die Quelle bisher hat.':`Noch <b>${impN(rest)}</b> Änderungen offen, die nächsten Abgleiche holen sie.`}</div>`:''}</div>`; }
 function impQuelleHtml(q){
   const l0=(q.laeufe||[])[0];
-  const arten=(q.arten||[]).map(a=>{ const fe=(a.fehlend||[]); const ftxt=fe.length?fe.slice(0,4).map(x=>`${impE(impFeld(x.feld))} <b>${x.fehlt}×</b>`).join(', ')+(fe.length>4?' …':''):'<span class="imp-okt">vollständig</span>';
+  const arten=(q.arten||[]).map(a=>{ const fe=(a.fehlend||[]).filter(x=>!impTech(x.feld)); const ftxt=fe.length?fe.slice(0,4).map(x=>`${impE(impFeld(x.feld,a.kind))} <b>${impN(x.fehlt)}×</b>`).join(', ')+(fe.length>4?' …':''):'<span class="imp-okt">vollständig</span>';
     const auf=IMP.offen&&IMP.offen.q===q.id&&IMP.offen.k===a.kind;
-    return `<button class="imp-art${auf?' auf':''}" data-q="${impE(q.id)}" data-k="${impE(a.kind)}"><span class="imp-an">${impE(impKind(a.kind))}</span><span class="imp-num">${a.anzahl}</span><span class="imp-fe">Fehlende Werte: ${ftxt}</span></button>${auf?'<div class="imp-liste" id="impListe"><p class="note">Lädt …</p></div>':''}`; }).join('');
+    return `<button class="imp-art${auf?' auf':''}" data-q="${impE(q.id)}" data-k="${impE(a.kind)}"><span class="imp-an">${impE(impKind(a.kind))}</span><span class="imp-num">${impN(a.anzahl)}</span><span class="imp-fe">Fehlende Werte: ${ftxt}</span></button>${auf?`<div class="imp-liste" id="impListe">${impFilterHtml(q)}<div id="impTreffer"><p class="note">Lädt …</p></div></div>`:''}`; }).join('');
   return `<div class="imp-q" data-q="${impE(q.id)}">
-    <div class="imp-qh"><h4>${impE(q.name)}</h4>${q.synthetisch?'<span class="badge imp-syn">synthetisch</span>':`<span class="badge ${q.aktiv?'imp-on':'imp-off'}">${q.aktiv?'aktiv':'nicht aktiv'}</span>`}</div>
-    ${q.hinweis?`<p class="note" style="margin:4px 0 10px">${impE(q.hinweis)}</p>`:''}
-    <div class="adm-stats imp-stats"><div class="adm-stat"><b>${q.anzahl}</b><span>Datensätze</span></div>
+    <div class="imp-qh"><h4>${impE(q.name)}</h4>${q.synthetisch?'<span class="badge imp-syn">synthetisch</span>':`<span class="badge ${q.aktiv?'imp-on':'imp-off'}">${q.aktiv?'aktiv':'nicht aktiv'}</span>`}
+      ${q.synthetisch?'':`<button class="btn sm ghost imp-sync" data-q="${impE(q.id)}">${SVI('refresh')} Jetzt abgleichen</button>`}</div>
+    ${q.hinweis?`<p class="note" style="margin:4px 0 8px">${impE(q.hinweis)}</p>`:''}
+    ${q.freigabe?`<details class="imp-frei"><summary>${SVI('check')} Nutzung freigegeben</summary><p>${impE(q.freigabe)}</p></details>`:''}
+    <div class="adm-stats imp-stats"><div class="adm-stat"><b>${impN(q.anzahl)}</b><span>Datensätze</span></div>
       <div class="adm-stat"><b>${q.datenstand?impZeit(q.datenstand).split(',')[0]:'offen'}</b><span>Datenstand der Quelle</span></div>
       <div class="adm-stat"><b>${q.letzter_lauf?impZeit(q.letzter_lauf,true):'nie'}</b><span>Letzter Abgleich</span></div>
-      <div class="adm-stat"><b>${q.cursor}</b><span>Cursor</span></div></div>
+      <div class="adm-stat"><b>${impN(q.cursor)}</b><span>Cursor</span></div></div>
     ${q.geprueft?`<p class="imp-mute" style="margin:8px 0 0">Zuletzt von der Quelle geprüft: ${impZeit(q.geprueft)}${q.letzter_erfolg?' · letzter erfolgreicher Abgleich: '+impZeit(q.letzter_erfolg):''}</p>`:''}
+    ${q.id==='kla'&&(!q.aktiv||(IMP.key||{}).kla)?impKeyHtml('kla'):''}
+    ${impQuellstatus(q)}
     ${arten?`<div class="imp-arten">${arten}</div>`:'<p class="note">Noch keine Datensätze.</p>'}
     ${(q.laeufe||[]).length?`<details class="imp-laeufe"${l0&&l0.status!=='ok'?' open':''}><summary>Letzte Läufe</summary><ul>${q.laeufe.map(impLaufZeile).join('')}</ul></details>`:''}
   </div>`;
 }
-async function impLaden(){ const {data,error}=await SVB.sb.rpc('import_status'); if(error)throw error; IMP.st=data; return data; }
+function impFilterHtml(q){ const f=IMP.filter, lg=(q.ligen||[]).slice().sort((a,b)=>impLiga(a).localeCompare(impLiga(b))), ss=(q.saisons||[]).slice().sort().reverse();
+  if(q.synthetisch&&lg.length<2&&ss.length<2)return '';
+  return `<div class="imp-filter"><select id="impFL" aria-label="Liga"><option value="">Alle Ligen</option>${lg.map(l=>`<option value="${impE(l)}"${f.liga===l?' selected':''}>${impE(impLiga(l))}</option>`).join('')}</select>
+    <select id="impFS" aria-label="Saison"><option value="">Alle Saisons</option>${ss.map(s=>`<option value="${impE(s)}"${f.saison===s?' selected':''}>${impE(impSaison(s))}</option>`).join('')}</select>
+    <input id="impFQ" type="search" placeholder="Name, Verein, Mannschaft" value="${impE(f.suche)}" aria-label="Suche"></div>`; }
+async function impLaden(){ const {data,error}=await SVB.sb.rpc('import_status'); if(error)throw error; IMP.st=data;
+  try{ const k=await SVB.sb.rpc('import_schluessel_status'); IMP.key=k.error?{}:(k.data||{}); }catch(e){ IMP.key={}; }
+  return data; }
+function impKeyHtml(id){ if(id!=='kla')return ''; const k=(IMP.key||{})[id];
+  return `<div class="imp-key">${k?`<span class="imp-okt">✓ Leseschlüssel hinterlegt</span> <span class="imp-mute">seit ${impZeit(k)}</span> <button type="button" class="btn sm ghost imp-key-neu">Ersetzen</button>`:'<b>Leseschlüssel hinterlegen</b>'}
+    <form class="imp-keyf" data-q="${impE(id)}"${k?' hidden':''}><input type="password" name="k" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="kla_read_…" aria-label="Leseschlüssel der KLA-Datenquelle">
+      <button class="btn sm" type="submit">Speichern und abgleichen</button></form>
+    <span class="imp-mute imp-key-h">Der Schlüssel liegt danach nur auf dem Server. Die App zeigt ihn nie wieder an.</span></div>`; }
+async function impAufruf(body){
+  const {data,error}=await SVB.sb.functions.invoke('import-sync',{body});
+  if(error){ let t=error.message; try{ const j=await error.context.json(); if(j&&j.error)t=j.error; }catch(_){} throw new Error(t==='Nicht angemeldet'?'Bitte neu anmelden.':'Der Abgleich konnte nicht starten. Bitte später noch einmal versuchen.'); }
+  if(!data||!data.ok)throw new Error(data&&data.error||'Abgleich nicht möglich');
+  return data.ergebnis; }
+function impErgebnisText(r,test){
+  if(r.status!=='ok')return '⚠ '+((r.fehler[0]||{}).meldung||'Abgleich mit Fehler');
+  const aus=r.ausgelassen?`, ${impN(r.ausgelassen)} ausgelassen${impGruende(r.gruende)}`:'';
+  return `✓ ${test?'Testlauf':'Abgleich'} fertig: ${impN(r.neu)} neu, ${impN(r.geaendert)} geändert, ${impN(r.unveraendert)} unverändert${aus}.`
+    +(r.neu+r.geaendert+r.unveraendert+r.ausgelassen===0?' Alles war schon da, der Cursor steht am Ende.':'')
+    +(r.komplett===false?' Das war ein Zwischenstand, der nächste Abgleich macht weiter (automatisch jede Stunde).':''); }
 function impCard(P){
   let el=P.querySelector('#svImport'); if(!el){ el=document.createElement('div'); el.className='card'; el.id='svImport'; P.appendChild(el); }
-  const qs=(IMP.st&&IMP.st.quellen)||[], hatTest=qs.some(q=>q.synthetisch), echte=qs.filter(q=>!q.synthetisch);
+  const qs=(IMP.st&&IMP.st.quellen)||[], hatTest=qs.some(q=>q.synthetisch), echte=qs.filter(q=>!q.synthetisch), hatKla=qs.some(q=>q.id==='kla');
   el.innerHTML=`<div class="adm-head" style="margin-bottom:10px"><div><h3 style="margin:0;display:flex;gap:8px;align-items:center">${SVI('db')} Importstatus</h3>
       <p style="margin:6px 0 0;font-size:13.5px;max-width:62ch">Hier siehst du jede angebundene Datenquelle: Datenstand, was fehlt und ob der letzte Abgleich geklappt hat. Eine Seite wird ganz oder gar nicht übernommen, fehlende Werte bleiben fehlend und bei jedem Datensatz steht, woher er kommt.</p></div>
       <div class="imp-btns"><button class="btn sm ghost" id="impTest">${SVI('refresh')} Testlauf mit Beispieldaten</button>${hatTest?`<button class="btn sm ghost" id="impDel">${SVI('trash')} Beispieldaten löschen</button>`:''}</div></div>
     ${echte.length?'':'<p class="note imp-leer">Noch keine echte Datenquelle angebunden. Der Testlauf schickt erfundene Beispieldaten durch denselben Ablauf, damit du siehst, wie ein Import aussieht. Sie fließen in keine Bewertung ein.</p>'}
+    ${hatKla?'':`<div class="imp-q imp-neu"><div class="imp-qh"><h4>KLA-Datenquelle (FuPa)</h4><span class="badge imp-off">noch kein Abgleich</span><button class="btn sm ghost imp-sync" data-q="kla">${SVI('refresh')} Jetzt abgleichen</button></div>
+      <p class="note" style="margin:4px 0 8px">Trag unten den Leseschlüssel ein. Danach gleicht der Server jede Stunde automatisch ab.</p>${impKeyHtml('kla')}</div>`}
     <p class="note" id="impMsg" style="margin:0 0 6px"></p>
-    ${qs.map(impQuelleHtml).join('')}
-    <div id="impDetail"></div>`;
+    ${qs.map(impQuelleHtml).join('')}`;
   const msg=t=>{ const m=el.querySelector('#impMsg'); if(m)m.innerHTML=t; };
   el.querySelector('#impTest').onclick=async e=>{ if(IMP.busy)return; IMP.busy=true; const b=e.currentTarget; b.disabled=true; b.textContent='Testlauf läuft …';
-    try{ const {data,error}=await SVB.sb.functions.invoke('import-sync',{body:{aktion:'testlauf'}});
-      if(error){ let t=error.message; try{ const j=await error.context.json(); if(j&&j.error)t=j.error; }catch(_){} throw new Error(t==='Nicht angemeldet'?'Bitte neu anmelden.':'Der Testlauf konnte nicht starten. Bitte später noch einmal versuchen.'); }
-      if(!data||!data.ok)throw new Error(data&&data.error||'Testlauf nicht möglich');
-      const r=data.ergebnis; await impLaden(); impCard(P);
-      const m2=r.status==='ok'?`✓ Testlauf fertig: ${r.neu} neu, ${r.geaendert} geändert, ${r.unveraendert} unverändert${r.ausgelassen?', '+r.ausgelassen+' ausgelassen (Jugend)':''}.${r.neu+r.geaendert+r.unveraendert===0?' Alles war schon da, der Cursor steht am Ende.':''}`:'⚠ '+((r.fehler[0]||{}).meldung||'Testlauf mit Fehler');
-      const m=P.querySelector('#impMsg'); if(m)m.textContent=m2;
-    }catch(x){ b.disabled=false; b.innerHTML=SVI('refresh')+' Testlauf mit Beispieldaten'; msg('⚠ '+impE(x.message||x)); }
+    try{ const r=await impAufruf({aktion:'testlauf'}); await impLaden(); impCard(P); const m=P.querySelector('#impMsg'); if(m)m.textContent=impErgebnisText(r,true); }
+    catch(x){ b.disabled=false; b.innerHTML=SVI('refresh')+' Testlauf mit Beispieldaten'; msg('⚠ '+impE(x.message||x)); }
     IMP.busy=false; };
+  el.querySelectorAll('.imp-sync').forEach(b=>b.onclick=async()=>{ if(IMP.busy)return; IMP.busy=true; b.disabled=true; b.textContent='Gleicht ab …'; msg('Der Abgleich läuft, das kann bis zu zwei Minuten dauern.');
+    try{ const r=await impAufruf({aktion:'abgleich',quelle:b.dataset.q}); await impLaden(); impCard(P); const m=P.querySelector('#impMsg'); if(m)m.textContent=impErgebnisText(r,false); }
+    catch(x){ try{ await impLaden(); impCard(P); }catch(_){} const m=P.querySelector('#impMsg'); if(m)m.textContent='⚠ '+(x.message||x); }
+    IMP.busy=false; });
+  el.querySelectorAll('.imp-key-neu').forEach(b=>b.onclick=()=>{ const f=b.parentNode.querySelector('.imp-keyf'); if(f){ f.hidden=false; f.querySelector('input').focus(); } });
+  el.querySelectorAll('.imp-keyf').forEach(f=>f.onsubmit=async ev=>{ ev.preventDefault(); if(IMP.busy)return;
+    const inp=f.querySelector('input'), wert=inp.value.trim(); inp.value='';
+    if(!wert){ msg('Bitte den Schlüssel einfügen.'); return; }
+    IMP.busy=true; const b=f.querySelector('button'); b.disabled=true; b.textContent='Speichert …'; msg('Schlüssel wird gespeichert …');
+    try{ const {error}=await SVB.sb.rpc('import_schluessel_setzen',{p_quelle:f.dataset.q,p_schluessel:wert});
+      if(error)throw new Error(/kla_read_|Leseschlüssel/.test(error.message)?error.message:'Der Schlüssel konnte nicht gespeichert werden.');
+      msg('✓ Schlüssel gespeichert. Der erste Abgleich läuft, das kann bis zu zwei Minuten dauern.');
+      let r=null, fe=null; try{ r=await impAufruf({aktion:'abgleich',quelle:f.dataset.q}); }catch(x){ fe=x; }
+      await impLaden(); IMP.busy=false; impCard(P); const m=P.querySelector('#impMsg'); if(m)m.textContent=fe?'⚠ '+(fe.message||fe):impErgebnisText(r,false);
+    }catch(x){ IMP.busy=false; b.disabled=false; b.textContent='Speichern und abgleichen'; msg('⚠ '+impE(x.message||x)); }
+    IMP.busy=false; });
   const del=el.querySelector('#impDel'); if(del)del.onclick=async()=>{
     if(del.dataset.sicher!=='1'){ del.dataset.sicher='1'; del.innerHTML=SVI('trash')+' Wirklich löschen?'; return; }
-    del.disabled=true; try{ const {error}=await SVB.sb.rpc('import_testdaten_loeschen'); if(error)throw error; IMP.offen=null; IMP.detail=null; await impLaden(); impCard(P); const m=P.querySelector('#impMsg'); if(m)m.textContent='✓ Beispieldaten gelöscht.'; }
+    del.disabled=true; try{ const {error}=await SVB.sb.rpc('import_testdaten_loeschen'); if(error)throw error; IMP.offen=null; await impLaden(); impCard(P); const m=P.querySelector('#impMsg'); if(m)m.textContent='✓ Beispieldaten gelöscht.'; }
     catch(x){ del.disabled=false; msg('⚠ '+impE(x.message||x)); } };
-  el.querySelectorAll('.imp-art').forEach(b=>b.onclick=()=>{ const q=b.dataset.q,k=b.dataset.k; IMP.offen=(IMP.offen&&IMP.offen.q===q&&IMP.offen.k===k)?null:{q,k}; IMP.detail=null; impCard(P); if(IMP.offen)impListe(P); });
-  if(IMP.offen&&el.querySelector('#impListe'))impListe(P);
+  el.querySelectorAll('.imp-art').forEach(b=>b.onclick=()=>{ const q=b.dataset.q,k=b.dataset.k; const neu=!(IMP.offen&&IMP.offen.q===q&&IMP.offen.k===k);
+    if(neu&&!(IMP.offen&&IMP.offen.q===q))IMP.filter={liga:'',saison:'',suche:''}; IMP.offen=neu?{q,k}:null; IMP.seite=0; impCard(P); });
+  if(IMP.offen&&el.querySelector('#impListe')){
+    const fl=el.querySelector('#impFL'), fs=el.querySelector('#impFS'), fq=el.querySelector('#impFQ'); let tmo=null;
+    if(fl)fl.onchange=()=>{ IMP.filter.liga=fl.value; IMP.seite=0; impListe(P); };
+    if(fs)fs.onchange=()=>{ IMP.filter.saison=fs.value; IMP.seite=0; impListe(P); };
+    if(fq)fq.oninput=()=>{ clearTimeout(tmo); tmo=setTimeout(()=>{ IMP.filter.suche=fq.value.trim(); IMP.seite=0; impListe(P); },350); };
+    impListe(P);
+  }
 }
+const IMP_SEITE=40;
 async function impListe(P){
-  const box=P.querySelector('#impListe'); if(!box||!IMP.offen)return;
-  const {q,k}=IMP.offen;
-  const {data,error}=await SVB.sb.from('import_datensaetze').select('record_key,kind,entity,season,league,data,source_url,source_updated_at,checked_at,erstmals,geaendert_am').eq('quelle',q).eq('kind',k).order('record_key').limit(60);
+  const box=P.querySelector('#impTreffer'); if(!box||!IMP.offen)return;
+  const {q,k}=IMP.offen, f=IMP.filter, von=IMP.seite*IMP_SEITE;
+  let qu=SVB.sb.from('import_datensaetze').select('record_key,kind,entity,season,league,data,source_url,source_updated_at,checked_at,erstmals,geaendert_am',{count:'exact'}).eq('quelle',q).eq('kind',k);
+  if(f.liga)qu=qu.eq('league',f.liga); if(f.saison)qu=qu.eq('season',f.saison);
+  if(f.suche){ const s=f.suche.replace(/[,*()%\\]/g,' ').trim(); if(s)qu=qu.or(['lastName','firstName','team_name','club_name','name'].map(x=>`data->>${x}.ilike.*${s}*`).join(',')); }
+  const SORT={player_stats:['data->goals',false],player_mvp:['data->fupa_mvp',false],team_total:['data->rank',true],team_home:['data->rank',true],team_away:['data->rank',true],team_form:['data->rank',true]}[k];
+  qu=qu.order('season',{ascending:false}).order('league'); if(SORT)qu=qu.order(SORT[0],{ascending:SORT[1],nullsFirst:false});
+  const {data,error,count}=await qu.order('record_key').range(von,von+IMP_SEITE-1);
   if(error){ box.innerHTML=`<p class="note">⚠ ${impE(error.message)}</p>`; return; }
   const rows=data||[];
-  box.innerHTML=rows.length?`<ul class="imp-recs">${rows.map((r,i)=>{ const d=r.data||{}, n=Object.keys(d).filter(x=>x!=='synthetisch'), fehlt=n.filter(x=>d[x]===null).length;
-      return `<li><button class="imp-rec" data-i="${i}"><span class="imp-rn">${impE(d.name||d.team||r.record_key)}</span><span class="imp-mute">${impE([r.league,r.season].filter(Boolean).join(' · '))}${fehlt?` · <span class="imp-warn">${fehlt} fehlt</span>`:''}</span></button></li>`; }).join('')}</ul>${rows.length>=60?'<p class="note">Die ersten 60 Datensätze.</p>':''}`:'<p class="note">Keine Datensätze.</p>';
+  // MVP-Datensätze tragen nur die Spieler-ID: Namen aus der Spielerstatistik derselben Quelle dazuholen (über die ID, nie über den Namen)
+  const ids=[...new Set(rows.filter(r=>r.data&&r.data.player_id&&!r.data.firstName&&!r.data.lastName).map(r=>String(r.data.player_id)))];
+  if(ids.length){ try{ const {data:nm}=await SVB.sb.from('import_datensaetze').select('data').eq('quelle',q).eq('kind','player_stats').in('data->>player_id',ids).limit(400);
+    const m={}; (nm||[]).forEach(x=>{ const d=x.data||{}; if(d.player_id!=null)m[String(d.player_id)]=[d.firstName,d.lastName].filter(Boolean).join(' '); });
+    rows.forEach(r=>{ const n=r.data&&m[String(r.data.player_id)]; if(n)r.data=Object.assign({_name:n},r.data); }); }catch(e){} }
+  const n=count||0, bis=Math.min(n,von+rows.length);
+  // Felder, die die Quelle bei dieser Art nie liefert, zählen je Datensatz nicht als „fehlt“ (sie stehen oben bei „Fehlende Werte“)
+  const qa=(((IMP.st&&IMP.st.quellen)||[]).find(x=>x.id===q)||{}).arten||[], art=qa.find(a=>a.kind===k)||{}, nie=new Set((art.fehlend||[]).filter(x=>x.fehlt===art.anzahl).map(x=>x.feld));
+  box.innerHTML=rows.length?`<p class="imp-mute" style="margin:4px 0 6px">${impN(n)} ${n===1?'Datensatz':'Datensätze'}${n>IMP_SEITE?`, zeige ${impN(von+1)} bis ${impN(bis)}`:''}</p>
+    <ul class="imp-recs">${rows.map((r,i)=>{ const d=r.data||{}, nk=Object.keys(d).filter(x=>x!=='synthetisch'&&x!=='_name'&&!impTech(x)&&!nie.has(x)), fehlt=nk.filter(x=>d[x]===null).length;
+      const kurz=d.goals!=null||d.assists!=null?` · ${d.goals??'?'} T, ${d.assists??'?'} V`:d.points!=null?` · Platz ${d.rank??'?'}, ${d.points} Pkt`:d.fupa_mvp!=null?` · MVP ${d.fupa_mvp}`:'';
+      const team=d.team_name&&(d.firstName||d.lastName||d._name)?d.team_name+' · ':'';
+      return `<li><button class="imp-rec" data-i="${i}"><span class="imp-rn">${impE(impTitel(r))}</span><span class="imp-mute">${impE(team+[r.league?impLiga(r.league):'',impSaison(r.season)].filter(Boolean).join(' · ')+kurz)}${fehlt?` · <span class="imp-warn">${fehlt} fehlt</span>`:''}</span></button></li>`; }).join('')}</ul>
+    ${n>IMP_SEITE?`<div class="imp-blaettern"><button class="btn sm ghost" id="impZur"${IMP.seite?'':' disabled'}>Zurück</button><button class="btn sm ghost" id="impVor"${bis<n?'':' disabled'}>Weiter</button></div>`:''}`:'<p class="note">Keine Datensätze für diese Auswahl.</p>';
   box.querySelectorAll('.imp-rec').forEach(b=>b.onclick=()=>impDetail(P,rows[+b.dataset.i]));
+  const z=box.querySelector('#impZur'), v=box.querySelector('#impVor');
+  if(z)z.onclick=()=>{ IMP.seite=Math.max(0,IMP.seite-1); impListe(P); }; if(v)v.onclick=()=>{ IMP.seite++; impListe(P); };
 }
 function impDetail(P,r){
-  const box=P.querySelector('#impListe'); if(!box||!r)return;
+  const box=P.querySelector('#impTreffer'); if(!box||!r)return;
   const q=((IMP.st&&IMP.st.quellen)||[]).find(x=>x.id===IMP.offen.q)||{};
-  const d=r.data||{}, ORD=['name','team','position','platz','spiele','einsaetze','minuten','tore','vorlagen','gelb','rot','punkte','gegentore'];
-  const rang=k=>{ const i=ORD.indexOf(k); return impIstMvp(k)?90:i<0?50:i; };
-  const keys=Object.keys(d).filter(x=>x!=='synthetisch').sort((x,y)=>rang(x)-rang(y)||x.localeCompare(y));
+  const d=r.data||{};
+  const rang=k=>{ const i=IMP_ORD.indexOf(k); return impIstMvp(k)?90:k==='mvp_updated_at'?91:i<0?60:i; };
+  const keys=Object.keys(d).filter(x=>x!=='synthetisch'&&x!=='_name'&&!impTech(x)).sort((x,y)=>rang(x)-rang(y)||x.localeCompare(y));
+  const tech=Object.keys(d).filter(impTech).sort();
   const url=r.source_url||'', http=/^https?:\/\//i.test(url);
   box.querySelector('.imp-det')?.remove();
   const el=document.createElement('div'); el.className='imp-det';
-  el.innerHTML=`<div class="imp-det-h"><b>${impE(d.name||d.team||r.record_key)}</b>${d.synthetisch===true?'<span class="badge imp-syn">synthetisch</span>':''}<button class="btn sm ghost imp-zu" aria-label="Schließen">${SVI('x')}</button></div>
-    <table class="imp-kv"><tbody>${keys.map(x=>`<tr><th>${impE(impFeld(x))}${impIstMvp(x)?`<small>Wert von ${impE(q.name||'der Quelle')}, eigene Formel der Quelle, nicht bestätigt</small>`:''}</th><td>${impWert(d[x])}</td></tr>`).join('')||'<tr><td>Keine Werte</td></tr>'}</tbody></table>
+  el.innerHTML=`<div class="imp-det-h"><b>${impE(impTitel(r))}</b>${d.synthetisch===true?'<span class="badge imp-syn">synthetisch</span>':''}<button class="btn sm ghost imp-zu" aria-label="Schließen">${SVI('x')}</button></div>
+    <p class="imp-mute" style="margin:0 0 6px">${impE(impKind(r.kind))}${r.league?' · '+impE(impLiga(r.league)):''}${r.season?' · Saison '+impE(impSaison(r.season)):''}</p>
+    <table class="imp-kv"><tbody>${keys.map(x=>`<tr><th>${impE(impFeld(x,r.kind))}${impIstMvp(x)?`<small>Wert von ${impE(q.name||'der Quelle')}, eigene Formel der Quelle, nicht bestätigt${d[x]===0?'. 0 kann auch „kein Wert“ bedeuten':''}</small>`:''}</th><td>${impWert(d[x],x)}</td></tr>`).join('')||'<tr><td>Keine Werte</td></tr>'}</tbody></table>
     <h5>Herkunft</h5>
     <table class="imp-kv"><tbody>
       <tr><th>Quelle</th><td>${impE(q.name||r.quelle||'')}</td></tr>
@@ -11595,7 +11697,7 @@ function impDetail(P,r){
       <tr><th>Stand laut Quelle</th><td>${impQuelleZeit(r.source_updated_at)}</td></tr>
       <tr><th>Geprüft von der Quelle</th><td>${impQuelleZeit(r.checked_at)}</td></tr>
       <tr><th>Bei uns seit</th><td>${impZeit(r.erstmals)}${r.geaendert_am&&r.geaendert_am!==r.erstmals?' · zuletzt geändert '+impZeit(r.geaendert_am):''}</td></tr>
-      <tr><th>Schlüssel</th><td><code>${impE(r.record_key)}</code> · ${impE(impKind(r.kind))}${r.entity?' · '+impE(r.entity):''}</td></tr>
+      <tr><th>Schlüssel</th><td><code>${impE(r.record_key)}</code>${r.entity?' · '+impE(r.entity):''}${tech.length?'<br><span class="imp-mute">'+tech.map(x=>impE(x)+' '+impE(d[x])).join(' · ')+'</span>':''}</td></tr>
     </tbody></table>`;
   box.prepend(el);
   el.querySelector('.imp-zu').onclick=()=>el.remove();
