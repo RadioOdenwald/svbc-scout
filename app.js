@@ -2100,7 +2100,7 @@ function openSlotPicker(i,depth){
 }
 
 /* ===== App-Modus: installierbar, offline-fest, aktualisiert sich selbst ===== */
-const APP_BUILD='beta-0.9', OUTBOX_KEY='svbcOutbox', APP_HIDE_KEY='svbcInstallHide';
+const APP_BUILD='beta-0.9.1', OUTBOX_KEY='svbcOutbox', APP_HIDE_KEY='svbcInstallHide';
 let _appPrompt=null, _appNew=null, _obT=null;
 function appStandalone(){ try{ return !!(window.matchMedia&&matchMedia('(display-mode: standalone)').matches)||navigator.standalone===true; }catch(e){ return false; } }
 function appPlatform(){
@@ -11105,10 +11105,29 @@ function sv94Def(club,sk,liga){
 }
 
 /* ---------- Saisons als Belege ---------- */
+// Eigene Spiele aus der App (z. B. per FuPa-Auswerter übernommen): Minuten, Startelf, Tore, Vorlagen, Punkte mit und ohne ihn
+function sv94AppSpiele(p){
+  if(!p||!p.own||typeof TR==='undefined'||!TR.loaded||!TR.st||typeof sv50Start!=='function')return null;
+  const start=sv50Start(), heute=trToday(), G=TR.st.sessions.filter(x=>x.t==='spiel'&&x.d>=start&&x.d<=heute&&x.tw!=null&&x.tg!=null);
+  if(G.length<3)return null;
+  let sp=0,s11=0,min=0,minN=0,tore=0,ast=0,dabei=false; const mit=[],ohne=[];
+  G.forEach(g=>{ const a=(g.a||[]).find(x=>x[0]===p.id), pk=g.tw>g.tg?3:g.tw===g.tg?1:0;
+    if(a)dabei=true;
+    const spielte=a&&(a[1]==='da'||a[1]==='spaet');
+    if(spielte){ sp++; if(a[1]==='da')s11++; if(a[11]!=null){ min+=a[11]; minN++; } }
+    if(a){ tore+=a[6]||0; ast+=a[7]||0; }
+    if(spielte&&(a[1]==='da'||(a[11]||0)>=45))mit.push(pk); else if(!spielte)ohne.push(pk); });
+  if(!dabei&&p.kader!==1)return null;
+  const ppg=L=>L.length?L.reduce((x,y)=>x+y,0)/L.length:null;
+  return {G:G.length,sp,s11,min:minN===sp&&sp>0?min:null,tore,ast,mit:mit.length,ohne:ohne.length,ppgMit:ppg(mit),ppgOhne:ppg(ohne)};
+}
 function sv94Seasons(p,r){
   const S=[], c=p.cur&&p.cur.spiele>0?p.cur:null, E=(r&&r.E)||{seasons:[]};
   let qB=null; if(p.min&&p.teamSp)qB=Math.min(1,p.min/(p.teamSp*90)); else if(p.einsaetze&&p.teamSp)qB=Math.min(1,p.einsaetze/p.teamSp)*0.92; else if(p.kaderDoc&&p.kaderStarts!=null)qB=Math.min(1,p.kaderStarts/p.kaderDoc);
-  if(c){ const e0=E.seasons[0]&&E.seasons[0].y===sv4SL(sv4S())?E.seasons[0]:null; let q=null, sp=null;
+  const AS=sv94AppSpiele(p);
+  if(AS){ const lg=c?(c.sub||c.liga):(p.sub||p.liga), q=AS.min!=null?Math.min(1,AS.min/(AS.G*90)):Math.min(1,AS.sp/AS.G)*0.92;
+    S.push({k:'cur',y:sv4SL(sv4S()),sk:sv4S(),liga:lg,club:c?(c.club||p.club):p.club,teamSp:AS.G,sp:AS.sp,q,qF:null,tore:AS.tore,ast:AS.ast,rank:c?c.rank:p.rank,tc:c?c.teamCount:p.teamCount,jahre:sv94Jahre(null),rec:1.2,app:AS}); }
+  else if(c){ const e0=E.seasons[0]&&E.seasons[0].y===sv4SL(sv4S())?E.seasons[0]:null; let q=null, sp=null;
     if(e0&&e0.sp!=null){ sp=e0.sp; q=e0.min?Math.min(1,e0.min/(c.spiele*90)):Math.min(1,e0.sp/c.spiele)*0.92; }
     S.push({k:'cur',y:sv4SL(sv4S()),sk:sv4S(),liga:c.sub||c.liga,club:c.club||p.club,teamSp:c.spiele,sp,q,qF:qB,tore:e0&&e0.tore!=null?e0.tore:(c.tore||0),ast:0,rank:c.rank,tc:c.teamCount,jahre:sv94Jahre(null),rec:1.2}); }
   S.push({k:'base',y:'25/26',sk:'2526',liga:p.sub||p.liga,club:p.club,teamSp:p.teamSp,sp:p.einsaetze||null,q:qB,qF:null,tore:p.tore||0,ast:p.assists||0,rank:p.rank,tc:p.teamCount,jahre:sv94Jahre(sv94Mitte(0)),rec:0.9});
@@ -11162,6 +11181,7 @@ function sv94Score(p,r,opt){
   if(p.alter!=null&&p.alter>=26&&p.alter<=33&&reg.length){ ex+=1; exT.push('im besten Fußballeralter, Routine'); }
   if(p.alter!=null&&p.alter<=20&&!reg.length){ ex-=1.5; exT.push('jung und noch ohne Stammplatz'); }
   if(Math.abs(ex)>=0.5){ T+=ex; adj.push(['exp','Erfahrung',ex,exT.join(', ')]); }
+  const APP=(ev.find(x=>x.app)||{}).app; if(APP&&APP.mit>=5&&APP.ohne>=3&&APP.ppgMit!=null&&APP.ppgOhne!=null){ const b=sv94C((APP.ppgMit-APP.ppgOhne)*1.5*Math.min(1,APP.ohne/6),-2,2); if(Math.abs(b)>=0.5){ T+=b; adj.push(['onoff','Mit ihm auf dem Platz',b,`${sv94N(APP.ppgMit,2)} Punkte je Spiel mit ihm, ${sv94N(APP.ppgOhne,2)} ohne ihn`]); } }
   if(p.pressIdx!=null){ const b=sv94C((p.pressIdx-50)/50*1.5,-1.5,1.5); if(Math.abs(b)>=0.5){ T+=b; adj.push(['presse','Presse',b,'Tenor der Nennungen']); } }
   T=sv94C(T,5,97);
   let total=Math.round(T*10)/10, man=null; if(p.adjTo!=null&&!opt.ohneManuell){ man=Math.round((p.adjTo-total)*10)/10; total=p.adjTo; }
@@ -11227,7 +11247,7 @@ if(typeof SV4_CL!=='undefined')Object.assign(SV4_CL,{liga:'Liga',level:'Einsatz'
 function sv94SeasonHtml(s){
   const teile=[`Liga-Niveau ${s.L}`,`Rolle ${sv94Pm(s.role)}`,`Leistung ${sv94Pm(s.prod)}`,`Mannschaft ${sv94Pm(s.team)}`];
   if(s.dom)teile.push(`Ausnahmeleistung ${sv94Pm(s.dom)}`); if(s.mvp!=null)teile.push(`FuPa-MVP ${s.mvp} %: ${sv94Pm(s.mvpOff)}`); if(s.sds)teile.push(`Elf der Woche ${sv94Pm(s.sds)}`);
-  const kopf=[s.n?`${s.n} Spiele${s.qEst?' (geschätzt)':''}`:'keine Einsätze bekannt', `${s.tore||0} Tore`, s.rank!=null?`Platz ${s.rank}`:null].filter(Boolean).join(', ');
+  const kopf=[s.n?`${s.n}${s.app?' von '+s.app.G:''} Spiele${s.qEst?' (geschätzt)':''}`:'keine Einsätze bekannt', s.app&&s.app.min!=null?`${s.app.min.toLocaleString('de-DE')} Min.`:null, `${s.tore||0} Tore`, s.ast?`${s.ast} Vorlagen`:null, s.rank!=null?`Platz ${s.rank}`:null, s.app?'aus euren Spielen':null].filter(Boolean).join(', ');
   return `<div class="m94-s${s.decke?' decke':''}"><div class="m94-sh"><b>${svEsc(s.y)} · ${svEsc(sv94LN(s.lv))}</b><span>${svEsc(kopf)}</span></div>
     <div class="m94-sv"><b style="color:${tierColor(s.Eh)}">${sv94N(s.Eh)}</b><small>zählt ${Math.round(s.anteil*100)} %</small></div>
     <p>${svEsc(teile.join(', '))}${Math.abs(s.alt)>=0.1?`, auf heute gealtert ${sv94Pm(s.alt)}`:''}</p>
@@ -11306,6 +11326,8 @@ if(typeof SV4_MODEL!=='undefined'){
     document.querySelectorAll('#panel-model [data-w]').forEach(i=>{ const box=i.closest('.card'); if(box&&!box.classList.contains('m4'))box.hidden=true; });
   }catch(e){ console.warn('Modell 0.9',e); }
   return r; }; }
+// Neue oder geänderte Spiele (z. B. FuPa-Import): Werte neu rechnen
+if(typeof trLoad==='function'){ const _tl94=trLoad; trLoad=async function(){ const r=await _tl94.apply(this,arguments); try{ SV94.cache.clear(); }catch(e){} return r; }; }
 
 /* =====================================================================
    SV/BSC Scout · Runde 20: „Was ist neu“: Update-Fenster & Patch-Historie
@@ -11322,7 +11344,8 @@ const SV_PATCHES=[
     {ic:'🪜',t:'Kein Ligadeckel mehr',d:'Ein 80er aus der Gruppenliga, der in die A-Liga wechselt und dort Leistungsträger ist, bleibt nahe 80. In einer tieferen Liga kann er nach oben nichts mehr beweisen, das nennt die App Deckeneffekt. Wer dort nur Ergänzung ist, rutscht ab.'},
     {ic:'⏳',t:'Alter und Erfahrung',d:'Bis 24 legt man zu, ab 29 geht es bergab, ab 33 deutlich, auf dem Flügel und außen schneller, innen und im Tor langsamer. Im Profil stehen Potenzial und die Prognose für die nächste Saison.',r:'scout',go:'model'},
     {ic:'🔵',t:'FuPa-MVP direkt im Profil',d:'Den MVP-Wert aus FuPa (Team, Spielerstatistik, Spalte MVP) trägst du im Profil unter dem MScore ein. Er zeigt, wie wichtig einer für sein Team ist, und zählt als Beleg mit. Ganze Teams gehen unter Datenbank.',r:'scout',go:'db'},
-    {ic:'👁️',t:'Eye-Test als eigene Messung',d:'Eine Bewertung zählt ungefähr so viel wie eine volle Saison, ab drei Planern mehr als die Daten.',r:'scout',go:'eye'}]},
+    {ic:'👁️',t:'Eye-Test als eigene Messung',d:'Eine Bewertung zählt ungefähr so viel wie eine volle Saison, ab drei Planern mehr als die Daten.',r:'scout',go:'eye'},
+    {ic:'📥',t:'Eure Spiele zählen im MScore',d:'Spiele, die ihr unter Training → Spiele übernehmt (zum Beispiel die season.json aus dem FuPa-Auswerter), rechnen bei den eigenen Spielern mit: Minuten, Startelf, Tore, Vorlagen und die Punkte mit und ohne den Spieler.',r:'team',go:'training'}]},
   {id:'0.8',v:'0.8',datum:'2026-09-25',titel:'Neues Rating: die Liga setzt den Rahmen',kurz:'Der MScore ist neu gebaut. Ein Stammspieler der Kreisoberliga liegt jetzt klar vor einem Spieler der Kreisliga D. Innerhalb der Liga entscheiden Einsatz, Leistung im Vergleich zur gleichen Position und die Mannschaft. Wer seine Liga dominiert, kommt über den Rahmen hinaus.',
    punkte:[
     {ic:'🧮',t:'Jeder Wert erklärt',d:'Im Spielerprofil steht Schritt für Schritt: Rahmen der Liga, Einsatz, Leistung, Mannschaft und dann jeder Zu- und Abschlag mit Grund, etwa Trainernoten, frühere höhere Liga oder Alter.',r:'team',go:'training'},
