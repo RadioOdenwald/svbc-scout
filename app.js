@@ -2100,7 +2100,7 @@ function openSlotPicker(i,depth){
 }
 
 /* ===== App-Modus: installierbar, offline-fest, aktualisiert sich selbst ===== */
-const APP_BUILD='beta-0.12', OUTBOX_KEY='svbcOutbox', APP_HIDE_KEY='svbcInstallHide';
+const APP_BUILD='beta-0.13', OUTBOX_KEY='svbcOutbox', APP_HIDE_KEY='svbcInstallHide';
 let _appPrompt=null, _appNew=null, _obT=null;
 function appStandalone(){ try{ return !!(window.matchMedia&&matchMedia('(display-mode: standalone)').matches)||navigator.standalone===true; }catch(e){ return false; } }
 function appPlatform(){
@@ -11505,7 +11505,7 @@ const IMP_ART={verbindung:['Verbindung','Die Quelle war nicht erreichbar. Meist 
   begrenzt:['Begrenzt','Die Quelle bremst gerade wegen zu vieler Abrufe. Später klappt es wieder.'],
   abbruch:['Abgebrochen','Der Lauf wurde unterbrochen. Der nächste Abgleich macht an derselben Stelle weiter.'],
   konflikt:['Konflikt','Ein anderer Abgleich war gleichzeitig dran. Es ist nichts verloren gegangen, der nächste Abgleich lädt den gespeicherten Stand neu.']};
-const IMP_KIND={player_stats:'Spielerstatistik',player_mvp:'MVP der Quelle je Saison',team_total:'Tabelle gesamt',team_home:'Heimtabelle',team_away:'Auswärtstabelle',team_form:'Form',
+const IMP_KIND={team_firstRound:'Hinrundentabelle',team_secondRound:'Rückrundentabelle',match_summary:'Spiele der ersten Mannschaft',match_lineup:'Aufstellungen mit Einzelwerten',match_events:'Spiel-Highlights',match_coverage:'Abdeckung Spielplan',player_stats:'Spielerstatistik',player_mvp:'MVP der Quelle je Saison',team_total:'Tabelle gesamt',team_home:'Heimtabelle',team_away:'Auswärtstabelle',team_form:'Form',
   league_history:'Saisonchronik der Ligen',stats_coverage:'Abdeckung der Statistik',team_table:'Tabelle',team_stats:'Mannschaftsstatistik',screenshot:'Screenshot'};
 const IMP_LIGA={'herren-gruppenliga-darmstadt':'Gruppenliga Darmstadt','herren-kreisoberliga-bergstrasse':'Kreisoberliga Bergstraße','kla-bergstrasse':'Kreisliga A Bergstraße',
   'klb-bergstrasse':'Kreisliga B Bergstraße','klc-bergstrasse':'Kreisliga C Bergstraße','kreisliga-d-1-bergstrasse':'Kreisliga D Bergstraße 1','kld2-bergstrasse':'Kreisliga D Bergstraße 2'};
@@ -11514,7 +11514,14 @@ const IMP_FELD={name:'Name',team:'Mannschaft',position:'Position',einsaetze:'Ein
   starts_derived:'Startelf (abgeleitet)',substitutesIn:'Eingewechselt',substitutesOut:'Ausgewechselt',yellowCards:'Gelbe Karten',yellowRedCards:'Gelb-Rote Karten',redCards:'Rote Karten',
   topEleven:'Elf der Woche',penaltiesHit:'Elfmetertore',points:'Punkte',rank:'Platz',wins:'Siege',draws:'Unentschieden',defeats:'Niederlagen',ownGoals:'Tore',againstGoals:'Gegentore',
   goalDifference:'Tordifferenz',team_count:'Mannschaften in der Liga',league_name:'Liga',penaltyPoints:'Strafpunkte',split:'Tabelle',mvp_updated_at:'MVP berechnet am',seasons:'Saisons',age:'Altersklasse',
-  player_rows:'Spielerzeilen',state:'Stand der Statistik'};
+  player_rows:'Spielerzeilen',state:'Stand der Statistik',
+  complete_timeline_verified:'Zeitleiste vollständig bestätigt',coverage:'Umfang',completeness:'Umfang',round:'Spieltag',status:'Status',kickoff:'Anstoß',spectators:'Zuschauer',
+  competition_name:'Wettbewerb',competition_category:'Art des Wettbewerbs',own_side:'Eigene Mannschaft',home_goals:'Tore Heim',away_goals:'Tore Gast',visible_matches:'Sichtbare Spiele',
+  next_page_present:'Weitere Seite vorhanden',form_points:'Formindex (keine Ligapunkte)',rank_week_before:'Platz Vorwoche',last_results_source_order:'Letzte Ergebnisse',
+  penaltiesMissed:'Elfmeter verschossen',penaltiesTotal:'Elfmeter gesamt',penalties_total_derived:'Elfmeter gesamt abgeleitet',source_statistics:'Weitere Werte der Quelle',
+  is_captain:'Kapitän',is_vice_captain:'Vizekapitän',jerseyNumber:'Rückennummer'};
+const IMP_WERT={published_highlights_only:'nur veröffentlichte Highlights',visible_public_page_only:'nur öffentlich sichtbare Seite',PRE:'angesetzt',POST:'gespielt',LIVE:'läuft',
+  home:'Heim',away:'Auswärts',league:'Liga',cup:'Pokal',win:'S',loss:'N',draw:'U',firstRound:'Hinrunde',secondRound:'Rückrunde',form:'Form'};
 const IMP_ORD=['name','firstName','lastName','club_name','team_name','team','squad','league_name','position','age_group','rank','platz','matches','spiele','einsaetze','minutesPlayed','minuten','starts_derived','substitutesIn','substitutesOut',
   'goals','tore','assists','vorlagen','penaltiesHit','yellowCards','gelb','yellowRedCards','redCards','rot','topEleven','wins','draws','defeats','ownGoals','againstGoals','gegentore','goalDifference','points','punkte','penaltyPoints','team_count'];
 function impTech(k){ return /(^|_)(id|slug)$/i.test(k)||/_id$|_slug$/.test(k)||k==='slug'||k==='source_field'; }
@@ -11523,8 +11530,9 @@ function impN(n){ return Number(n||0).toLocaleString('de-DE'); }
 function impKind(k){ return IMP_KIND[k]||k; }
 function impSaison(s){ return String(s||'').replace(/^20(\d\d)-(\d\d)$/,'$1/$2'); }
 function impLiga(l){ return IMP_LIGA[l]||String(l||'').replace(/-/g,' ').replace(/\b\w/g,c=>c.toUpperCase()); }
-function impIstMvp(k){ return /mvp$/i.test(k)||k==='fupa_mvp'||k==='mvp'; }
-function impFeld(k,kind){ if(impIstMvp(k))return 'MVP der Quelle'; if(k==='matches')return /^team_/.test(kind||'')?'Spiele':'Einsätze'; return IMP_FELD[k]||k; }
+function impIstSim(k){ return /^simulated_mvp|mvp_(schaetzung|model|estimate)/i.test(k); }
+function impIstMvp(k){ return !impIstSim(k)&&(/mvp$/i.test(k)||k==='fupa_mvp'||k==='mvp'); }
+function impFeld(k,kind){ if(impIstSim(k))return 'MVP-Schätzung (experimentell)'; if(impIstMvp(k))return 'MVP der Quelle'; if(k==='matches')return /^team_/.test(kind||'')?'Spiele':'Einsätze'; return IMP_FELD[k]||k; }
 function impDatum(t){ if(t==null||t==='')return null; const s=String(t); if(/^\d{9,11}$/.test(s))return new Date(+s*1000); if(/^\d{12,14}$/.test(s))return new Date(+s); const d=new Date(s); return isNaN(d)?null:d; }
 function impZeit(t,kurz){ const d=impDatum(t); if(!d)return t?impE(t):'';
   return d.toLocaleString('de-DE',kurz?{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}:{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'}); }
@@ -11532,11 +11540,19 @@ function impQuelleZeit(t){ if(t==null||t==='')return '<i class="imp-fehlt">fehlt
   return (d?impZeit(t)+' ':'')+`<small class="imp-roh" title="Wortgleich aus der Quelle">${impE(t)}</small>`; }
 function impWert(v,k){ if(v===null||v===undefined||v==='')return '<i class="imp-fehlt">fehlt</i>';
   if(k==='mvp_updated_at')return impQuelleZeit(v);
+  if(k==='kickoff')return impE(impZeit(v));
+  if(k==='average_age'&&typeof v==='number')return impE(v.toFixed(1).replace('.',','));
+  if(Array.isArray(v)&&v.every(x=>typeof x!=='object'))return impE(v.map(x=>IMP_WERT[x]||x).join(k==='last_results_source_order'?' ':', '));
+  if(v&&typeof v==='object'&&!Array.isArray(v)&&k==='source_statistics')return impE(Object.entries(v).map(([a,b])=>(IMP_FELD[a]||a)+' '+b).join(' · '));
+  if(typeof v==='string'&&IMP_WERT[v])return impE(IMP_WERT[v]);
   if(Array.isArray(v))return impE(v.join(', '));
   if(typeof v==='object')return impE(v.team_name||v.name||JSON.stringify(v));
   if(typeof v==='boolean')return v?'ja':'nein'; if(k==='age_group'&&v==='m')return 'Herren';
   if(k==='split')return ({total:'Gesamt',home:'Heim',away:'Auswärts'})[v]||impE(v); if(k==='state')return ({available:'vorhanden',missing:'fehlt',empty:'leer'})[v]||impE(v); return impE(v); }
-function impTitel(r){ const d=r.data||{};
+function impSpiel(d){ const h=d.home_team&&d.home_team.team_name, a=d.away_team&&d.away_team.team_name; if(!h&&!a)return '';
+  const erg=d.home_goals!=null&&d.away_goals!=null?' '+d.home_goals+':'+d.away_goals:''; const dt=d.kickoff?' · '+impZeit(d.kickoff).split(',')[0]:''; return (h||'?')+' gegen '+(a||'?')+erg+dt; }
+function impTitel(r){ const d=r.data||{}; if(d.home_team||d.away_team)return impSpiel(d); if(d._spiel)return d._spiel+(r.kind==='match_lineup'?' · Aufstellung':r.kind==='match_events'?' · Highlights':'');
+  if(r.kind==='match_lineup'||r.kind==='match_events')return 'Spiel '+(d.match_id||r.entity||'');
   if(d.firstName||d.lastName)return [d.firstName,d.lastName].filter(Boolean).join(' ');
   if(d._name)return d._name;
   if(d.team_name)return d.team_name; if(d.team&&typeof d.team==='object')return d.team.team_name||d.team.club_name||r.record_key;
@@ -11548,14 +11564,29 @@ function impLaufZeile(l){
   const f=(l.fehler||[]).map(x=>{ const a=IMP_ART[x.art]||[x.art,'']; return `<div class="imp-err"><b>${impE(a[0])}${x.status?' · HTTP '+impE(x.status):''}</b> ${impE(x.meldung)}<span>${impE(a[1])}</span></div>`; }).join('');
   const titel=l.laeuft?'Läuft gerade':zw?'Zwischenstand':ok?'Erfolgreich':tl?'Teilweise':'Fehlgeschlagen';
   return `<li class="imp-lauf ${l.laeuft||zw?'teil':ok?'ok':tl?'teil':'bad'}"><div><b>${titel}</b> <span class="imp-mute">${impZeit(l.start,true)}${l.ausloeser==='test'?' · Testlauf':l.ausloeser==='zeitplan'?' · automatisch':' · von Hand'}</span></div>
-    <div class="imp-mute">${impN(l.seiten)} ${l.seiten===1?'Seite':'Seiten'} · ${zahl} · Cursor ${impN(l.cursor_von)} → ${impN(l.cursor_bis)}</div>${zw?'<div class="imp-mute">Es gibt noch mehr Änderungen. Der nächste Abgleich macht genau hier weiter.</div>':''}${f}</li>`;
+    <div class="imp-mute">${impN(l.seiten)} ${l.seiten===1?'Seite':'Seiten'} · ${zahl} · Cursor ${impN(l.cursor_von)} → ${impN(l.cursor_bis)}</div>${l.hinweis?`<div class="imp-hinw">${impE(l.hinweis)}</div>`:''}${zw?'<div class="imp-mute">Es gibt noch mehr Änderungen. Der nächste Abgleich macht genau hier weiter.</div>':''}${f}</li>`;
 }
 function impQuellstatus(q){ const s=q.quellstatus; if(!s)return '';
   const z=s.zeitplan, tage={Monday:'Mo',Tuesday:'Di',Wednesday:'Mi',Thursday:'Do',Friday:'Fr',Saturday:'Sa',Sunday:'So'};
   const rest=s.head_seq!=null?Math.max(0,s.head_seq-q.cursor):null;
   return `<div class="imp-qs"><b>Stand der Quelle</b> <span class="imp-mute">(abgefragt ${impZeit(s.abgerufen,true)})</span>
     <div>Letzter Quellenabgleich: ${s.letzter_quellenabgleich?impZeit(s.letzter_quellenabgleich):'unbekannt'}${z&&z.tage?' · Quellenläufe '+impE((z.tage||[]).map(t=>tage[t]||t).join(' und '))+' ab '+impE(z.uhrzeit)+' Uhr':''}${s.gesperrt?' · <span class="imp-warn">Quelle pausiert</span>':''}</div>
-    ${rest!=null?`<div>${rest===0?'<span class="imp-okt">Alles übernommen</span>, was die Quelle bisher hat.':`Noch <b>${impN(rest)}</b> Änderungen offen, die nächsten Abgleiche holen sie.`}</div>`:''}</div>`; }
+    ${rest!=null?`<div>${rest===0?'<span class="imp-okt">Alles übernommen</span>, was die Quelle bisher hat.':`Noch <b>${impN(rest)}</b> Änderungen offen, die nächsten Abgleiche holen sie.`}</div>`:''}
+    ${s.anbieter||s.dataset_epoch?`<div class="imp-mute">Datenbasis: ${impE(s.anbieter==='supabase'?'Supabase':s.anbieter||'unbekannt')}${s.dataset_epoch?' · Epoche '+impE(String(s.dataset_epoch).slice(0,8)):''}</div>`:''}
+    ${impAbdeckung(s.abdeckung)}</div>${impModell(s.modell)}`; }
+const IMP_QKIND={profile:'Profile',roster:'Kader',stats:'Statistik',standing:'Tabellen',matches:'Spielpläne',match:'Spielberichte',history:'Ligachronik'};
+function impAbdeckung(a){ if(!a)return '';
+  const off=Object.entries(a.offen||{}).filter(([,n])=>n>0), feh=Object.entries(a.fehler||{}).filter(([,n])=>n>0);
+  return `<details class="imp-abd"><summary>${a.vollstaendig?'<span class="imp-okt">Datenbestand der Quelle vollständig</span>':'<span class="imp-warn">Datenbestand der Quelle noch unvollständig</span>'}${a.stand?' <span class="imp-mute">(Stand '+impZeit(a.stand,true)+')</span>':''}</summary>
+    ${off.length?`<div>Noch offen bei der Quelle: ${off.map(([k,n])=>impN(n)+' '+impE(IMP_QKIND[k]||k)).join(', ')}</div>`:''}
+    ${feh.length?`<div class="imp-warn">Fehler bei der Quelle: ${feh.map(([k,n])=>impN(n)+' '+impE(IMP_QKIND[k]||k)).join(', ')}</div>`:''}
+    ${a.mvp_datensaetze?`<div>MVP-Werte: ${impN(a.mvp_datensaetze)}, davon ${impN(a.mvp_ueber_null||0)} über 0</div>`:''}
+    ${(a.grenzen||[]).length?`<ul>${a.grenzen.map(g=>`<li>${impE(g)}</li>`).join('')}</ul>`:''}</details>`; }
+function impModell(m){ if(!m)return '';
+  return `<details class="imp-modell"><summary><b>Experimentelle MVP-Näherung</b> <span class="badge imp-syn">kein FuPa-Wert</span></summary>
+    <p>${impE(m.bezeichnung)}. Status: ${impE(m.status==='experimental_only'?'nur experimentell':m.status)}. Stichprobe ${impN(m.stichprobe)} Spieler-Saisons aus ${impN(m.mannschaften)} Mannschaften${m.mittlerer_fehler!=null?', mittlere Abweichung '+String(m.mittlerer_fehler).replace('.',',')+' MVP-Punkte':''}.</p>
+    <p class="imp-mute">Der Originalwert heißt überall „MVP der Quelle“ und bleibt unverändert. Die Näherung ersetzt ihn nicht und ist kein Stärke-Rating.</p>
+    ${(m.grenzen||[]).length?`<ul>${m.grenzen.map(g=>`<li>${impE(g)}</li>`).join('')}</ul>`:''}</details>`; }
 function impQuelleHtml(q){
   const l0=(q.laeufe||[])[0];
   const arten=(q.arten||[]).map(a=>{ const fe=(a.fehlend||[]).filter(x=>!impTech(x.feld)); const ftxt=fe.length?fe.slice(0,4).map(x=>`${impE(impFeld(x.feld,a.kind))} <b>${impN(x.fehlt)}×</b>`).join(', ')+(fe.length>4?' …':''):'<span class="imp-okt">vollständig</span>';
@@ -11638,7 +11669,7 @@ function impCard(P){
     del.disabled=true; try{ const {error}=await SVB.sb.rpc('import_testdaten_loeschen'); if(error)throw error; IMP.offen=null; await impLaden(); impCard(P); const m=P.querySelector('#impMsg'); if(m)m.textContent='✓ Beispieldaten gelöscht.'; }
     catch(x){ del.disabled=false; msg('⚠ '+impE(x.message||x)); } };
   el.querySelectorAll('.imp-art').forEach(b=>b.onclick=()=>{ const q=b.dataset.q,k=b.dataset.k; const neu=!(IMP.offen&&IMP.offen.q===q&&IMP.offen.k===k);
-    if(neu&&!(IMP.offen&&IMP.offen.q===q))IMP.filter={liga:'',saison:'',suche:''}; IMP.offen=neu?{q,k}:null; IMP.seite=0; impCard(P); });
+    if(neu)IMP.filter={liga:'',saison:'',suche:''}; IMP.offen=neu?{q,k}:null; IMP.seite=0; impCard(P); });
   if(IMP.offen&&el.querySelector('#impListe')){
     const fl=el.querySelector('#impFL'), fs=el.querySelector('#impFS'), fq=el.querySelector('#impFQ'); let tmo=null;
     if(fl)fl.onchange=()=>{ IMP.filter.liga=fl.value; IMP.seite=0; impListe(P); };
@@ -11664,11 +11695,15 @@ async function impListe(P){
   if(ids.length){ try{ const {data:nm}=await SVB.sb.from('import_datensaetze').select('data').eq('quelle',q).eq('kind','player_stats').in('data->>player_id',ids).limit(400);
     const m={}; (nm||[]).forEach(x=>{ const d=x.data||{}; if(d.player_id!=null)m[String(d.player_id)]=[d.firstName,d.lastName].filter(Boolean).join(' '); });
     rows.forEach(r=>{ const n=r.data&&m[String(r.data.player_id)]; if(n)r.data=Object.assign({_name:n},r.data); }); }catch(e){} }
+  const mids=[...new Set(rows.filter(r=>(r.kind==='match_lineup'||r.kind==='match_events')&&r.data&&r.data.match_id).map(r=>String(r.data.match_id)))];
+  if(mids.length){ try{ const {data:ms}=await SVB.sb.from('import_datensaetze').select('data').eq('quelle',q).eq('kind','match_summary').in('data->>match_id',mids).limit(100);
+    const m={}; (ms||[]).forEach(x=>{ const d=x.data||{}; if(d.match_id!=null)m[String(d.match_id)]=impSpiel(d); });
+    rows.forEach(r=>{ const t=r.data&&m[String(r.data.match_id)]; if(t)r.data=Object.assign({_spiel:t},r.data); }); }catch(e){} }
   const n=count||0, bis=Math.min(n,von+rows.length);
   // Felder, die die Quelle bei dieser Art nie liefert, zählen je Datensatz nicht als „fehlt“ (sie stehen oben bei „Fehlende Werte“)
   const qa=(((IMP.st&&IMP.st.quellen)||[]).find(x=>x.id===q)||{}).arten||[], art=qa.find(a=>a.kind===k)||{}, nie=new Set((art.fehlend||[]).filter(x=>x.fehlt===art.anzahl).map(x=>x.feld));
   box.innerHTML=rows.length?`<p class="imp-mute" style="margin:4px 0 6px">${impN(n)} ${n===1?'Datensatz':'Datensätze'}${n>IMP_SEITE?`, zeige ${impN(von+1)} bis ${impN(bis)}`:''}</p>
-    <ul class="imp-recs">${rows.map((r,i)=>{ const d=r.data||{}, nk=Object.keys(d).filter(x=>x!=='synthetisch'&&x!=='_name'&&!impTech(x)&&!nie.has(x)), fehlt=nk.filter(x=>d[x]===null).length;
+    <ul class="imp-recs">${rows.map((r,i)=>{ const d=r.data||{}, nk=Object.keys(d).filter(x=>x!=='synthetisch'&&x!=='_name'&&x!=='_spiel'&&!impTech(x)&&!nie.has(x)), fehlt=nk.filter(x=>d[x]===null).length;
       const kurz=d.goals!=null||d.assists!=null?` · ${d.goals??'?'} T, ${d.assists??'?'} V`:d.points!=null?` · Platz ${d.rank??'?'}, ${d.points} Pkt`:d.fupa_mvp!=null?` · MVP ${d.fupa_mvp}`:'';
       const team=d.team_name&&(d.firstName||d.lastName||d._name)?d.team_name+' · ':'';
       return `<li><button class="imp-rec" data-i="${i}"><span class="imp-rn">${impE(impTitel(r))}</span><span class="imp-mute">${impE(team+[r.league?impLiga(r.league):'',impSaison(r.season)].filter(Boolean).join(' · ')+kurz)}${fehlt?` · <span class="imp-warn">${fehlt} fehlt</span>`:''}</span></button></li>`; }).join('')}</ul>
@@ -11682,14 +11717,15 @@ function impDetail(P,r){
   const q=((IMP.st&&IMP.st.quellen)||[]).find(x=>x.id===IMP.offen.q)||{};
   const d=r.data||{};
   const rang=k=>{ const i=IMP_ORD.indexOf(k); return impIstMvp(k)?90:k==='mvp_updated_at'?91:i<0?60:i; };
-  const keys=Object.keys(d).filter(x=>x!=='synthetisch'&&x!=='_name'&&!impTech(x)).sort((x,y)=>rang(x)-rang(y)||x.localeCompare(y));
+  const keys=Object.keys(d).filter(x=>x!=='synthetisch'&&x!=='_name'&&x!=='_spiel'&&!['homeTeam','awayTeam','events','home_team','away_team'].includes(x)&&!impTech(x)).sort((x,y)=>rang(x)-rang(y)||x.localeCompare(y));
   const tech=Object.keys(d).filter(impTech).sort();
   const url=r.source_url||'', http=/^https?:\/\//i.test(url);
   box.querySelector('.imp-det')?.remove();
   const el=document.createElement('div'); el.className='imp-det';
   el.innerHTML=`<div class="imp-det-h"><b>${impE(impTitel(r))}</b>${d.synthetisch===true?'<span class="badge imp-syn">synthetisch</span>':''}<button class="btn sm ghost imp-zu" aria-label="Schließen">${SVI('x')}</button></div>
     <p class="imp-mute" style="margin:0 0 6px">${impE(impKind(r.kind))}${r.league?' · '+impE(impLiga(r.league)):''}${r.season?' · Saison '+impE(impSaison(r.season)):''}</p>
-    <table class="imp-kv"><tbody>${keys.map(x=>`<tr><th>${impE(impFeld(x,r.kind))}${impIstMvp(x)?`<small>Wert von ${impE(q.name||'der Quelle')}, eigene Formel der Quelle, nicht bestätigt${d[x]===0?'. 0 kann auch „kein Wert“ bedeuten':''}</small>`:''}</th><td>${impWert(d[x],x)}</td></tr>`).join('')||'<tr><td>Keine Werte</td></tr>'}</tbody></table>
+    <table class="imp-kv"><tbody>${keys.map(x=>`<tr><th>${impE(impFeld(x,r.kind))}${impIstSim(x)?'<small>Eigene Näherung aus der KLA-Datenbank, kein Wert von FuPa</small>':''}${impIstMvp(x)?`<small>Wert von ${impE(q.name||'der Quelle')}, eigene Formel der Quelle, nicht bestätigt${d[x]===0?'. 0 kann auch „kein Wert“ bedeuten':''}</small>`:''}</th><td>${impWert(d[x],x)}</td></tr>`).join('')||'<tr><td>Keine Werte</td></tr>'}</tbody></table>
+    ${impVerschachtelt(d)}
     <h5>Herkunft</h5>
     <table class="imp-kv"><tbody>
       <tr><th>Quelle</th><td>${impE(q.name||r.quelle||'')}</td></tr>
@@ -11703,6 +11739,15 @@ function impDetail(P,r){
   el.querySelector('.imp-zu').onclick=()=>el.remove();
   el.scrollIntoView({block:'nearest',behavior:'smooth'});
 }
+function impVerschachtelt(d){ let h='';
+  const sp=(t,team)=>{ const ps=(team&&team.players)||[]; if(!ps.length)return '';
+    return `<h5>${impE(t)}${team.average_age!=null?' <span class="imp-mute">(Schnitt '+impE(team.average_age)+' Jahre)</span>':''}</h5><div class="imp-tab"><table class="imp-kv imp-aufst"><thead><tr><th>Spieler</th><th>Pos.</th><th>Min.</th><th>T</th><th>V</th></tr></thead><tbody>${ps.filter(p=>!p.coach).map(p=>{ const pl=p.player||{}, st=p.statistics||{};
+      return `<tr><td>${impE([pl.firstName,pl.lastName].filter(Boolean).join(' '))}${p.captain?' (C)':''}${p.starting?'':' <span class="imp-mute">Bank</span>'}</td><td>${impE(p.position||'')}</td><td>${st.minutes??''}</td><td>${st.goals??''}</td><td>${st.assists??''}</td></tr>`; }).join('')}</tbody></table></div>`; };
+  if(d.homeTeam||d.awayTeam)h+=sp('Heim',d.homeTeam)+sp('Gast',d.awayTeam);
+  if(Array.isArray(d.events)&&d.events.length){ const art={goal:'Tor',card:'Karte',substitution:'Wechsel'};
+    h+=`<h5>Highlights${d.complete_timeline_verified===false?' <span class="imp-mute">(veröffentlichte Auswahl, nicht vollständig)</span>':''}</h5><ul class="imp-ev">${d.events.map(e=>{ const p=e.primary_role||{};
+      return `<li><b>${impE(e.minute!=null?e.minute+(e.additionalMinute?'+'+e.additionalMinute:'')+'.':'')}</b> ${impE(art[e.type]||e.type||'')}${e.homeGoal!=null?' '+impE(e.homeGoal+':'+e.awayGoal):''} ${impE([p.firstName,p.lastName].filter(Boolean).join(' '))}</li>`; }).join('')}</ul>`; }
+  return h; }
 async function svImportCard(P){ if(!P||typeof isAdmin!=='function'||!isAdmin())return;
   try{ await impLaden(); }catch(e){ IMP.st={quellen:[],fehler:e.message}; }
   impCard(P);
