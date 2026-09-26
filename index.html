@@ -13,7 +13,7 @@
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <link rel="icon" type="image/png" href="favicon-64.png">
-<meta name="app-build" content="beta-0.13">
+<meta name="app-build" content="beta-0.14">
 <title>SV/BSC Sportzentrale</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js" async></script>
 <style>
@@ -2821,6 +2821,24 @@ th.no90{min-width:52px;}
 .imp-modell summary{cursor:pointer;display:flex;gap:8px;align-items:center;flex-wrap:wrap;} .imp-modell p{margin:6px 0 0;}
 .imp-tab{overflow-x:auto;} .imp-aufst th,.imp-aufst td{width:auto;padding-right:8px;white-space:nowrap;}
 .imp-ev{list-style:none;margin:0;padding:0;font-size:13px;display:flex;flex-direction:column;gap:3px;}
+/* Beta 0.14 · Zahlen von FuPa im Profil, Datenwächter */
+.kla-pf{margin-top:14px;}
+.kla-t{width:100%;border-collapse:collapse;font-size:12.5px;font-variant-numeric:tabular-nums;}
+.kla-t th{font-size:11px;color:var(--ink3);font-weight:650;text-align:right;padding:4px 6px;white-space:nowrap;}
+.kla-t td{text-align:right;padding:5px 6px;border-top:1px solid var(--line2);white-space:nowrap;}
+.kla-t th:first-child,.kla-t td:first-child{text-align:left;}
+.kla-t td small{display:block;color:var(--ink3);font-size:10.5px;white-space:normal;}
+.kla-hk{color:var(--ink3);}
+.imp-waechter{display:flex;flex-direction:column;gap:6px;margin:0 0 10px;}
+.imp-waechter div{font-size:13px;border-radius:10px;padding:8px 12px;border-left:3px solid var(--line);background:rgba(148,163,196,.05);}
+.imp-waechter .fehler{border-color:var(--bad);background:rgba(240,82,82,.07);} .imp-waechter .warnung{border-color:var(--warn);background:rgba(245,158,11,.07);} .imp-waechter .info{border-color:var(--accent);}
+.kla-gv-h h3{margin:2px 0 2px;font-size:18px;} .kla-gv-h small{color:var(--ink3);font-size:11.5px;font-weight:650;letter-spacing:.04em;text-transform:uppercase;}
+.kla-gv .adm-stats{margin-top:10px;} .kla-gv .adm-stat b{font-size:18px;}
+.kla-form{display:flex;gap:3px;} .kla-form i{font-style:normal;font-size:12px;width:20px;height:20px;border-radius:6px;display:inline-grid;place-items:center;background:rgba(148,163,196,.14);}
+.kla-form i.win{background:rgba(34,197,94,.2);color:var(--ok);} .kla-form i.loss{background:rgba(240,82,82,.18);color:var(--bad);}
+.kla-gv-l{list-style:none;margin:6px 0 0;padding:0;display:flex;flex-direction:column;gap:2px;}
+.kla-gv-l li{display:flex;flex-direction:column;padding:7px 2px;border-bottom:1px solid var(--line2);font-size:13px;} .kla-gv-l li[data-pid]{cursor:pointer;}
+.kla-gv-l li span{color:var(--ink3);font-size:12px;}
 
 </style>
 <style id="v3gate">
@@ -3464,9 +3482,9 @@ a.kbtn{text-decoration:none;display:inline-block}
 
 
 <div class="overlay" id="overlay"><div class="modal" id="modal"></div></div>
-<script>window.SVBC_CFG={"url": "https://lvaukuzgcwgqipxwzabo.supabase.co", "anon": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imx2YXVrdXpnY3dncWlweHd6YWJvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTAxNTYwMTcsImV4cCI6MjEwNTczMjAxN30.jYZF8q8-SyCaWykM0wwcK58EzfTbO2VASKz1NIv1xbo", "build": "beta-0.13", "dataBytes": 3053230};</script>
-<script src="vendor/supabase.js?v=beta-0.13"></script>
-<script src="icons.js?v=beta-0.13"></script>
-<script src="boot.js?v=beta-0.13"></script>
+<script>window.SVBC_CFG={"url": "https://lvaukuzgcwgqipxwzabo.supabase.co", "anon": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imx2YXVrdXpnY3dncWlweHd6YWJvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTAxNTYwMTcsImV4cCI6MjEwNTczMjAxN30.jYZF8q8-SyCaWykM0wwcK58EzfTbO2VASKz1NIv1xbo", "build": "beta-0.14", "dataBytes": 3053230};</script>
+<script src="vendor/supabase.js?v=beta-0.14"></script>
+<script src="icons.js?v=beta-0.14"></script>
+<script src="boot.js?v=beta-0.14"></script>
 </body>
 </html>
