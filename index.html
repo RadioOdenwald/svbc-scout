@@ -13,7 +13,7 @@
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <link rel="icon" type="image/png" href="favicon-64.png">
-<meta name="app-build" content="beta-0.10.3">
+<meta name="app-build" content="beta-0.11">
 <title>SV/BSC Sportzentrale</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js" async></script>
 <style>
@@ -2747,6 +2747,57 @@ th.no90{min-width:52px;}
 }
 @media (prefers-reduced-motion:reduce){ .trfab{transition:none;} }
 
+/* ---------- Beta 0.11 · Importstatus (Verwaltung) ---------- */
+#svImport .imp-btns{display:flex;gap:8px;flex-wrap:wrap;}
+#svImport .imp-leer{margin:0 0 10px;max-width:62ch;}
+.imp-q{border-top:1px solid var(--line);padding-top:14px;margin-top:12px;}
+.imp-qh{display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+.imp-qh h4{margin:0;font-size:15px;}
+.badge.imp-syn{background:rgba(139,124,246,.16);color:var(--violet);}
+.badge.imp-on{background:rgba(34,197,94,.14);color:var(--ok);}
+.badge.imp-off{background:rgba(148,163,196,.12);color:var(--ink3);}
+.imp-stats{margin-top:10px;}
+.imp-stats .adm-stat b{font-size:17px;}
+.imp-mute{color:var(--ink3);font-size:12.5px;}
+.imp-fehlt{color:var(--ink3);font-style:italic;}
+.imp-roh{display:block;color:var(--ink3);font-size:11px;font-variant-numeric:tabular-nums;}
+.imp-okt{color:var(--ok);}
+.imp-warn{color:var(--warn);}
+.imp-arten{display:flex;flex-direction:column;gap:6px;margin-top:12px;}
+.imp-art{display:grid;grid-template-columns:1fr auto;gap:2px 10px;text-align:left;width:100%;cursor:pointer;
+  background:rgba(148,163,196,.05);border:1px solid var(--line2);border-radius:12px;padding:10px 12px;color:var(--ink);font:inherit;}
+.imp-art:hover,.imp-art.auf{border-color:var(--line);background:rgba(148,163,196,.09);}
+.imp-an{font-weight:700;font-size:13.5px;}
+.imp-num{font-weight:700;font-variant-numeric:tabular-nums;}
+.imp-fe{grid-column:1/-1;font-size:12.5px;color:var(--ink2);}
+.imp-liste{padding:4px 0 6px;}
+.imp-recs{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:4px;max-height:340px;overflow:auto;}
+.imp-rec{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;width:100%;text-align:left;cursor:pointer;background:transparent;
+  border:0;border-bottom:1px solid var(--line2);padding:8px 4px;color:var(--ink);font:inherit;}
+.imp-rec:hover{background:rgba(148,163,196,.06);}
+.imp-rn{font-weight:650;font-size:13.5px;}
+.imp-det{border:1px solid var(--line);border-radius:14px;padding:12px;margin:6px 0 10px;background:var(--card2);}
+.imp-det-h{display:flex;align-items:center;gap:8px;margin-bottom:8px;}
+.imp-det-h b{font-size:14.5px;}
+.imp-det-h .imp-zu{margin-left:auto;}
+.imp-det h5{margin:12px 0 4px;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink3);}
+.imp-kv{width:100%;border-collapse:collapse;font-size:13px;}
+.imp-kv th{text-align:left;font-weight:600;color:var(--ink2);padding:5px 10px 5px 0;vertical-align:top;width:42%;}
+.imp-kv th small{display:block;font-weight:500;color:var(--ink3);font-size:11px;}
+.imp-kv td{padding:5px 0;font-variant-numeric:tabular-nums;overflow-wrap:anywhere;}
+.imp-kv tr+tr th,.imp-kv tr+tr td{border-top:1px solid var(--line2);}
+.imp-kv a{color:var(--accent);}
+.imp-laeufe{margin-top:12px;}
+.imp-laeufe summary{cursor:pointer;font-weight:650;font-size:13px;color:var(--ink2);}
+.imp-laeufe ul{list-style:none;margin:8px 0 0;padding:0;display:flex;flex-direction:column;gap:8px;}
+.imp-lauf{border-left:3px solid var(--line);padding:2px 0 2px 10px;font-size:13px;}
+.imp-lauf.ok{border-color:var(--ok);} .imp-lauf.teil{border-color:var(--warn);} .imp-lauf.bad{border-color:var(--bad);}
+.imp-dot{display:none;}
+.imp-err{margin-top:6px;font-size:12.5px;background:rgba(240,82,82,.07);border-radius:10px;padding:7px 10px;}
+.imp-lauf.teil .imp-err{background:rgba(245,158,11,.08);}
+.imp-err b{margin-right:4px;}
+.imp-err span{display:block;color:var(--ink3);margin-top:2px;}
+
 </style>
 <style id="v3gate">
 /* =====================================================================
@@ -3389,9 +3440,9 @@ a.kbtn{text-decoration:none;display:inline-block}
 
 
 <div class="overlay" id="overlay"><div class="modal" id="modal"></div></div>
-<script>window.SVBC_CFG={"url": "https://lvaukuzgcwgqipxwzabo.supabase.co", "anon": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imx2YXVrdXpnY3dncWlweHd6YWJvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTAxNTYwMTcsImV4cCI6MjEwNTczMjAxN30.jYZF8q8-SyCaWykM0wwcK58EzfTbO2VASKz1NIv1xbo", "build": "beta-0.10.3", "dataBytes": 3053230};</script>
-<script src="vendor/supabase.js?v=beta-0.10.3"></script>
-<script src="icons.js?v=beta-0.10.3"></script>
-<script src="boot.js?v=beta-0.10.3"></script>
+<script>window.SVBC_CFG={"url": "https://lvaukuzgcwgqipxwzabo.supabase.co", "anon": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imx2YXVrdXpnY3dncWlweHd6YWJvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTAxNTYwMTcsImV4cCI6MjEwNTczMjAxN30.jYZF8q8-SyCaWykM0wwcK58EzfTbO2VASKz1NIv1xbo", "build": "beta-0.11", "dataBytes": 3053230};</script>
+<script src="vendor/supabase.js?v=beta-0.11"></script>
+<script src="icons.js?v=beta-0.11"></script>
+<script src="boot.js?v=beta-0.11"></script>
 </body>
 </html>

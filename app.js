@@ -2100,7 +2100,7 @@ function openSlotPicker(i,depth){
 }
 
 /* ===== App-Modus: installierbar, offline-fest, aktualisiert sich selbst ===== */
-const APP_BUILD='beta-0.10.3', OUTBOX_KEY='svbcOutbox', APP_HIDE_KEY='svbcInstallHide';
+const APP_BUILD='beta-0.11', OUTBOX_KEY='svbcOutbox', APP_HIDE_KEY='svbcInstallHide';
 let _appPrompt=null, _appNew=null, _obT=null;
 function appStandalone(){ try{ return !!(window.matchMedia&&matchMedia('(display-mode: standalone)').matches)||navigator.standalone===true; }catch(e){ return false; } }
 function appPlatform(){
@@ -11490,6 +11490,123 @@ function svSpielerAntwort(text){
   z.push(`Datenbasis ${s.basis} %. Die ganze Rechnung steht im Profil unter MScore.`);
   return z.join(' ');
 }
+
+/* =====================================================================
+   Sportzentrale Beta 0.11 · Importstatus (nur Admin, Verwaltung)
+   Quellenunabhängige Import-Grundlage: je Datenquelle Datenstand, Datensätze je Art, fehlende Werte,
+   letzte Läufe mit verständlichen Fehlern und ein Datensatzdetail mit Herkunft.
+   Schreiben passiert nur auf dem Server (Edge Function import-sync). Die App liest nur.
+   ===================================================================== */
+const IMP={st:null,offen:null,detail:null,busy:false};
+const IMP_ART={verbindung:['Verbindung','Die Quelle war nicht erreichbar. Meist ist das vorübergehend, der nächste Abgleich versucht es wieder.'],
+  berechtigung:['Berechtigung','Die Quelle hat den Zugang abgelehnt. Den Schlüssel der Quelle in Supabase unter Edge Functions, Secrets prüfen.'],
+  nicht_verfuegbar:['Nicht verfügbar','Die Quelle bietet diese Funktion nicht an. Adresse oder Adapter prüfen.'],
+  inhalt:['Inhalt','Die Daten passten nicht zum erwarteten Aufbau. Von dieser Seite wurde nichts übernommen.'],
+  begrenzt:['Begrenzt','Die Quelle bremst gerade wegen zu vieler Abrufe. Später klappt es wieder.'],
+  abbruch:['Abgebrochen','Der Lauf wurde unterbrochen. Der nächste Abgleich macht an derselben Stelle weiter.']};
+const IMP_KIND={player_stats:'Spielerstatistik',team_table:'Tabelle',team_stats:'Mannschaftsstatistik',roster:'Kader',player_profile:'Spielerprofil',player_mvp:'MVP der Quelle',screenshot:'Screenshot'};
+const IMP_FELD={name:'Name',team:'Mannschaft',position:'Position',einsaetze:'Einsätze',minuten:'Minuten',tore:'Tore',vorlagen:'Vorlagen',gelb:'Gelbe Karten',rot:'Rote Karten',platz:'Platz',spiele:'Spiele',punkte:'Punkte',gegentore:'Gegentore',synthetisch:'Synthetisch'};
+function impE(s){ return String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function impKind(k){ return IMP_KIND[k]||k; }
+function impIstMvp(k){ return /mvp/i.test(k); }
+function impFeld(k){ return impIstMvp(k)?'MVP der Quelle':(IMP_FELD[k]||k); }
+function impZeit(t,kurz){ if(!t)return ''; const d=new Date(t); if(isNaN(d))return impE(t);
+  return d.toLocaleString('de-DE',kurz?{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}:{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'}); }
+function impQuelleZeit(t){ if(!t)return '<i class="imp-fehlt">fehlt</i>'; const d=new Date(t);
+  return (isNaN(d)?'':impZeit(t)+' ')+`<small class="imp-roh" title="Wortgleich aus der Quelle">${impE(t)}</small>`; }
+function impWert(v){ if(v===null||v===undefined)return '<i class="imp-fehlt">fehlt</i>'; if(typeof v==='object')return `<code>${impE(JSON.stringify(v))}</code>`; if(typeof v==='boolean')return v?'ja':'nein'; return impE(v); }
+function impLaufZeile(l){
+  const ok=l.status==='ok', tl=l.status==='teilweise';
+  const zahl=[l.neu+' neu',l.geaendert+' geändert',l.unveraendert+' unverändert'].concat(l.ausgelassen?[l.ausgelassen+' ausgelassen (Jugend)']:[]).join(' · ');
+  const f=(l.fehler||[]).map(x=>{ const a=IMP_ART[x.art]||[x.art,'']; return `<div class="imp-err"><b>${impE(a[0])}${x.status?' · HTTP '+impE(x.status):''}</b> ${impE(x.meldung)}<span>${impE(a[1])}</span></div>`; }).join('');
+  return `<li class="imp-lauf ${ok?'ok':tl?'teil':'bad'}"><div><span class="imp-dot"></span><b>${ok?'Erfolgreich':tl?'Teilweise':'Fehlgeschlagen'}</b> <span class="imp-mute">${impZeit(l.start,true)}${l.ausloeser==='test'?' · Testlauf':l.ausloeser==='zeitplan'?' · Zeitplan':''}</span></div>
+    <div class="imp-mute">${l.seiten} ${l.seiten===1?'Seite':'Seiten'} · ${zahl} · Cursor ${impE(l.cursor_von)} → ${impE(l.cursor_bis)}</div>${f}</li>`;
+}
+function impQuelleHtml(q){
+  const l0=(q.laeufe||[])[0];
+  const arten=(q.arten||[]).map(a=>{ const fe=(a.fehlend||[]); const ftxt=fe.length?fe.slice(0,4).map(x=>`${impE(impFeld(x.feld))} <b>${x.fehlt}×</b>`).join(', ')+(fe.length>4?' …':''):'<span class="imp-okt">vollständig</span>';
+    const auf=IMP.offen&&IMP.offen.q===q.id&&IMP.offen.k===a.kind;
+    return `<button class="imp-art${auf?' auf':''}" data-q="${impE(q.id)}" data-k="${impE(a.kind)}"><span class="imp-an">${impE(impKind(a.kind))}</span><span class="imp-num">${a.anzahl}</span><span class="imp-fe">Fehlende Werte: ${ftxt}</span></button>${auf?'<div class="imp-liste" id="impListe"><p class="note">Lädt …</p></div>':''}`; }).join('');
+  return `<div class="imp-q" data-q="${impE(q.id)}">
+    <div class="imp-qh"><h4>${impE(q.name)}</h4>${q.synthetisch?'<span class="badge imp-syn">synthetisch</span>':`<span class="badge ${q.aktiv?'imp-on':'imp-off'}">${q.aktiv?'aktiv':'nicht aktiv'}</span>`}</div>
+    ${q.hinweis?`<p class="note" style="margin:4px 0 10px">${impE(q.hinweis)}</p>`:''}
+    <div class="adm-stats imp-stats"><div class="adm-stat"><b>${q.anzahl}</b><span>Datensätze</span></div>
+      <div class="adm-stat"><b>${q.datenstand?impZeit(q.datenstand).split(',')[0]:'offen'}</b><span>Datenstand der Quelle</span></div>
+      <div class="adm-stat"><b>${q.letzter_lauf?impZeit(q.letzter_lauf,true):'nie'}</b><span>Letzter Abgleich</span></div>
+      <div class="adm-stat"><b>${q.cursor}</b><span>Cursor</span></div></div>
+    ${q.geprueft?`<p class="imp-mute" style="margin:8px 0 0">Zuletzt von der Quelle geprüft: ${impZeit(q.geprueft)}${q.letzter_erfolg?' · letzter erfolgreicher Abgleich: '+impZeit(q.letzter_erfolg):''}</p>`:''}
+    ${arten?`<div class="imp-arten">${arten}</div>`:'<p class="note">Noch keine Datensätze.</p>'}
+    ${(q.laeufe||[]).length?`<details class="imp-laeufe"${l0&&l0.status!=='ok'?' open':''}><summary>Letzte Läufe</summary><ul>${q.laeufe.map(impLaufZeile).join('')}</ul></details>`:''}
+  </div>`;
+}
+async function impLaden(){ const {data,error}=await SVB.sb.rpc('import_status'); if(error)throw error; IMP.st=data; return data; }
+function impCard(P){
+  let el=P.querySelector('#svImport'); if(!el){ el=document.createElement('div'); el.className='card'; el.id='svImport'; P.appendChild(el); }
+  const qs=(IMP.st&&IMP.st.quellen)||[], hatTest=qs.some(q=>q.synthetisch), echte=qs.filter(q=>!q.synthetisch);
+  el.innerHTML=`<div class="adm-head" style="margin-bottom:10px"><div><h3 style="margin:0;display:flex;gap:8px;align-items:center">${SVI('db')} Importstatus</h3>
+      <p style="margin:6px 0 0;font-size:13.5px;max-width:62ch">Hier siehst du jede angebundene Datenquelle: Datenstand, was fehlt und ob der letzte Abgleich geklappt hat. Eine Seite wird ganz oder gar nicht übernommen, fehlende Werte bleiben fehlend und bei jedem Datensatz steht, woher er kommt.</p></div>
+      <div class="imp-btns"><button class="btn sm ghost" id="impTest">${SVI('refresh')} Testlauf mit Beispieldaten</button>${hatTest?`<button class="btn sm ghost" id="impDel">${SVI('trash')} Beispieldaten löschen</button>`:''}</div></div>
+    ${echte.length?'':'<p class="note imp-leer">Noch keine echte Datenquelle angebunden. Der Testlauf schickt erfundene Beispieldaten durch denselben Ablauf, damit du siehst, wie ein Import aussieht. Sie fließen in keine Bewertung ein.</p>'}
+    <p class="note" id="impMsg" style="margin:0 0 6px"></p>
+    ${qs.map(impQuelleHtml).join('')}
+    <div id="impDetail"></div>`;
+  const msg=t=>{ const m=el.querySelector('#impMsg'); if(m)m.innerHTML=t; };
+  el.querySelector('#impTest').onclick=async e=>{ if(IMP.busy)return; IMP.busy=true; const b=e.currentTarget; b.disabled=true; b.textContent='Testlauf läuft …';
+    try{ const {data,error}=await SVB.sb.functions.invoke('import-sync',{body:{aktion:'testlauf'}});
+      if(error){ let t=error.message; try{ const j=await error.context.json(); if(j&&j.error)t=j.error; }catch(_){} throw new Error(t==='Nicht angemeldet'?'Bitte neu anmelden.':'Der Testlauf konnte nicht starten. Bitte später noch einmal versuchen.'); }
+      if(!data||!data.ok)throw new Error(data&&data.error||'Testlauf nicht möglich');
+      const r=data.ergebnis; await impLaden(); impCard(P);
+      const m2=r.status==='ok'?`✓ Testlauf fertig: ${r.neu} neu, ${r.geaendert} geändert, ${r.unveraendert} unverändert${r.ausgelassen?', '+r.ausgelassen+' ausgelassen (Jugend)':''}.${r.neu+r.geaendert+r.unveraendert===0?' Alles war schon da, der Cursor steht am Ende.':''}`:'⚠ '+((r.fehler[0]||{}).meldung||'Testlauf mit Fehler');
+      const m=P.querySelector('#impMsg'); if(m)m.textContent=m2;
+    }catch(x){ b.disabled=false; b.innerHTML=SVI('refresh')+' Testlauf mit Beispieldaten'; msg('⚠ '+impE(x.message||x)); }
+    IMP.busy=false; };
+  const del=el.querySelector('#impDel'); if(del)del.onclick=async()=>{
+    if(del.dataset.sicher!=='1'){ del.dataset.sicher='1'; del.innerHTML=SVI('trash')+' Wirklich löschen?'; return; }
+    del.disabled=true; try{ const {error}=await SVB.sb.rpc('import_testdaten_loeschen'); if(error)throw error; IMP.offen=null; IMP.detail=null; await impLaden(); impCard(P); const m=P.querySelector('#impMsg'); if(m)m.textContent='✓ Beispieldaten gelöscht.'; }
+    catch(x){ del.disabled=false; msg('⚠ '+impE(x.message||x)); } };
+  el.querySelectorAll('.imp-art').forEach(b=>b.onclick=()=>{ const q=b.dataset.q,k=b.dataset.k; IMP.offen=(IMP.offen&&IMP.offen.q===q&&IMP.offen.k===k)?null:{q,k}; IMP.detail=null; impCard(P); if(IMP.offen)impListe(P); });
+  if(IMP.offen&&el.querySelector('#impListe'))impListe(P);
+}
+async function impListe(P){
+  const box=P.querySelector('#impListe'); if(!box||!IMP.offen)return;
+  const {q,k}=IMP.offen;
+  const {data,error}=await SVB.sb.from('import_datensaetze').select('record_key,kind,entity,season,league,data,source_url,source_updated_at,checked_at,erstmals,geaendert_am').eq('quelle',q).eq('kind',k).order('record_key').limit(60);
+  if(error){ box.innerHTML=`<p class="note">⚠ ${impE(error.message)}</p>`; return; }
+  const rows=data||[];
+  box.innerHTML=rows.length?`<ul class="imp-recs">${rows.map((r,i)=>{ const d=r.data||{}, n=Object.keys(d).filter(x=>x!=='synthetisch'), fehlt=n.filter(x=>d[x]===null).length;
+      return `<li><button class="imp-rec" data-i="${i}"><span class="imp-rn">${impE(d.name||d.team||r.record_key)}</span><span class="imp-mute">${impE([r.league,r.season].filter(Boolean).join(' · '))}${fehlt?` · <span class="imp-warn">${fehlt} fehlt</span>`:''}</span></button></li>`; }).join('')}</ul>${rows.length>=60?'<p class="note">Die ersten 60 Datensätze.</p>':''}`:'<p class="note">Keine Datensätze.</p>';
+  box.querySelectorAll('.imp-rec').forEach(b=>b.onclick=()=>impDetail(P,rows[+b.dataset.i]));
+}
+function impDetail(P,r){
+  const box=P.querySelector('#impListe'); if(!box||!r)return;
+  const q=((IMP.st&&IMP.st.quellen)||[]).find(x=>x.id===IMP.offen.q)||{};
+  const d=r.data||{}, ORD=['name','team','position','platz','spiele','einsaetze','minuten','tore','vorlagen','gelb','rot','punkte','gegentore'];
+  const rang=k=>{ const i=ORD.indexOf(k); return impIstMvp(k)?90:i<0?50:i; };
+  const keys=Object.keys(d).filter(x=>x!=='synthetisch').sort((x,y)=>rang(x)-rang(y)||x.localeCompare(y));
+  const url=r.source_url||'', http=/^https?:\/\//i.test(url);
+  box.querySelector('.imp-det')?.remove();
+  const el=document.createElement('div'); el.className='imp-det';
+  el.innerHTML=`<div class="imp-det-h"><b>${impE(d.name||d.team||r.record_key)}</b>${d.synthetisch===true?'<span class="badge imp-syn">synthetisch</span>':''}<button class="btn sm ghost imp-zu" aria-label="Schließen">${SVI('x')}</button></div>
+    <table class="imp-kv"><tbody>${keys.map(x=>`<tr><th>${impE(impFeld(x))}${impIstMvp(x)?`<small>Wert von ${impE(q.name||'der Quelle')}, eigene Formel der Quelle, nicht bestätigt</small>`:''}</th><td>${impWert(d[x])}</td></tr>`).join('')||'<tr><td>Keine Werte</td></tr>'}</tbody></table>
+    <h5>Herkunft</h5>
+    <table class="imp-kv"><tbody>
+      <tr><th>Quelle</th><td>${impE(q.name||r.quelle||'')}</td></tr>
+      <tr><th>Adresse</th><td>${url?(http?`<a href="${impE(url)}" target="_blank" rel="noopener noreferrer">${impE(url)}</a>`:impE(url)):'<i class="imp-fehlt">fehlt</i>'}</td></tr>
+      <tr><th>Stand laut Quelle</th><td>${impQuelleZeit(r.source_updated_at)}</td></tr>
+      <tr><th>Geprüft von der Quelle</th><td>${impQuelleZeit(r.checked_at)}</td></tr>
+      <tr><th>Bei uns seit</th><td>${impZeit(r.erstmals)}${r.geaendert_am&&r.geaendert_am!==r.erstmals?' · zuletzt geändert '+impZeit(r.geaendert_am):''}</td></tr>
+      <tr><th>Schlüssel</th><td><code>${impE(r.record_key)}</code> · ${impE(impKind(r.kind))}${r.entity?' · '+impE(r.entity):''}</td></tr>
+    </tbody></table>`;
+  box.prepend(el);
+  el.querySelector('.imp-zu').onclick=()=>el.remove();
+  el.scrollIntoView({block:'nearest',behavior:'smooth'});
+}
+async function svImportCard(P){ if(!P||typeof isAdmin!=='function'||!isAdmin())return;
+  try{ await impLaden(); }catch(e){ IMP.st={quellen:[],fehler:e.message}; }
+  impCard(P);
+  if(IMP.st&&IMP.st.fehler){ const m=P.querySelector('#impMsg'); if(m)m.textContent='⚠ Importstatus nicht lesbar: '+IMP.st.fehler; }
+}
+{ const _ar1=svAdminRender; svAdminRender=async function(){ const r=await _ar1.apply(this,arguments); try{ await svImportCard(document.getElementById('panel-admin')); }catch(e){} return r; }; }
 
 /* =====================================================================
    SV/BSC Scout · Runde 20: „Was ist neu“: Update-Fenster & Patch-Historie
