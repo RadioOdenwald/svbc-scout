@@ -2100,7 +2100,7 @@ function openSlotPicker(i,depth){
 }
 
 /* ===== App-Modus: installierbar, offline-fest, aktualisiert sich selbst ===== */
-const APP_BUILD='beta-0.10', OUTBOX_KEY='svbcOutbox', APP_HIDE_KEY='svbcInstallHide';
+const APP_BUILD='beta-0.10.1', OUTBOX_KEY='svbcOutbox', APP_HIDE_KEY='svbcInstallHide';
 let _appPrompt=null, _appNew=null, _obT=null;
 function appStandalone(){ try{ return !!(window.matchMedia&&matchMedia('(display-mode: standalone)').matches)||navigator.standalone===true; }catch(e){ return false; } }
 function appPlatform(){
@@ -4291,7 +4291,7 @@ function trMicSetup(){
 /* schwebender Knopf */
 function trFab(){
   if(!canTraining()||document.getElementById('trFab'))return;
-  const b=document.createElement('button'); b.id='trFab'; b.className='trfab'; b.setAttribute('aria-label','Co-Trainer'); b.innerHTML=SVI('chat')+'<span>Co-Trainer</span>';
+  const b=document.createElement('button'); b.id='trFab'; b.className='trfab'; b.setAttribute('aria-label','Co-Trainer'); b.innerHTML='<i class="trfab-ic"><svg viewBox="0 0 24 24" fill="none" stroke="url(#trfabG)" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><defs><linearGradient id="trfabG" x1="3" y1="3" x2="21" y2="21" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#9cc3ff"/><stop offset="1" stop-color="#b9a9ff"/></linearGradient></defs><path d="M20.5 12a8 8 0 0 1-11.7 7.1L4 20.2l1.1-4.5A8 8 0 1 1 20.5 12z"/><path d="M12.4 7.6l.95 2.15 2.15.95-2.15.95-.95 2.15-.95-2.15-2.15-.95 2.15-.95z" fill="#d6e4ff" stroke="none"/></svg></i><span>Co-Trainer</span>';
   b.onclick=()=>trChatOpen(); document.body.appendChild(b);
 }
 

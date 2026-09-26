@@ -13,7 +13,7 @@
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <link rel="icon" type="image/png" href="favicon-64.png">
-<meta name="app-build" content="beta-0.10">
+<meta name="app-build" content="beta-0.10.1">
 <title>SV/BSC Sportzentrale</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js" async></script>
 <style>
@@ -2727,9 +2727,23 @@ th.no90{min-width:52px;}
 .bl93-own{font-style:normal;font-size:10.5px;color:#9cc3ff;border:1px solid rgba(77,163,255,.4);border-radius:6px;padding:0 5px;margin-left:4px;white-space:nowrap;}
 .bl93-e{font-style:normal;font-size:10.5px;color:#fcd34d;margin-left:3px;}
 .bl93-more{margin-top:10px;}
-/* Co-Trainer-Knopf weicht beim Scrollen aus */
-.trfab{transition:transform .22s ease,opacity .22s ease;}
+/* Co-Trainer-Knopf: Glas wie die Navigation, feiner Verlaufsrand in Markenblau, weicht beim Scrollen aus */
+.trfab{right:20px;bottom:22px;height:52px;gap:9px;padding:0 18px 0 13px;border-radius:999px;font:700 14px var(--font);letter-spacing:.01em;color:#e6edff;
+  border:1.5px solid transparent;
+  background:linear-gradient(rgba(16,21,33,.88),rgba(16,21,33,.88)) padding-box,linear-gradient(140deg,rgba(91,155,255,.85),rgba(139,124,246,.7) 55%,rgba(91,155,255,.18)) border-box;
+  -webkit-backdrop-filter:blur(18px) saturate(160%);backdrop-filter:blur(18px) saturate(160%);
+  box-shadow:0 16px 32px -14px rgba(0,0,0,.8),0 6px 22px -10px rgba(91,155,255,.5),0 0 0 4px rgba(91,155,255,.06);
+  transition:transform .22s ease,opacity .22s ease,box-shadow .2s ease;}
+.trfab .trfab-ic{display:grid;place-items:center;width:28px;height:28px;border-radius:50%;background:radial-gradient(circle at 35% 30%,rgba(91,155,255,.28),rgba(139,124,246,.12) 70%);}
+.trfab svg{width:20px;height:20px;}
+.trfab:hover{box-shadow:0 16px 32px -14px rgba(0,0,0,.8),0 8px 26px -8px rgba(91,155,255,.7),0 0 0 5px rgba(91,155,255,.1);}
+.trfab:active{transform:scale(.96);}
+.trfab:focus-visible{outline:2px solid #9cc3ff;outline-offset:3px;}
 .trfab.trfab-weg{transform:translateY(140%);opacity:0;pointer-events:none;}
+@media (max-width:760px){
+  .trfab{bottom:calc(88px + env(safe-area-inset-bottom));right:16px;width:52px;padding:0;justify-content:center;}
+  .trfab .trfab-ic{width:34px;height:34px;} .trfab svg{width:22px;height:22px;}
+}
 @media (prefers-reduced-motion:reduce){ .trfab{transition:none;} }
 
 </style>
@@ -3374,9 +3388,9 @@ a.kbtn{text-decoration:none;display:inline-block}
 
 
 <div class="overlay" id="overlay"><div class="modal" id="modal"></div></div>
-<script>window.SVBC_CFG={"url": "https://lvaukuzgcwgqipxwzabo.supabase.co", "anon": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imx2YXVrdXpnY3dncWlweHd6YWJvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTAxNTYwMTcsImV4cCI6MjEwNTczMjAxN30.jYZF8q8-SyCaWykM0wwcK58EzfTbO2VASKz1NIv1xbo", "build": "beta-0.10", "dataBytes": 3053230};</script>
-<script src="vendor/supabase.js?v=beta-0.10"></script>
-<script src="icons.js?v=beta-0.10"></script>
-<script src="boot.js?v=beta-0.10"></script>
+<script>window.SVBC_CFG={"url": "https://lvaukuzgcwgqipxwzabo.supabase.co", "anon": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imx2YXVrdXpnY3dncWlweHd6YWJvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTAxNTYwMTcsImV4cCI6MjEwNTczMjAxN30.jYZF8q8-SyCaWykM0wwcK58EzfTbO2VASKz1NIv1xbo", "build": "beta-0.10.1", "dataBytes": 3053230};</script>
+<script src="vendor/supabase.js?v=beta-0.10.1"></script>
+<script src="icons.js?v=beta-0.10.1"></script>
+<script src="boot.js?v=beta-0.10.1"></script>
 </body>
 </html>

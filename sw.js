@@ -2,7 +2,7 @@
    - App-Seite: erst Netz (max. 4 s), sonst gespeicherte Version → startet auch im Funkloch
    - Icons/Wappen/Chart-Bibliothek: aus dem Speicher, im Hintergrund aufgefrischt
    - Sync (Make) und version.json laufen NIE über den Speicher */
-const BUILD = 'beta-0.10';
+const BUILD = 'beta-0.10.1';
 const CACHE = 'svbc-scout-' + BUILD;
 const SHELL = ['./', './manifest.webmanifest', './icon-192.png', './icon-512.png', './apple-touch-icon.png', './favicon-64.png', './crest.svg', './logo.png',
   './fonts/inter-var.woff2', './fonts/barlowc-700.woff2', './vendor/supabase.js?v=' + BUILD, './icons.js?v=' + BUILD, './boot.js?v=' + BUILD, './app.js?v=' + BUILD];
