@@ -2100,7 +2100,7 @@ function openSlotPicker(i,depth){
 }
 
 /* ===== App-Modus: installierbar, offline-fest, aktualisiert sich selbst ===== */
-const APP_BUILD='beta-0.10.1', OUTBOX_KEY='svbcOutbox', APP_HIDE_KEY='svbcInstallHide';
+const APP_BUILD='beta-0.10.2', OUTBOX_KEY='svbcOutbox', APP_HIDE_KEY='svbcInstallHide';
 let _appPrompt=null, _appNew=null, _obT=null;
 function appStandalone(){ try{ return !!(window.matchMedia&&matchMedia('(display-mode: standalone)').matches)||navigator.standalone===true; }catch(e){ return false; } }
 function appPlatform(){
@@ -11460,12 +11460,10 @@ if(typeof SV50_INFO!=='undefined')SV50_INFO.best={w:'Die besten Spieler je Posit
 { const _gt93=goTab; goTab=function(tab){ const r=_gt93.apply(this,arguments); try{ if(svCurTab()==='best')bl93Render(); }catch(e){ console.warn('Bestenliste',e); } return r; }; }
 { const _ta93=svTabAllowed; svTabAllowed=function(t){ if(t==='best')return _ta93.call(this,'scout'); return _ta93.apply(this,arguments); }; }
 
-/* ---------- Co-Trainer-Knopf: beim Runterscrollen aus dem Weg, beim Hochscrollen oder Anhalten wieder da ---------- */
-{ let lastY=0, t=null; const fab=()=>document.getElementById('trFab');
-  const zeig=()=>{ const b=fab(); if(b)b.classList.remove('trfab-weg'); };
-  window.addEventListener('scroll',()=>{ const b=fab(); if(!b)return; const y=window.scrollY||0;
-    if(y>lastY+6&&y>120)b.classList.add('trfab-weg'); else if(y<lastY-6)b.classList.remove('trfab-weg');
-    lastY=y; clearTimeout(t); t=setTimeout(zeig,1200); },{passive:true}); }
+/* ---------- Co-Trainer-Knopf: je weiter man scrollt, desto durchsichtiger, bis 20 %. Bleibt immer antippbar ---------- */
+function bl93FabO(){ const b=document.getElementById('trFab'); if(!b)return; const y=window.scrollY||0, o=Math.max(0.2,1-Math.max(0,y-80)/900*0.8); b.style.setProperty('--fab-o',o.toFixed(2)); }
+window.addEventListener('scroll',bl93FabO,{passive:true});
+{ const _gt93f=goTab; goTab=function(){ const r=_gt93f.apply(this,arguments); try{ bl93FabO(); }catch(e){} return r; }; }
 
 /* =====================================================================
    SV/BSC Scout · Runde 20: „Was ist neu“: Update-Fenster & Patch-Historie
