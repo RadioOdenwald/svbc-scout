@@ -2100,7 +2100,7 @@ function openSlotPicker(i,depth){
 }
 
 /* ===== App-Modus: installierbar, offline-fest, aktualisiert sich selbst ===== */
-const APP_BUILD='beta-0.9.1', OUTBOX_KEY='svbcOutbox', APP_HIDE_KEY='svbcInstallHide';
+const APP_BUILD='beta-0.10', OUTBOX_KEY='svbcOutbox', APP_HIDE_KEY='svbcInstallHide';
 let _appPrompt=null, _appNew=null, _obT=null;
 function appStandalone(){ try{ return !!(window.matchMedia&&matchMedia('(display-mode: standalone)').matches)||navigator.standalone===true; }catch(e){ return false; } }
 function appPlatform(){
@@ -11330,6 +11330,144 @@ if(typeof SV4_MODEL!=='undefined'){
 if(typeof trLoad==='function'){ const _tl94=trLoad; trLoad=async function(){ const r=await _tl94.apply(this,arguments); try{ SV94.cache.clear(); }catch(e){} return r; }; }
 
 /* =====================================================================
+   Sportzentrale Beta 0.10 · Scouting → Bestenliste
+   Die besten Spieler je Position, mit den Zahlen, die für diese Position zählen.
+   Torwart und Abwehr: Gegentore der Mannschaft im Vergleich zur Liga, gewichtet mit der eigenen Spielzeit.
+   Mittelfeld: Tore, Vorlagen und die Stärke der Mannschaft. Angriff: Tore, Tore je Spiel und Anteil an den Teamtoren.
+   Jede Zeile sagt in einem Satz, warum der Spieler dort steht.
+   ===================================================================== */
+const BL93_POS={tw:{t:'Torwart',p:['TW'],grp:'def'},ab:{t:'Abwehr',p:['IV','AV'],grp:'def'},mf:{t:'Mittelfeld',p:['ZM','OM'],grp:'mid'},an:{t:'Angriff',p:['ST','Flügel'],grp:'off'}};
+const BL93_LIGEN=[['alle','Alle Ligen'],['GL','Gruppenliga'],['KOL','Kreisoberliga'],['A','Kreisliga A'],['B','Kreisliga B'],['C','Kreisliga C'],['D','Kreisliga D']];
+const BL93_ALTER=[['alle','Jedes Alter'],['u23','bis 23'],['u27','bis 27'],['a28','ab 28']];
+// Sortierungen je Position: [Schlüssel, Bezeichnung, absteigend?]
+const BL93_SORT={
+  tw:[['ga','Gegentore',false],['st','Stärke',true],['q','Einsatz',true],['eye','Eye-Test',true],['note','Note',false]],
+  ab:[['st','Stärke',true],['ga','Gegentore',false],['tore','Tore',true],['q','Einsatz',true],['eye','Eye-Test',true],['note','Note',false]],
+  mf:[['st','Stärke',true],['sc','Scorer',true],['tore','Tore',true],['tps','Tore je Spiel',true],['eye','Eye-Test',true],['note','Note',false]],
+  an:[['tore','Tore',true],['tps','Tore je Spiel',true],['anteil','Anteil Teamtore',true],['sc','Scorer',true],['st','Stärke',true],['eye','Eye-Test',true],['note','Note',false]]};
+const BL93_WIE={
+  tw:'Torhüter messen wir an den Gegentoren ihrer Mannschaft im Vergleich zum Schnitt ihrer Liga. Das zählt nur, wenn er auch regelmäßig im Tor stand, deshalb steht die Einsatzquote daneben. Wer weniger als die Hälfte der Spiele macht, gilt als Ersatz.',
+  ab:'Abwehrspieler messen wir wie Torhüter an den Gegentoren der Mannschaft im Vergleich zur Liga, gewichtet mit ihrer Spielzeit. Tore und Vorlagen sind ein Zusatz, keine Hauptsache.',
+  mf:'Mittelfeldspieler vergleichen wir mit Mittelfeldspielern derselben Liga, nicht mit Stürmern. Tore und Vorlagen zählen, dazu die Stärke der Mannschaft, weil das Mittelfeld das Spiel eines Teams trägt.',
+  an:'Stürmer und Flügelspieler messen wir an Toren, Toren je Spiel und ihrem Anteil an den Toren der Mannschaft. Mit „ligabereinigt“ werden Tore je Spiel auf den Maßstab der Kreisliga A umgerechnet, damit man Ligen vergleichen kann.'};
+const BL93={pos:'tw',liga:'alle',saison:'cur',alter:'alle',sort:null,eigene:true,berein:true,n:40};
+const bl93N=(v,d=1)=>v==null||!isFinite(v)?'–':sv4Num(v,d);
+function bl93GA(club,sk,liga){
+  if(typeof clubFor!=='function'||!DATA.ligaGA)return null; const cl=clubFor(club), s=cl&&cl['s'+sk], lg=DATA.ligaGA[sk];
+  if(!s||!s.spiele||s.gegentore==null||!lg)return null; const avg=lg[s.liga]||lg[liga]; if(!avg)return null;
+  const ga=s.gegentore/s.spiele; return {ga,avg,ratio:ga/avg,spiele:s.spiele};
+}
+function bl93Row(p,cfg){
+  const c=p.cur&&p.cur.spiele>0?p.cur:null, cur=BL93.saison==='cur';
+  if(cur&&!c)return null;
+  const liga=cur?(c.sub||c.liga):(p.sub||p.liga), lv=ligaBase(liga); if(!LIGA_NAME[lv])return null;
+  if(BL93.liga!=='alle'&&lv!==BL93.liga)return null;
+  const club=cur?(c.club||p.club):p.club, sk=cur?sv4S():'2526';
+  let teamSp=cur?c.spiele:p.teamSp, sp=null, q=null, min=null, tore=cur?(c.tore||0):(p.tore||0), vor=null, tT=cur?(c.tT||null):(p.tT||null), est=false, quelle='';
+  if(cur){ const A=typeof sv94AppSpiele==='function'?sv94AppSpiele(p):null;
+    if(A){ teamSp=A.G; sp=A.sp; min=A.min; q=min!=null?Math.min(1,min/(A.G*90)):Math.min(1,A.sp/A.G)*0.92; tore=A.tore; vor=A.ast; quelle='eure Spiele'; }
+    else if(p.club&&c.club===p.club&&(p.min||p.einsaetze)&&p.teamSp){ q=p.min?Math.min(1,p.min/(p.teamSp*90)):Math.min(1,p.einsaetze/p.teamSp)*0.92; est=true; } }
+  else { sp=p.einsaetze||null; min=p.min||null; if(min&&teamSp)q=Math.min(1,min/(teamSp*90)); else if(sp&&teamSp)q=Math.min(1,sp/teamSp)*0.92; if(p.assists)vor=p.assists; }
+  // Mindestdaten
+  if(cur){ if(!teamSp||teamSp<3)return null; if(cfg.grp!=='off'&&q==null&&!tore)return null; }
+  else { if(!sp||sp<8)return null; }
+  const games=sp!=null?sp:(q!=null?Math.max(1,Math.round(teamSp*q)):teamSp);
+  const tps=tore/Math.max(1,games), lw=LIGA_W[lv]||1;
+  const G=cfg.grp==='def'?bl93GA(club,sk,liga):null;
+  const s=scores(p), S=s.m4, ev=S&&S.ev?S.ev.find(e=>e.k===(cur?'cur':'base')):null;
+  let note=null; try{ const N=p.own&&typeof sv70TrainerNoten==='function'?sv70TrainerNoten(p):null; if(N&&N.avg!=null)note={v:N.avg,n:N.n}; }catch(e){}
+  const rank=cur?c.rank:p.rank, tc=cur?c.teamCount:p.teamCount;
+  return {p,lv,club,teamSp,sp,games,q,est,quelle,min,tore,vor,sc:tore+(vor||0),tps,tpsB:tps*lw,anteil:tT?tore/tT:null,G,rank,tc,st:s.total,eye:s.eye!=null?s.eye:null,note,pct:ev&&ev.pct!=null?ev.pct:null,ersatz:q!=null&&q<0.5};
+}
+function bl93Val(r,k){
+  switch(k){ case 'ga': return r.G?r.G.ratio+(r.ersatz?1:0):null; case 'st': return r.st; case 'q': return r.q; case 'eye': return r.eye; case 'note': return r.note?r.note.v:null;
+    case 'tore': return r.tore; case 'tps': return BL93.berein?r.tpsB:r.tps; case 'anteil': return r.anteil; case 'sc': return r.sc; }
+  return null;
+}
+function bl93Warum(r,cfg){
+  const t=[], Ln=LIGA_NAME[r.lv]||r.lv;
+  const ein=r.sp!=null?`${r.sp} von ${r.teamSp} Spielen${r.min?`, ${r.min.toLocaleString('de-DE')} Min.`:''}`:r.q!=null?`Einsatzquote ${Math.round(r.q*100)} %${r.est?' laut 25/26':''}`:`${r.teamSp} Spiele der Mannschaft, Einsätze unbekannt`;
+  if(cfg.grp==='def'){
+    t.push(ein);
+    if(r.G){ const d=Math.round((1-r.G.ratio)*100); t.push(`Team ${bl93N(r.G.ga,2)} Gegentore je Spiel, ${Ln} ${bl93N(r.G.avg,2)} (${d>=0?d+' % weniger':(-d)+' % mehr'})`); }
+    if(r.tore)t.push(`${r.tore} Tor${r.tore>1?'e':''}`);
+  } else if(cfg.grp==='mid'){
+    t.push(`${r.tore} Tor${r.tore===1?'':'e'}${r.vor!=null?`, ${r.vor} Vorlage${r.vor===1?'':'n'}`:''} in ${r.games} ${r.sp==null&&r.q==null?'Teamspielen':'Spielen'}`); t.push(ein);
+  } else {
+    t.push(`${r.tore} Tor${r.tore===1?'':'e'} in ${r.games} ${r.sp==null&&r.q==null?'Teamspielen':'Spielen'} (${bl93N(r.tps,2)} je Spiel${BL93.berein&&r.lv!=='A'?`, A-Liga-Maßstab ${bl93N(r.tpsB,2)}`:''})`);
+    if(r.anteil!=null)t.push(`${Math.round(r.anteil*100)} % der Teamtore`);
+  }
+  if(r.rank!=null)t.push(`Platz ${r.rank}${r.tc?' von '+r.tc:''}`);
+  if(r.pct!=null&&cfg.grp!=='def')t.push(`besser als ${Math.round(r.pct*100)} % der ${cfg.grp==='def'?'Abwehrspieler und Torhüter':cfg.grp==='mid'?'Mittelfeldspieler':'Offensivspieler'} der ${Ln}`);
+  if(r.quelle)t.push('aus '+r.quelle);
+  return t.join(' · ');
+}
+function bl93Render(){
+  const P=document.getElementById('panel-best'); if(!P)return;
+  const cfg=BL93_POS[BL93.pos], SO=BL93_SORT[BL93.pos]; if(!SO.some(x=>x[0]===BL93.sort))BL93.sort=SO[0][0];
+  const sd=SO.find(x=>x[0]===BL93.sort), desc=sd[2];
+  const alt=a=>BL93.alter==='alle'||(a!=null&&(BL93.alter==='u23'?a<=23:BL93.alter==='u27'?a<=27:a>=28));
+  let R=players.filter(p=>!p.isJugend&&cfg.p.includes(p.pos)&&(BL93.eigene||!p.own)&&alt(p.alter)).map(p=>bl93Row(p,cfg)).filter(Boolean);
+  const mitV=R.some(r=>r.vor!=null);
+  const vK=r=>bl93Val(r,BL93.sort);
+  R.sort((a,b)=>{ const x=vK(a),y=vK(b); if(x==null&&y==null)return b.st-a.st; if(x==null)return 1; if(y==null)return -1; return (desc?y-x:x-y)||(b.st-a.st); });
+  const L=R.slice(0,BL93.n);
+  const chip=(attr,cur,list)=>list.map(([k,t])=>`<button type="button" class="${cur===k?'on':''}" data-${attr}="${k}">${t}</button>`).join('');
+  const colH=[]; const col=(t,f,k)=>colH.push([t,f,k]);
+  if(cfg.grp==='def'){ col('Einsatz',r=>r.q!=null?`${Math.round(r.q*100)} %${r.est?'*':''}${r.ersatz?' <b class="bl93-e">Ersatz</b>':''}`:'–','q'); col('Gegentore je Spiel',r=>r.G?`${bl93N(r.G.ga,2)} (Liga ${bl93N(r.G.avg,2)})`:'–','ga'); if(BL93.pos==='ab')col('Tore',r=>r.tore||'0','tore'); }
+  else if(cfg.grp==='mid'){ col('Tore',r=>r.tore,'tore'); if(mitV){ col('Vorlagen',r=>r.vor!=null?r.vor:'–'); col('Scorer',r=>r.vor!=null?r.sc:'–','sc'); } col('Tore je Spiel',r=>bl93N(BL93.berein?r.tpsB:r.tps,2),'tps'); col('Einsatz',r=>r.q!=null?Math.round(r.q*100)+' %'+(r.est?'*':''):'–','q'); }
+  else { col('Tore',r=>r.tore,'tore'); col('Tore je Spiel',r=>bl93N(BL93.berein?r.tpsB:r.tps,2),'tps'); col('Anteil Teamtore',r=>r.anteil!=null?Math.round(r.anteil*100)+' %':'–','anteil'); if(mitV){ col('Vorlagen',r=>r.vor!=null?r.vor:'–'); col('Scorer',r=>r.vor!=null?r.sc:'–','sc'); } }
+  col('Eye-Test',r=>r.eye!=null?`<b style="color:${tierColor(r.eye)}">${Math.round(r.eye)}</b>`:'–','eye');
+  if(BL93.eigene&&R.some(r=>r.note))col('Note',r=>r.note?`Ø ${bl93N(r.note.v,1)}`:'–','note');
+  col('Stärke',r=>'','st');
+  P.innerHTML=`<div class="card bl93-top">
+      <h3 class="trh">${SVI('trophy')} Bestenliste <small>${BL93.saison==='cur'?sv4SL(sv4S())+' bisher':'Saison 25/26'}</small></h3>
+      <div class="seg4 bl93-pos">${Object.entries(BL93_POS).map(([k,v])=>`<button type="button" class="${BL93.pos===k?'on':''}" data-bl93p="${k}">${v.t}</button>`).join('')}</div>
+      <p class="bl93-wie">${svEsc(BL93_WIE[BL93.pos])}</p>
+      <div class="bl93-f">
+        <div class="chips4">${chip('bl93s',BL93.saison,[['cur',sv4SL(sv4S())+' bisher'],['2526','25/26 komplett']])}</div>
+        <div class="chips4">${chip('bl93l',BL93.liga,BL93_LIGEN)}</div>
+        <div class="chips4">${chip('bl93a',BL93.alter,BL93_ALTER)}</div>
+        <div class="chips4"><button type="button" class="${BL93.eigene?'on':''}" data-bl93t="eigene">Eigene Spieler zeigen</button>${cfg.grp!=='def'?`<button type="button" class="${BL93.berein?'on':''}" data-bl93t="berein">Tore je Spiel ligabereinigt</button>`:''}</div>
+      </div>
+      <div class="bl93-sort"><span>Sortiert nach</span><div class="chips4">${SO.map(([k,t])=>`<button type="button" class="${BL93.sort===k?'on':''}" data-bl93o="${k}">${t}</button>`).join('')}</div></div>
+    </div>
+    <div class="card">${L.length?`<div class="bl93-l">${L.map((r,i)=>`<button type="button" class="bl93-r${r.p.own?' own':''}" data-bl93id="${svEsc(r.p.id)}">
+        <span class="bl93-i">${i+1}</span>
+        <span class="bl93-m"><b>${svEsc(r.p.name)}${r.p.own?' <i class="bl93-own">eigener Spieler</i>':''}</b><small>${svEsc(r.club||'')} · ${svEsc(LIGA_NAME[r.lv]||r.lv)}${r.p.alter!=null?' · '+r.p.alter+' J.':''}</small>
+          <span class="bl93-k">${colH.filter(([t])=>t!=='Stärke').map(([t,f,k])=>{ const v=f(r); return v==='–'&&k!==BL93.sort?'':`<i class="${k===BL93.sort?'on':''}"><em>${t}</em> ${v}</i>`; }).join('')}</span>
+          <span class="bl93-w">${svEsc(bl93Warum(r,cfg))}</span></span>
+        <span class="bl93-s"><b style="color:${tierColor(r.st)}">${bl93N(r.st)}</b><small>Stärke</small></span></button>`).join('')}</div>
+      ${R.length>BL93.n?`<button type="button" class="btn ghost sm bl93-more" data-bl93more>Weitere ${Math.min(40,R.length-BL93.n)} von ${R.length-BL93.n} zeigen</button>`:''}`:`<div class="empty">Für diese Auswahl gibt es keine Spieler mit genug Daten.</div>`}
+      <p class="note small">${R.length} Spieler mit genug Daten.${BL93.saison==='cur'?' In der laufenden Saison kennen wir bei externen Spielern nur Tore und Teamspiele, keine Einsätze. Ein * heißt: Einsatzquote aus 25/26 beim selben Verein.':' Mindestens 8 Einsätze.'}${mitV?'':' Vorlagen gibt es bisher nur aus euren eigenen Spielen, deshalb fehlt die Spalte.'} „Stärke“ ist der MScore, er vergleicht über alle Ligen hinweg. Zeile antippen öffnet das Profil mit der ganzen Rechnung.</p></div>`;
+  P.querySelectorAll('[data-bl93p]').forEach(b=>b.onclick=()=>{ BL93.pos=b.dataset.bl93p; BL93.sort=null; BL93.n=40; bl93Render(); });
+  P.querySelectorAll('[data-bl93s]').forEach(b=>b.onclick=()=>{ BL93.saison=b.dataset.bl93s; BL93.n=40; bl93Render(); });
+  P.querySelectorAll('[data-bl93l]').forEach(b=>b.onclick=()=>{ BL93.liga=b.dataset.bl93l; BL93.n=40; bl93Render(); });
+  P.querySelectorAll('[data-bl93a]').forEach(b=>b.onclick=()=>{ BL93.alter=b.dataset.bl93a; BL93.n=40; bl93Render(); });
+  P.querySelectorAll('[data-bl93o]').forEach(b=>b.onclick=()=>{ BL93.sort=b.dataset.bl93o; bl93Render(); });
+  P.querySelectorAll('[data-bl93t]').forEach(b=>b.onclick=()=>{ const k=b.dataset.bl93t; BL93[k]=!BL93[k]; bl93Render(); });
+  const m=P.querySelector('[data-bl93more]'); if(m)m.onclick=()=>{ BL93.n+=40; bl93Render(); };
+  P.querySelectorAll('[data-bl93id]').forEach(b=>b.onclick=()=>openModal(b.dataset.bl93id));
+}
+SV4_HUB.scouting.tabs.splice(1,0,['best','Bestenliste']);
+SV4_OF.best='scouting';
+SV_PAGES.best=['Scouting','Bestenliste: die Besten je Position, nachvollziehbar'];
+if(typeof SV50_INFO!=='undefined')SV50_INFO.best={w:'Die besten Spieler je Position: Torwart, Abwehr, Mittelfeld, Angriff. Jede Position wird mit den Zahlen gemessen, die für sie zählen.',
+  f:'Ein Torwart schießt keine Tore. Deshalb zählen hinten die Gegentore der Mannschaft im Vergleich zur Liga und die eigene Spielzeit, vorne Tore und Tore je Spiel.',
+  h:'Für die Kaderplanung: Wer ist in unserer Liga der beste Torwart? Welcher junge Stürmer trifft in der Kreisliga B am meisten?',
+  s:'Position wählen, Liga und Alter eingrenzen, nach der passenden Zahl sortieren. Unter jedem Namen steht in einem Satz, warum er dort steht.',
+  b:['Torwart, Kreisliga A, bis 27: wer hat mit seiner Mannschaft die wenigsten Gegentore bei voller Spielzeit?','Angriff, alle Ligen, Tore je Spiel ligabereinigt: wer würde auch eine Liga höher treffen?']};
+{ const _gt93=goTab; goTab=function(tab){ const r=_gt93.apply(this,arguments); try{ if(svCurTab()==='best')bl93Render(); }catch(e){ console.warn('Bestenliste',e); } return r; }; }
+{ const _ta93=svTabAllowed; svTabAllowed=function(t){ if(t==='best')return _ta93.call(this,'scout'); return _ta93.apply(this,arguments); }; }
+
+/* ---------- Co-Trainer-Knopf: beim Runterscrollen aus dem Weg, beim Hochscrollen oder Anhalten wieder da ---------- */
+{ let lastY=0, t=null; const fab=()=>document.getElementById('trFab');
+  const zeig=()=>{ const b=fab(); if(b)b.classList.remove('trfab-weg'); };
+  window.addEventListener('scroll',()=>{ const b=fab(); if(!b)return; const y=window.scrollY||0;
+    if(y>lastY+6&&y>120)b.classList.add('trfab-weg'); else if(y<lastY-6)b.classList.remove('trfab-weg');
+    lastY=y; clearTimeout(t); t=setTimeout(zeig,1200); },{passive:true}); }
+
+/* =====================================================================
    SV/BSC Scout · Runde 20: „Was ist neu“: Update-Fenster & Patch-Historie
    - Nach jedem Update ein Pop-up: das Wichtigste in Kürze → „OK“ oder „Mehr erfahren“ (ganze Historie)
    - Jederzeit erreichbar: Seitenleiste / „Mehr“ / Mein Konto → „Was ist neu“
@@ -11338,6 +11476,12 @@ if(typeof trLoad==='function'){ const _tl94=trLoad; trLoad=async function(){ con
    Sichtbarkeit je Punkt: r:'team' (ohne Gäste) · r:'scout' · r:'admin' · ohne r = alle
    ===================================================================== */
 const SV_PATCHES=[
+  {id:'0.10',v:'0.10',datum:'2026-09-26',titel:'Bestenliste je Position',kurz:'Unter Scouting gibt es jetzt die Bestenliste: die besten Torhüter, Abwehrspieler, Mittelfeldspieler und Stürmer, jeweils mit den Zahlen, die für die Position zählen, und einem Satz, warum einer oben steht.',
+   punkte:[
+    {ic:'🏆',t:'Wer ist ein super Torwart?',d:'Torhüter und Abwehr werden an den Gegentoren ihrer Mannschaft im Vergleich zur Liga gemessen, mit ihrer Einsatzquote daneben. Wer weniger als die Hälfte spielt, ist als Ersatz markiert.',r:'scout',go:'best'},
+    {ic:'⚽',t:'Tore, Tore je Spiel, Anteil',d:'Vorne zählen Tore, Tore je Spiel und der Anteil an den Teamtoren. Tore je Spiel lassen sich ligabereinigt vergleichen, im Maßstab der Kreisliga A.'},
+    {ic:'🔎',t:'Filter für die Kaderplanung',d:'Laufende Saison oder 25/26 komplett, Liga, Alter und eigene Spieler ein oder aus. Sortieren nach Stärke, Toren, Einsatz, Eye-Test oder Trainernote.',r:'scout',go:'best'},
+    {ic:'📥',t:'Vorlagen und Noten',d:'Vorlagen und Trainernoten erscheinen, sobald sie in der App stehen, zum Beispiel aus euren übernommenen Spielen.',r:'team',go:'training'}]},
   {id:'0.9',v:'0.9',datum:'2026-09-25',titel:'Spielstärke wie bei FIFA',kurz:'Der MScore beschreibt jetzt, wie gut ein Spieler ist, nicht in welcher Liga er gerade spielt. Jede Saison ist ein Beleg, dazu Alter, Erfahrung, Eye-Test und FuPa-MVP. Wer aus einer höheren Liga kommt und unten vorne mitspielt, verliert nicht automatisch.',
    punkte:[
     {ic:'🧮',t:'Jede Saison ein Beleg',d:'Im Spielerprofil steht für 24/25, 25/26 und die laufende Saison je ein Wert: Liga-Niveau, Rolle, Leistung im Vergleich zu Spielern derselben Liga und Position, Mannschaft, Ausnahmeleistung, FuPa-MVP und Elf der Woche. Daneben, wie stark die Saison zählt.',r:'team',go:'training'},
@@ -11499,7 +11643,7 @@ function spGo(k){
   const F={kontakte:()=>kb('kontakte'),kasse:()=>kb('kasse'),abst:()=>kb('abst'),cotrainer:()=>{ const f=document.getElementById('trFab'); if(f)f.click(); }}[k];
   if(F)F(); else goTab(k);
 }
-const SP_TEAM=['kontakte','kasse','abst','cotrainer','training'], SP_SCOUT=['scout','radar','kaderplan','kandidaten','db','sxi','jugend'];
+const SP_TEAM=['kontakte','kasse','abst','cotrainer','training'], SP_SCOUT=['scout','best','radar','kaderplan','kandidaten','db','sxi','jugend'];
 function spCanGo(g){ return !!g&&(SP_TEAM.includes(g)?canTraining():SP_SCOUT.includes(g)?canScout():(typeof svTabAllowed==='function'?svTabAllowed(g):true)); }
 function spItem(x,btn){ return `<div class="sp-it"><span class="sp-ic">${x.ic||'•'}</span><div><b>${svEsc(x.t)}</b><p>${svEsc(x.d)}</p>${btn&&spCanGo(x.go)?`<button class="sp-go" data-spgo="${svEsc(x.go)}">Ausprobieren →</button>`:''}</div></div>`; }
 function spWire(M){ M.querySelectorAll('[data-spgo]').forEach(b=>b.onclick=()=>spGo(b.dataset.spgo)); }

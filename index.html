@@ -13,7 +13,7 @@
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <link rel="icon" type="image/png" href="favicon-64.png">
-<meta name="app-build" content="beta-0.9.1">
+<meta name="app-build" content="beta-0.10">
 <title>SV/BSC Sportzentrale</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js" async></script>
 <style>
@@ -2701,6 +2701,36 @@ th.no90{min-width:52px;}
 .m94-g>div{display:flex;flex-direction:column;gap:2px;padding:8px 10px;border-radius:10px;background:rgba(148,163,196,.08);font-size:12.5px;}
 .m94-g b{font-size:15px;font-variant-numeric:tabular-nums;}
 .m94-g small{color:var(--ink2);}
+/* ---------- Beta 0.10 · Bestenliste ---------- */
+.bl93-top{display:flex;flex-direction:column;gap:10px;}
+.bl93-pos{align-self:flex-start;}
+.bl93-wie{margin:0;font-size:13px;color:var(--ink2);line-height:1.5;max-width:70ch;}
+.bl93-f{display:flex;flex-direction:column;gap:6px;}
+.bl93-sort{display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px;}
+.bl93-sort>span{font-size:12px;color:var(--ink3);text-transform:uppercase;letter-spacing:.05em;}
+.bl93-l{display:flex;flex-direction:column;}
+.bl93-r{display:grid;grid-template-columns:28px minmax(0,1fr) auto;gap:4px 12px;align-items:start;width:100%;text-align:left;font:inherit;color:inherit;background:none;border:0;border-bottom:1px solid var(--line);padding:12px 4px;cursor:pointer;}
+.bl93-r:last-child{border-bottom:0;}
+.bl93-r.own{background:rgba(59,120,255,.06);border-radius:10px;}
+.bl93-i{color:var(--ink3);font-variant-numeric:tabular-nums;padding-top:2px;}
+.bl93-m{display:flex;flex-direction:column;gap:3px;min-width:0;}
+.bl93-m>b{font-size:15px;}
+.bl93-m>small{color:var(--ink2);font-size:12.5px;}
+.bl93-k{display:flex;flex-wrap:wrap;gap:5px;margin-top:3px;}
+.bl93-k i{font-style:normal;font-size:12.5px;font-variant-numeric:tabular-nums;padding:3px 8px;border-radius:8px;background:rgba(148,163,196,.09);}
+.bl93-k i em{font-style:normal;color:var(--ink3);font-size:11px;margin-right:2px;}
+.bl93-k i.on{background:rgba(59,120,255,.18);color:#dbe7ff;}
+.bl93-w{color:var(--ink3);font-size:12px;line-height:1.45;margin-top:2px;}
+.bl93-s{display:flex;flex-direction:column;align-items:flex-end;}
+.bl93-s b{font-size:20px;font-variant-numeric:tabular-nums;line-height:1.1;}
+.bl93-s small{font-size:10.5px;color:var(--ink3);text-transform:uppercase;letter-spacing:.04em;}
+.bl93-own{font-style:normal;font-size:10.5px;color:#9cc3ff;border:1px solid rgba(77,163,255,.4);border-radius:6px;padding:0 5px;margin-left:4px;white-space:nowrap;}
+.bl93-e{font-style:normal;font-size:10.5px;color:#fcd34d;margin-left:3px;}
+.bl93-more{margin-top:10px;}
+/* Co-Trainer-Knopf weicht beim Scrollen aus */
+.trfab{transition:transform .22s ease,opacity .22s ease;}
+.trfab.trfab-weg{transform:translateY(140%);opacity:0;pointer-events:none;}
+@media (prefers-reduced-motion:reduce){ .trfab{transition:none;} }
 
 </style>
 <style id="v3gate">
@@ -3320,6 +3350,7 @@ a.kbtn{text-decoration:none;display:inline-block}
   <section class="panel" id="panel-gegner"></section>
   <section class="panel" id="panel-totw"></section>
   <section class="panel" id="panel-eye"></section>
+  <section class="panel" id="panel-best"></section>
   <section class="panel" id="panel-verein"></section>
   <section class="panel" id="panel-radar"></section>
   <section class="panel" id="panel-admin"></section>
@@ -3343,9 +3374,9 @@ a.kbtn{text-decoration:none;display:inline-block}
 
 
 <div class="overlay" id="overlay"><div class="modal" id="modal"></div></div>
-<script>window.SVBC_CFG={"url": "https://lvaukuzgcwgqipxwzabo.supabase.co", "anon": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imx2YXVrdXpnY3dncWlweHd6YWJvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTAxNTYwMTcsImV4cCI6MjEwNTczMjAxN30.jYZF8q8-SyCaWykM0wwcK58EzfTbO2VASKz1NIv1xbo", "build": "beta-0.9.1", "dataBytes": 3053230};</script>
-<script src="vendor/supabase.js?v=beta-0.9.1"></script>
-<script src="icons.js?v=beta-0.9.1"></script>
-<script src="boot.js?v=beta-0.9.1"></script>
+<script>window.SVBC_CFG={"url": "https://lvaukuzgcwgqipxwzabo.supabase.co", "anon": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imx2YXVrdXpnY3dncWlweHd6YWJvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTAxNTYwMTcsImV4cCI6MjEwNTczMjAxN30.jYZF8q8-SyCaWykM0wwcK58EzfTbO2VASKz1NIv1xbo", "build": "beta-0.10", "dataBytes": 3053230};</script>
+<script src="vendor/supabase.js?v=beta-0.10"></script>
+<script src="icons.js?v=beta-0.10"></script>
+<script src="boot.js?v=beta-0.10"></script>
 </body>
 </html>
