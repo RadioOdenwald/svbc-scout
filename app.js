@@ -2100,7 +2100,7 @@ function openSlotPicker(i,depth){
 }
 
 /* ===== App-Modus: installierbar, offline-fest, aktualisiert sich selbst ===== */
-const APP_BUILD='beta-0.10.2', OUTBOX_KEY='svbcOutbox', APP_HIDE_KEY='svbcInstallHide';
+const APP_BUILD='beta-0.10.3', OUTBOX_KEY='svbcOutbox', APP_HIDE_KEY='svbcInstallHide';
 let _appPrompt=null, _appNew=null, _obT=null;
 function appStandalone(){ try{ return !!(window.matchMedia&&matchMedia('(display-mode: standalone)').matches)||navigator.standalone===true; }catch(e){ return false; } }
 function appPlatform(){
@@ -4220,12 +4220,12 @@ async function trChatSend(text){
   }
   if(TR.ai&&TR.ai.ready){
     try{ const hist=TR.chat.filter(m=>!m.local||m.role==='user').slice(-12).map(m=>({role:m.role,content:m.content+(m.actions&&m.actions.length?'\n[Vorschläge: '+m.actions.map(a=>a.type+(a.done?' · eingetragen':a.skip?' · verworfen':' · offen')).join(', ')+']':'')}));
-      const body={messages:hist}; if(att.imgs.length)body.bilder=att.imgs.map(i=>({mt:i.mt,data:i.data})); if(att.file)body.datei={name:att.file.name,text:att.file.text};
+      const body={messages:hist}; try{ const F=typeof svSpielerAntwort==='function'?svSpielerAntwort(text):null; if(F)body.fakten=F; }catch(e){} if(att.imgs.length)body.bilder=att.imgs.map(i=>({mt:i.mt,data:i.data})); if(att.file)body.datei={name:att.file.name,text:att.file.text};
       const {data,error}=await SVB.sb.functions.invoke('coach',{body});
       if(error)throw error;
       if(data&&data.ok)reply={role:'assistant',content:data.text||(data.actions&&data.actions.length?'Hab ich so verstanden. Passt das?':'…'),actions:data.actions||[],weiter:data.weiter||null};
-      else if(data&&data.error&&data.error!=='kein-schluessel')reply={role:'assistant',content:'⚠️ '+data.error+'\n\nIch versuche es im einfachen Modus:',local:true};
-    }catch(e){ reply=null; }
+      else if(data&&data.error&&data.error!=='kein-schluessel')reply={role:'assistant',content:'',local:true,hinweis:typeof svKiFehler==='function'?svKiFehler(data.error):data.error};
+    }catch(e){ reply={role:'assistant',content:'',local:true,hinweis:'Die KI ist gerade kurz nicht erreichbar.'}; }
   }
   if((!reply||reply.local)&&att.file&&TRS.isWhatsApp(att.file.text)){
     const W=TRS.parseWhatsApp(att.file.text,vrPeople(),trToday(),21);
@@ -4239,9 +4239,9 @@ async function trChatSend(text){
     let content, actions=P.actions;
     if(PK&&!PK.actions.length&&PK.miss.length&&!(PK.ambig||[]).length&&!actions.length){ TR.chatBusy=false; TR.chat.push({role:'assistant',local:true,content:'Zu wem gehört die Nummer bzw. E-Mail? Schreib bitte den Namen dazu, z. B. „Max Mustermann 0171 1234567“.'}); trChatDraw(); return; }
     if(PK&&PK.ambig&&PK.ambig.length&&!PK.actions.length)P.ambig=PK.ambig;
-    if(P.ambig&&P.ambig.length){ content=(reply?reply.content+'\n':'')+P.ambig.map(a=>`Welchen meinst du mit „${a.k.replace(/^\w/,c=>c.toUpperCase())}“: ${a.names.join(', ')}?`).join('\n')+(actions.length?'\n\nDen Rest habe ich schon vorbereitet:':' Schreib bitte den vollen Namen.'); }
-    else if(actions.length){ content=(reply?reply.content+'\n':'')+'Verstanden, so würde ich es eintragen:'+(P.warn?'\n⚠️ '+P.warn:''); }
-    else { const ans=TRC.answer(text,sq,TR.st,trToday()); content=(reply?reply.content+'\n':'')+(ans||'Das habe ich nicht verstanden. Im einfachen Modus verstehe ich Sätze wie „Max und Tim waren heute nicht da (Arbeit), Tom hat eine Zerrung, drei Wochen“ oder Fragen wie „Ist Tom wieder fit?“.'+(TR.ai&&TR.ai.ready?'':' Für freie Fragen und Aufstellungs-Tipps kann der Admin die KI einschalten.')); }
+    if(P.ambig&&P.ambig.length){ content=(reply&&reply.content?reply.content+'\n':'')+P.ambig.map(a=>`Welchen meinst du mit „${a.k.replace(/^\w/,c=>c.toUpperCase())}“: ${a.names.join(', ')}?`).join('\n')+(actions.length?'\n\nDen Rest habe ich schon vorbereitet:':' Schreib bitte den vollen Namen.'); }
+    else if(actions.length){ content=(reply&&reply.content?reply.content+'\n':'')+'Verstanden, so würde ich es eintragen:'+(P.warn?'\n⚠️ '+P.warn:''); }
+    else { const ans=(typeof svSpielerAntwort==='function'&&svSpielerAntwort(text))||TRC.answer(text,sq,TR.st,trToday()); content=(reply&&reply.content?reply.content+'\n':'')+(ans?ans+(reply&&reply.hinweis?'\n\n'+reply.hinweis+' Das ist die Antwort aus den Daten der App.':''):(reply&&reply.hinweis?reply.hinweis+' Bitte gleich noch einmal fragen. ':'')+'Das habe ich nicht verstanden. Im einfachen Modus verstehe ich Sätze wie „Max und Tim waren heute nicht da (Arbeit), Tom hat eine Zerrung, drei Wochen“ oder Fragen wie „Ist Tom wieder fit?“.'+(TR.ai&&TR.ai.ready?'':' Für freie Fragen und Aufstellungs-Tipps kann der Admin die KI einschalten.')); }
     reply={role:'assistant',content,actions,local:true};
   }
   TR.chatBusy=false; TR.chat.push(reply); trChatDraw();
@@ -4977,7 +4977,7 @@ async function svBrief(){
   if(SVA.briefBusy)return; SVA.briefBusy=true; const b=document.getElementById('svBriefBtn'); if(b){ b.disabled=true; b.textContent='Denkt nach …'; }
   { const ex=document.querySelector('#svCockpit .svc-brief'), ac=document.querySelector('#svCockpit .svc-acts'); const ld='<div class="svc-brief load44"><b>'+SVI('chat')+' Lagebild des Co-Trainers</b><div class="svc-bt">Der Co-Trainer schaut sich gerade Kader, Training und Radar an. Das dauert ein paar Sekunden.</div></div>'; if(ex)ex.outerHTML=ld; else if(ac)ac.insertAdjacentHTML('afterend',ld); }
   try{ const {data,error}=await SVB.sb.functions.invoke('coach',{body:{mode:'lagebild'}}); if(error)throw error;
-    if(!data||!data.ok)throw new Error(data&&data.error==='kein-schluessel'?'KI ist nicht eingerichtet':(data&&data.error)||'keine Antwort');
+    if(!data||!data.ok)throw new Error(data&&data.error==='kein-schluessel'?'KI ist nicht eingerichtet':(data&&data.error&&(typeof svKiFehler==='function'?svKiFehler(data.error):data.error))||'keine Antwort');
     if(!String(data.text||'').trim())throw new Error('Der Co-Trainer hat gerade nichts geliefert. Bitte gleich nochmal tippen.');
     SVA.brief={text:data.text,when:(data.cached?'von heute ':'')+new Date().toLocaleTimeString('de-DE',{hour:'2-digit',minute:'2-digit'})+' Uhr',neu:true}; }
   catch(e){ kToast('⚠️ '+(e.message||e)); }
@@ -5362,7 +5362,7 @@ async function spAi(f,X){
     `Verletzt bei uns: ${X.inj.map(p=>p.name).join(', ')||'niemand'}. Unsere Torschützen: ${X.ourTop.map(p=>p.name+' '+p.cur.tore).join(', ')||'–'}.`,
     `Bisherige Duelle: ${X.h2h.map(h=>`${h.heim} ${h.tore_heim}:${h.tore_gast} ${h.gast}`).join('; ')||'keine erfasst'}.`].join('\n');
   try{ const {data,error}=await SVB.sb.functions.invoke('coach',{body:{mode:'gegner',gegner:{fixture:f.id,fakten,neu:!!SP.ai[f.id]}}}); if(error)throw error;
-    if(!data||!data.ok)throw new Error(data&&data.error==='kein-schluessel'?'KI ist nicht eingerichtet':(data&&data.error)||'keine Antwort'); SP.ai[f.id]=data.text; }
+    if(!data||!data.ok)throw new Error(data&&data.error==='kein-schluessel'?'KI ist nicht eingerichtet':(data&&data.error&&(typeof svKiFehler==='function'?svKiFehler(data.error):data.error))||'keine Antwort'); SP.ai[f.id]=data.text; }
   catch(e){ kToast('⚠️ '+(e.message||e)); }
   SP.aiBusy=false; spRender();
 }
@@ -11464,6 +11464,32 @@ if(typeof SV50_INFO!=='undefined')SV50_INFO.best={w:'Die besten Spieler je Posit
 function bl93FabO(){ const b=document.getElementById('trFab'); if(!b)return; const y=window.scrollY||0, o=Math.max(0.2,1-Math.max(0,y-80)/900*0.8); b.style.setProperty('--fab-o',o.toFixed(2)); }
 window.addEventListener('scroll',bl93FabO,{passive:true});
 { const _gt93f=goTab; goTab=function(){ const r=_gt93f.apply(this,arguments); try{ bl93FabO(); }catch(e){} return r; }; }
+
+/* ---------- Co-Trainer ohne KI: „Wie gut ist …?“ direkt aus den Daten beantworten ---------- */
+function svKiFehler(code){ if(code==='ki-weg')return 'Die KI ist gerade kurz nicht erreichbar.'; if(code==='schluessel')return 'Der KI-Schlüssel wird nicht akzeptiert. Der Admin prüft ihn unter Verwaltung.'; return code; }
+function sv93Norm(s){ return String(s||'').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/ß/g,'ss'); }
+function sv93Niveau(v){ const L=[['GL','Stammspieler der Gruppenliga'],['KOL','Stammspieler der Kreisoberliga'],['A','Stammspieler der Kreisliga A'],['B','Stammspieler der Kreisliga B'],['C','Stammspieler der Kreisliga C'],['D','Stammspieler der Kreisliga D']];
+  if(v>=SV94_NIVEAU.GL+6)return 'Spitze der Region, über dem Niveau eines Gruppenliga-Stammspielers'; for(const [l,t] of L){ if(v>=SV94_NIVEAU[l]-3)return 'etwa auf dem Niveau eines '+t.replace('Stammspieler','Stammspielers'); } return 'unter dem Niveau eines Stammspielers der Kreisliga D'; }
+function svSpielerAntwort(text){
+  const t=sv93Norm(text);
+  if(!/(wie gut|wie stark|starke|staerke|rating|mscore|bewert|was haltst|was haeltst|was taugt|einschatz|einschaetz|potenzial|potential|was kann|wie ist .* (drauf|einzuschatzen)|niveau)/.test(t))return null;
+  if(typeof players==='undefined')return null;
+  let hits=players.filter(p=>p.name&&p.name.length>4&&t.includes(sv93Norm(p.name)));
+  if(!hits.length){ const W=new Set(t.match(/[a-z\-]{3,}/g)||[]); hits=players.filter(p=>p.name&&W.has(sv93Norm(p.name.split(' ').pop()))); }
+  if(!hits.length)return null;
+  const own=hits.filter(p=>p.own); if(own.length)hits=own;
+  if(hits.length>1){ const L=hits.slice(0,5).map(p=>`${p.name} (${(p.cur&&p.cur.club)||p.club||'?'})`); return `Meinst du ${L.slice(0,-1).join(', ')} oder ${L[L.length-1]}? Schreib bitte den vollen Namen.`; }
+  const p=hits[0], s=scores(p), S=s&&s.m4; if(!s)return null;
+  const n=v=>sv4Num(v,1), club=(p.cur&&p.cur.club)||p.club||'', kopf=[p.pos,p.alter!=null?p.alter+' J.':null,club].filter(Boolean).join(', ');
+  const z=[`${p.name}${kopf?' ('+kopf+')':''}: Spielstärke ${n(s.total)}, ${sv93Niveau(s.total)}.`];
+  if(S&&S.pot!=null&&S.pot-s.total>=1)z.push(`Potenzial ${n(S.pot)}.`);
+  if(S&&S.prog!=null&&Math.abs(S.prog-s.total)>=0.5&&S.man==null)z.push(`Prognose ${sv94Next()}: ${n(S.prog)}${S.rate<0?', das Alter kostet langsam Tempo':''}.`);
+  if(S&&S.ev&&S.ev.length){ z.push('Grundlage: '+S.ev.map(e=>`${e.y} ${sv94LN(e.lv)}${e.n?', '+e.n+' Spiele':''}${e.tore?', '+e.tore+' Tore':''} (Wert ${n(e.Eh)}, zählt ${Math.round((e.anteil||0)*100)} %)`).join('; ')+'.'); }
+  if(S&&S.eye!=null)z.push(`Eye-Test ${Math.round(S.eye)} aus ${S.en} Bewertung${S.en>1?'en':''}.`); else z.push('Noch kein Eye-Test, der würde den Wert deutlich schärfen.');
+  if(S&&S.man!=null)z.push('Der Wert ist von der Sportlichen Leitung festgelegt (Insider-Rating).');
+  z.push(`Datenbasis ${s.basis} %. Die ganze Rechnung steht im Profil unter MScore.`);
+  return z.join(' ');
+}
 
 /* =====================================================================
    SV/BSC Scout · Runde 20: „Was ist neu“: Update-Fenster & Patch-Historie
